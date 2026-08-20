@@ -25,15 +25,42 @@ Tiene dos usos y son el mismo código:
 pip install -r validador/requirements.txt
 ```
 
-Credenciales — **de solo lectura**, nunca en el repositorio:
+## Credenciales
+
+**De solo lectura, y nunca en el repositorio.**
 
 ```bash
 cp validador/db_connections.example.yaml validador/db_connections.yaml
 ```
 
-Llenar host, base y usuario. La contraseña se toma preferentemente de una
-variable de ambiente (`password_env`), no del archivo. `db_connections.yaml`
-está en `.gitignore`.
+Se busca `db_connections.yaml` en dos lugares, en este orden:
+
+1. `validador/db_connections.yaml`
+2. `db_connections.yaml` en la raíz del repo — la convención que ya usaba
+   `40_validaciones/comparadores/fase1_isr_runner.py`
+
+Se aceptan **las dos formas** del archivo: con la llave `cores:` (la del
+validador) y sin ella (la previa, con `aurum:` y `openfin:` al primer nivel).
+Aceptar ambas evita el fallo más tonto posible: credenciales correctas y un
+"no hay conexión configurada" por la sangría del archivo. También se admite un
+DSN completo por ambiente: `AC_DSN` y `OF_DSN`.
+
+La contraseña se toma preferentemente de una variable de ambiente
+(`password_env`), no del archivo. Ambas rutas están en `.gitignore`, y hay una
+prueba que falla si alguna vez quedan versionadas.
+
+### Prueba de vuelo previa
+
+```bash
+python cli.py --probar-conexion
+```
+
+No corre ningún caso ni lee datos de clientes. Conecta en solo lectura y
+responde: a qué base, con qué usuario, si es la réplica, y si el servidor
+**rechaza** una escritura. Esto último lo comprueba de verdad —intenta crear
+una tabla temporal y verifica que falle—, porque confiar en que la sesión es
+de solo lectura sin comprobarlo es el tipo de supuesto que este proyecto no
+acepta.
 
 ---
 

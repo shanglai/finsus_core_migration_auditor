@@ -182,6 +182,66 @@ def _normalizar(valor: Any) -> Any:
     return valor
 
 
+def conectar(cfg: dict[str, Any]):
+    """Abre la conexion. Acepta DSN completo o parametros sueltos."""
+    import psycopg2
+
+    if cfg.get("dsn"):
+        return psycopg2.connect(cfg["dsn"])
+    kw = {k: cfg[k] for k in ("host", "port", "dbname", "user", "password", "sslmode")
+          if k in cfg}
+    return psycopg2.connect(**kw)
+
+
+def probar_conexion(core: str, conexiones: dict | None = None) -> dict[str, Any]:
+    """Prueba de vuelo previa: conecta en SOLO LECTURA y describe el destino.
+
+    No corre ningun caso. Sirve para responder, antes de auditar nada:
+    ¿a que base estoy pegado, con que usuario, es la replica, y estoy
+    realmente en solo lectura?
+
+    Ademas INTENTA una escritura trivial y verifica que el servidor la
+    rechace. Confiar en que la sesion es de solo lectura sin comprobarlo es
+    justo el tipo de supuesto que este proyecto no acepta.
+    """
+    conexiones = conexiones if conexiones is not None else config.cargar_conexiones()
+    cfg = config.config_core(core, conexiones)
+    info: dict[str, Any] = {"core": core}
+
+    conn = conectar(cfg)
+    try:
+        conn.set_session(readonly=True, autocommit=False)
+        with conn.cursor() as cur:
+            cur.execute("SET default_transaction_read_only = on")
+            cur.execute(
+                "SELECT current_database(), current_user, version(), "
+                "pg_is_in_recovery(), current_setting('transaction_read_only'), now()"
+            )
+            db, usuario, version, en_replica, solo_lectura, ahora = cur.fetchone()
+            info.update({
+                "base": db, "usuario": usuario,
+                "servidor": version.split(",")[0],
+                "es_replica": bool(en_replica),
+                "solo_lectura": solo_lectura == "on",
+                "hora_servidor": ahora.isoformat(),
+            })
+
+        # Comprobacion activa: la escritura debe fallar.
+        try:
+            with conn.cursor() as cur:
+                cur.execute("CREATE TEMP TABLE _validador_prueba_escritura (x int)")
+            info["escritura_bloqueada"] = False
+        except Exception as exc:  # noqa: BLE001 — que falle es el resultado deseado
+            info["escritura_bloqueada"] = True
+            info["error_escritura"] = type(exc).__name__
+        finally:
+            conn.rollback()
+    finally:
+        conn.rollback()
+        conn.close()
+    return info
+
+
 def ejecutar(
     core: str,
     statements: Sequence[str],
@@ -199,13 +259,10 @@ def ejecutar(
     limite = max_filas or config.limite_filas(conexiones)
     timeout = statement_timeout_ms or int(cfg.get("statement_timeout_ms", 300_000))
 
-    kw = {k: cfg[k] for k in ("host", "port", "dbname", "user", "password", "sslmode")
-          if k in cfg}
-
     for s in statements:
         asegurar_solo_lectura(s, archivo)
 
-    conn = psycopg2.connect(**kw)
+    conn = conectar(cfg)
     tablas: list[pl.DataFrame] = []
     conteos: list[int] = []
     try:

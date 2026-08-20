@@ -255,6 +255,61 @@ def menu(casos: dict[str, cat.Caso]) -> int:
 
 # ---------------------------------------------------------------------------
 
+def probar_conexion() -> int:
+    """Prueba de vuelo previa: a que base me voy a pegar y en que modo."""
+    from engine import extract
+
+    ruta = config.ruta_conexiones()
+    print("\nPRUEBA DE CONEXION — no corre ningun caso, no lee datos de clientes.\n")
+    if ruta is None:
+        print("[X] No se encontro db_connections.yaml. Se busco en:")
+        for u in config.UBICACIONES_CONEXIONES:
+            print(f"      {u}")
+        print(f"\n    Plantilla: {config.ARCHIVO_CONEXIONES_EJEMPLO}")
+        print("    El usuario de base DEBE ser un rol de SOLO LECTURA.")
+        return 2
+
+    print(f"  credenciales: {ruta}")
+    conexiones = config.cargar_conexiones()
+    cores = sorted((conexiones.get("cores") or {}))
+    if not cores:
+        print("[X] El archivo no declara ningun core (se esperaba 'aurum' u 'openfin').")
+        return 2
+
+    problemas = 0
+    for core in cores:
+        print(f"\n  --- {core} ---")
+        try:
+            info = extract.probar_conexion(core, conexiones)
+        except Exception as exc:  # noqa: BLE001
+            print(f"    [X] {type(exc).__name__}: {exc}")
+            problemas += 1
+            continue
+        print(f"    base           : {info['base']}")
+        print(f"    usuario        : {info['usuario']}")
+        print(f"    servidor       : {info['servidor']}")
+        print(f"    hora servidor  : {info['hora_servidor']}")
+        print(f"    replica        : {'si' if info['es_replica'] else 'NO — es primaria'}")
+        print(f"    solo lectura   : {'si' if info['solo_lectura'] else 'NO'}")
+        print(f"    escritura      : {'bloqueada' if info['escritura_bloqueada'] else 'PERMITIDA'}")
+
+        if not info["escritura_bloqueada"]:
+            problemas += 1
+            print("    [!] El servidor ACEPTO una escritura. El VALIDADOR nunca escribe, pero")
+            print("        el rol de base deberia ser de solo lectura: la defensa de la")
+            print("        aplicacion no sustituye a la del servidor.")
+        if not info["es_replica"]:
+            print("    [!] No es una replica. NORTE_VALIDACION §0 indica apuntar a la REPLICA,")
+            print("        no al T-1 ni a la primaria.")
+
+    limite = config.limite_filas(conexiones)
+    print(f"\n  cota de extraccion: {limite:,} filas por consulta "
+          f"(si se excede, la corrida ABORTA en vez de truncar)")
+    print(f"  warehouse local   : {config.ruta_warehouse()}")
+    print()
+    return 1 if problemas else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         prog="cli.py",
@@ -279,7 +334,12 @@ def main(argv: list[str] | None = None) -> int:
                     help="regenera reportes/cobertura.md y lo imprime")
     ap.add_argument("--autopruebas", action="store_true",
                     help="corre la bateria de tests (sin base de datos)")
+    ap.add_argument("--probar-conexion", action="store_true",
+                    help="conecta a cada core en solo lectura y describe el destino; no corre ningun caso")
     args = ap.parse_args(argv)
+
+    if args.probar_conexion:
+        return probar_conexion()
 
     if args.autopruebas:
         import subprocess

@@ -1,8 +1,22 @@
 # Plantilla de conexiones del VALIDADOR.
 #
-# 1. Copiar a  validador/db_connections.yaml
+# 1. Copiar a  validador/db_connections.yaml   (o a la raiz del repo: se
+#    admiten las dos ubicaciones, en ese orden de preferencia)
 # 2. Llenar con credenciales de SOLO LECTURA
 # 3. db_connections.yaml esta en .gitignore — NUNCA se versiona
+# 4. Comprobar antes de auditar nada:   python cli.py --probar-conexion
+#
+# TAMBIEN se acepta la forma sin la llave `cores:` (la que ya usaba
+# 40_validaciones/comparadores/fase1_isr_runner.py):
+#
+#     aurum:
+#       host: ...
+#       dbname: aurumcore
+#     openfin:
+#       host: ...
+#       dbname: openfin_aurum
+#
+# Y un DSN completo por ambiente: AC_DSN (aurum) / OF_DSN (openfin).
 #
 # El motor abre cada sesion con:
 #     SET default_transaction_read_only = on;
