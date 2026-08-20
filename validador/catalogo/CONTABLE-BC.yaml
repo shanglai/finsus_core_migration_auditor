@@ -1,0 +1,42 @@
+id: CONTABLE-BC
+titulo: Doble partida y amarre auxiliar contra balanza (tolerancia 0.00)
+motor: CTB
+dominio: CTB
+regla_ref: [K-CTB-001]
+severidad: 1
+tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
+
+parametros:
+  - {nombre: fecha_ini, tipo: fecha, requerido: true}
+  - {nombre: fecha_fin, tipo: fecha, requerido: true}
+
+extraccion:
+  aurum: PENDIENTE
+
+oraculo: PENDIENTE
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: doble_partida
+  llaves: [poliza_id]
+  columna_a: suma_cargos
+  columna_b: suma_abonos
+  fuente_b: aurum
+
+identidad: >-
+  Familia B: por poliza, suma de cargos == suma de abonos, exacto. Familia C: el
+  auxiliar por producto/movimiento-dia amarra con la balanza, exacto. Tolerancia
+  0.00 sin excepcion: una identidad contable no admite centavos.
+
+matriz_esperada: >-
+  Cualquier violacion es severidad 1. No hay lectura benigna de una balanza que no
+  cuadra.
+
+estado: PENDIENTE
+estado_origen: "NORTE_VALIDACION.md §1 CTB: matriz documentada, invariantes pendientes"
+bloqueo: >-
+  Falta la consulta parametrizada. consultas_validacion.sql tiene el catalogo
+  integral (§0 a §6) pero como consultas sueltas de exploracion, no como
+  identidades acotadas por ventana. Convertirlas es trabajo de extraccion, no de
+  regla: K-CTB-001 ya documenta la matriz tipo_mov -> cuenta.
+cobertura_nota: "Familias B y C sin construir. Es el hueco mas grande del catalogo en severidad 1."

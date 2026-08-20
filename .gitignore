@@ -1,0 +1,72 @@
+# =============================================================================
+# .gitignore — auditoria de migracion de core
+#
+# Criterio: al remoto va el CONOCIMIENTO y el CODIGO (lo que hace auditable el
+# trabajo). NO van los DATOS FUENTE (lo que contiene PII de clientes y volumen).
+#
+# Las dos razones, y ninguna es preferencia de estilo:
+#
+#   1. PRIVACIDAD. REGISTRO_FUENTES.md ("Marca de confidencialidad") advierte
+#      que F-002..F-010 traen nombres de empleados, URLs internas y, en F-010,
+#      DATOS PERSONALES DE UN CLIENTE. Verificado 2026-08-20: el derivado
+#      "ISR - Caso 100-10-233102.extract.txt" contiene nombre completo del
+#      titular junto con su ID de cliente, cuentas y saldos. Eso no sale del
+#      equipo. El historial de git es permanente: lo que se sube una vez ya no
+#      se puede "desubir".
+#
+#   2. TAMANO. 20_fuentes/ pesa ~1.5 GB e incluye archivos de 417 MB, 167 MB y
+#      161 MB. GitHub rechaza cualquier archivo de mas de 100 MB: el push
+#      fallaria de todos modos.
+#
+# Las fuentes se conservan LOCALMENTE y son la cadena probatoria. Su respaldo
+# va por el canal que Finsus autorice, no por este repositorio.
+# =============================================================================
+
+# --- Credenciales — NUNCA versionar ----------------------------------------
+db_connections.yaml
+validador/db_connections.yaml
+*.pgpass
+.env
+.env.*
+utils/extraccion_aurum/
+utils/extraccion_openfin/
+
+# --- Datos fuente: PII de clientes y binarios pesados ----------------------
+# Se versiona el REGISTRO (que dice que existe cada fuente y su sha256),
+# no el contenido de la fuente.
+20_fuentes/datos/
+20_fuentes/docs/
+20_fuentes/v2t/
+20_fuentes/diagramas/
+!20_fuentes/**/.gitkeep
+!20_fuentes/REGISTRO_FUENTES.md
+
+# --- Resultados intermedios con cohortes de clientes reales ----------------
+40_validaciones/_resultados/
+!40_validaciones/_resultados/REPORTE_FASE1_ISR.md
+!40_validaciones/_resultados/REPORTE_SET_DESVIACION_ISR.md
+
+# --- Salidas del VALIDADOR (se regeneran; traen filas de clientes) ---------
+validador/datos/
+validador/reportes/*/
+!validador/reportes/.gitkeep
+*.duckdb
+*.duckdb.wal
+
+# --- Python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+env/
+*.egg-info/
+
+# --- Sistema operativo y editores ------------------------------------------
+Thumbs.db
+desktop.ini
+.DS_Store
+.idea/
+.vscode/
+*.swp
+~$*

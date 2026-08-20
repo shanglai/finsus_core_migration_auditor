@@ -1,0 +1,61 @@
+id: ISR-02
+titulo: Descuadre OpenFin vs AurumCore = diferencia de MODELO (devengo vs pago)
+motor: FIS
+dominio: FIS
+regla_ref: [K-FIS-003, K-FIS-004, K-FIS-001]
+severidad: 2
+tolerancia: {tipo: redondeo, max_evento: "0.02", prueba_sesgo: true, alfa_sesgo: "0.01"}
+
+parametros:
+  - {nombre: cohorte_of, tipo: lista_llaves_of, requerido: true,
+     nota: "(id_sucursal, id_role, id_asociado) — la llave de cliente en OpenFin"}
+  - {nombre: fecha_ini, tipo: fecha, requerido: true}
+  - {nombre: fecha_fin, tipo: fecha, requerido: true, nota: "exclusiva"}
+  - {nombre: anio_causacion, tipo: entero, default: 2026}
+  - {nombre: uma_anual, tipo: decimal, default: "42794.64"}
+  - {nombre: tasa_anual, tipo: decimal, default: "0.9"}
+  - {nombre: multiplicador_uma, tipo: decimal, default: "5"}
+  - {nombre: dias_anio, tipo: decimal, default: "365"}
+  - {nombre: modo_final, tipo: texto, default: "Round2"}
+
+extraccion:
+  openfin: 40_validaciones/extraccion/openfin_isr_diario.sql
+  aurum: PENDIENTE
+
+oraculo: oraculos/isr.py::fila_isr_devengo_diario
+universo:
+  sql: |
+    -- El motor bajo prueba aqui es OpenFin, no AurumCore.
+    SELECT id_cliente,
+           fecha,
+           saldo_base_of AS saldo_base,
+           isr_dia_of
+    FROM isr_02_openfin
+
+comparacion:
+  tipo: igualdad_montos
+  llaves: [id_cliente, fecha]
+  columna_b: isr_dia_of
+  columna_c: isr_devengo_oraculo
+  fuente_b: openfin
+
+identidad: >-
+  Para cada cliente-dia: el ISR devengado que registra OpenFin == el devengo diario
+  que exige la norma, dentro de +/- 0.02. Si se cumple, el descuadre contra AurumCore
+  queda explicado como diferencia de MODELO (provision-devengo vs retencion-al-pago)
+  y no como defecto de calculo.
+
+matriz_esperada: >-
+  Este caso NO compara A contra B: contrasta el devengo de OpenFin contra el oraculo.
+  Cero violaciones aqui es la evidencia que sostiene la afirmacion "el descuadre es
+  de modelo". Violaciones aqui apuntarian a K-FIS-001 (ISR historico mal calculado).
+
+estado: VALIDADO
+estado_origen: "NORTE_VALIDACION.md §1 FIS: confirmado diferencia de MODELO"
+cobertura_nota: >-
+  Confirmado previamente con V2_isr_devengo_openfin.sql y fase1_isr_desviacion.py
+  (3,236/3,236). Este VALIDADOR aun no lo ha corrido.
+
+supuestos:
+  - "La base del devengo se toma de isr_diario.saldo (la que el propio OpenFin usa ese dia). Es un SALDO, no un calculo de ISR, pero reduce la independencia del contraste: si la base estuviera mal, el oraculo heredaria el error. Cerrarlo exige reconstruir el saldo desde las tablas de cuentas de OpenFin."
+  - "La tolerancia es 0.02 y no 0.01 porque V2 compara contra un round() de PostgreSQL en la ventana de transicion de UMA (feb)."

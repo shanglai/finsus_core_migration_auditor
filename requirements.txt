@@ -1,0 +1,29 @@
+# Auditor de migracion de core — dependencias de Python
+#
+# Instalacion desde tu venv:
+#     pip install -r requirements.txt
+#
+# Cubre el VALIDADOR (validador/) y los comparadores previos
+# (40_validaciones/comparadores/). Probado con Python 3.14.
+
+# --- Datos: mover y cruzar -------------------------------------------------
+# Polars y DuckDB SOLO mueven y cruzan datos (joins, set-diff, conteos).
+# NO recalculan dinero: esa ruta va en decimal.Decimal, en Python.
+polars>=1.0
+duckdb>=1.0
+
+# --- Conexion a los cores (SOLO LECTURA) -----------------------------------
+psycopg2-binary>=2.9
+
+# --- Catalogo de casos -----------------------------------------------------
+PyYAML>=6.0
+
+# --- Autopruebas -----------------------------------------------------------
+# python validador/cli.py --autopruebas
+pytest>=8.0
+
+# --- Opcional: extraccion de fuentes a texto derivado ----------------------
+# Solo hace falta para regenerar 20_fuentes/**/_derivados/*.extract.txt
+# (openpyxl para .xlsx, pypdf para .pdf). Descomentar si se necesita.
+# openpyxl>=3.1
+# pypdf>=6.0

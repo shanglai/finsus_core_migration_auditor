@@ -1,0 +1,42 @@
+id: CRED-IO
+titulo: Interes ordinario y moratorio de credito One Click
+motor: COL
+dominio: COL
+regla_ref: [K-COL-001, P-006]
+severidad: 1
+tolerancia: {tipo: redondeo, max_evento: "0.01", prueba_sesgo: true, alfa_sesgo: "0.01"}
+
+parametros:
+  - {nombre: cohorte, tipo: lista_cuentas, requerido: true}
+  - {nombre: fecha_ini, tipo: fecha, requerido: true}
+  - {nombre: fecha_fin, tipo: fecha, requerido: true}
+
+extraccion:
+  aurum: PENDIENTE
+
+oraculo: PENDIENTE
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: igualdad_montos
+  llaves: [credito, periodo]
+  columna_b: interes_posteado
+  columna_c: interes_oraculo
+  fuente_b: aurum
+
+identidad: >-
+  Para cada periodo de cada credito: C(oraculo desde la regla de devengamiento) ==
+  B(interes ordinario/moratorio posteado), dentro de +/- 0.01 y sin sesgo.
+
+matriz_esperada: "B == C obligatorio, una vez que exista la regla."
+
+estado: PENDIENTE
+estado_origen: "NORTE_VALIDACION.md §1 CAP/COL: regla pendiente (P-006 @00:52:12)"
+bloqueo: >-
+  FALTA LA REGLA. No hay pieza de conocimiento que documente el devengamiento de
+  One Click. Escribir el oraculo hoy exigiria leer como lo hace el core, que es
+  exactamente lo que el charter §9.1 prohibe. El desbloqueo es documental
+  (P-006), no tecnico.
+cobertura_nota: >-
+  La EXISTENCIA de creditos si cuadra 100% (arbol dia cero, K-COL-001). Lo que
+  falta es el CALCULO.

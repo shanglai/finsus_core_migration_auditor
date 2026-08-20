@@ -1,0 +1,49 @@
+id: REND-PLAZO
+titulo: Rendimiento de inversion a plazo fijo al centavo, periodo a periodo
+motor: DEV
+dominio: DEV
+regla_ref: [K-DEV-003, K-DEV-001]
+severidad: 1
+tolerancia: {tipo: redondeo, max_evento: "0.01", prueba_sesgo: true, alfa_sesgo: "0.01"}
+
+parametros:
+  - {nombre: cohorte, tipo: lista_cuentas, requerido: true, nota: "account_number '100-2301-X'"}
+  - {nombre: fecha_ini, tipo: fecha, requerido: true}
+  - {nombre: fecha_fin, tipo: fecha, requerido: true, nota: "exclusiva, sobre due_date"}
+  - {nombre: tasa, tipo: decimal, requerido: true,
+     nota: "porcentaje anual del producto. Si no se tiene a la mano se despeja del periodo 1: tasa = rend_1 * base / (capital * dias_1) * 100"}
+  - {nombre: dias_anio, tipo: decimal, default: "360",
+     nota: "base del producto: 360 comercial o 365/366 natural. En la muestra validada fueron 360 + dias reales de calendario."}
+
+extraccion:
+  aurum: validador/extraccion/aurum/rend_plazo_universo.sql
+  openfin: PENDIENTE
+
+oraculo: oraculos/rendimientos.py::fila_rendimiento_plazo
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: igualdad_montos
+  llaves: [cuenta, periodo]
+  columna_b: rend_posteado
+  columna_c: rend_oraculo
+  fuente_b: aurum
+
+identidad: >-
+  Para cada periodo del plan de pagos: C(oraculo, Ceil10/Ceil10/RoundHalfEven2) ==
+  B(iv_payment_plan.interest_amount), dentro de +/- 0.01 y sin sesgo de signo.
+
+matriz_esperada: >-
+  B == C obligatorio. Sin motor A: el cronograma de plazo es una estructura de
+  AurumCore y OpenFin no la lleva al mismo grano. La matriz corre "sin A".
+
+estado: VALIDADO
+estado_origen: "NORTE_VALIDACION.md §1 DEV 2.1.2: VALIDADO 775/775, pendiente escalar muestra"
+cobertura_nota: >-
+  775/775 periodos en 40 cuentas con V5_rendimiento_plazo.sql (una cuenta a la vez).
+  Esta consulta escala V5 a cohorte, que es justo el "escalar muestra" que pide el
+  NORTE. Este VALIDADOR aun no lo ha corrido a escala.
+
+supuestos:
+  - "La tasa entra como PARAMETRO porque el join a la tabla del producto sigue sin fijarse (nota de V5). Despejarla del periodo 1 y verificar que reproduce todos los demas es prueba fuerte pero NO sustituye leerla de su tabla: si la tasa configurada estuviera mal, el despeje la absorbe y el caso pasaria. Hueco declarado."
+  - "dias_anio se pasa como parametro unico para toda la cohorte. Si la muestra mezclara productos con bases distintas (360 y 365), las de la otra base apareceran como violaciones — correcto, pero hay que leerlo como mezcla de bases, no como defecto del motor."

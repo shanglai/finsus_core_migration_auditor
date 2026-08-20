@@ -1,0 +1,46 @@
+id: ISR-03
+titulo: Parametros de ISR configurados en el core = norma del anio de causacion
+motor: FIS
+dominio: FIS
+regla_ref: [K-FIS-004, S-FIS-001, C-001]
+severidad: 1
+tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
+
+parametros:
+  - {nombre: anio_causacion, tipo: entero, requerido: true, default: 2026,
+     nota: "La UMA cambia cada 1-feb y la tasa se fija anual en la LIF. Correr con el anio equivocado ES el defecto C-001."}
+
+extraccion:
+  aurum: validador/extraccion/aurum/parametros_fiscales.sql
+
+oraculo: oraculos/parametros_isr.py::fila_parametro_normativo
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: igualdad_montos
+  llaves: [parametro, fuente]
+  columna_b: valor_configurado
+  columna_c: valor_normativo
+  fuente_b: aurum
+
+identidad: >-
+  Cada parametro fiscal configurado en AurumCore == el valor que exige la norma del
+  anio de causacion, EXACTO (tolerancia 0.00). Un parametro fiscal no admite centavos
+  de holgura.
+
+matriz_esperada: >-
+  CASO-TRAMPA VIVO (charter §5, ultimo parrafo). Se ESPERA al menos una violacion:
+  C-001 documenta que system_configuration.yield.tax.exempt.amount = 206,367.60
+  (5 x UMA 2025) mientras el core APLICA 213,973.20 (5 x UMA 2026). Si esta corrida
+  sale limpia contra la norma 2026, el defecto esta en el VALIDADOR, no en el core:
+  el tooling estaria dejando pasar una discrepancia conocida.
+
+estado: VALIDADO
+estado_origen: "NORTE_VALIDACION.md §1 FIS: CERRADO (P-010); residuos personas morales y H-J"
+cobertura_nota: >-
+  P-010 cerrada contra la norma. La discrepancia config-vs-aplicado (C-001) sigue
+  ANALIZADA y sin escalar a Finsus. Este VALIDADOR aun no lo ha corrido.
+
+supuestos:
+  - "El mapeo nombre-del-parametro-en-el-core -> concepto normativo vive en oraculos/parametros_isr.py::CATALOGO_NORMATIVO. Un parametro fiscal fuera de ese mapeo NO se aprueba: se marca 'sin C' y aparece como violacion, para que nadie lo pierda de vista."
+  - "cat_tax se filtra por status no inactivo. Si el core marcara la vigencia de otra forma, la consulta traeria tasas historicas y el caso las exhibiria como violaciones."

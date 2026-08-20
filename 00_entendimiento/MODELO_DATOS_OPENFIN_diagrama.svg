@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="880" viewBox="0 0 1080 880" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1080" height="880" fill="#ffffff"/>
+
+  <!-- titulo + leyenda -->
+  <text x="36" y="40" font-size="21" font-weight="700" fill="#1f2933">Modelo de datos de OpenFin — hasta lo capturado (F-011)</text>
+  <text x="36" y="62" font-size="12" fill="#64748b">Core Legacy · PostgreSQL · fuente: narración F-011 + pantallas s009/s020</text>
+  <text x="700" y="34" font-size="11" fill="#334155">PK / FK = llave primaria / foránea</text>
+  <text x="700" y="50" font-size="11" fill="#334155"><tspan fill="#3f9e6f" font-weight="700">✓</tspan> = nombre visto en pantalla (s020)</text>
+  <text x="700" y="66" font-size="11" fill="#334155"><tspan font-style="italic" fill="#8a94a6">gris cursiva</tspan> = nombre conceptual (pendiente el describe, P-004)</text>
+
+  <!-- ===== asociados (CLIENTE) ===== -->
+  <rect x="380" y="95" width="300" height="112" rx="8" fill="#ffffff" stroke="#6b9bf2" stroke-width="1.6"/>
+  <path d="M380,111 a8,8 0 0 1 8,-8 h284 a8,8 0 0 1 8,8 v14 h-300 z" fill="#d6e4fb"/>
+  <text x="394" y="122" font-size="13" font-weight="700" fill="#1f2933">asociados  ·  CLIENTE</text>
+  <text x="394" y="146" font-size="11" fill="#1f2933"><tspan font-weight="700" fill="#3a6fd0">PK</tspan>  id_sucursal   ·  id_role  ·  id_asociado</text>
+  <text x="394" y="164" font-size="11" fill="#334155">estatus (1/2 onboarding · 3 · 4 · 5)</text>
+  <text x="394" y="188" font-size="10" font-style="italic" fill="#8a94a6">datos personales/corp → tabla directorio (fuera de alcance)</text>
+
+  <!-- directorio (fuera de alcance) -->
+  <rect x="740" y="95" width="300" height="56" rx="8" fill="#f4f6f9" stroke="#b6bfcc" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="756" y="118" font-size="12" font-weight="700" fill="#64748b">directorio</text>
+  <text x="756" y="136" font-size="10.5" fill="#8a94a6">datos personales / corporativos · fuera de alcance</text>
+
+  <!-- ===== acreedores (CAPTACION) ===== -->
+  <rect x="55" y="300" width="360" height="156" rx="8" fill="#ffffff" stroke="#56b487" stroke-width="1.6"/>
+  <path d="M55,316 a8,8 0 0 1 8,-8 h344 a8,8 0 0 1 8,8 v14 h-360 z" fill="#dcefe0"/>
+  <text x="69" y="327" font-size="13" font-weight="700" fill="#1f2933">acreedores  ·  CUENTAS CAPTACIÓN</text>
+  <text x="69" y="351" font-size="11" fill="#1f2933"><tspan font-weight="700" fill="#2f8f66">FK</tspan>  id_sucursal · id_role · id_asociado  <tspan fill="#8a94a6">(cliente)</tspan></text>
+  <text x="69" y="369" font-size="11" fill="#1f2933"><tspan font-weight="700" fill="#2f8f66">PK</tspan>  id_suc_aux · id_producto · id_auxiliar  <tspan fill="#8a94a6">(cuenta)</tspan></text>
+  <text x="69" y="387" font-size="11" fill="#334155">fecha_apertura (AP) · fecha_activacion</text>
+  <text x="69" y="405" font-size="11" fill="#334155">fecha_cancelacion · estatus (3/4/5)</text>
+  <text x="69" y="423" font-size="11" fill="#334155">saldo_inicial</text>
+  <text x="69" y="444" font-size="10" font-style="italic" fill="#8a94a6">+ tasas y campos por producto (con el describe)</text>
+
+  <!-- ===== deudores (CREDITO) ===== -->
+  <rect x="680" y="300" width="360" height="156" rx="8" fill="#ffffff" stroke="#56b487" stroke-width="1.6"/>
+  <path d="M680,316 a8,8 0 0 1 8,-8 h344 a8,8 0 0 1 8,8 v14 h-360 z" fill="#dcefe0"/>
+  <text x="694" y="327" font-size="13" font-weight="700" fill="#1f2933">deudores  ·  CUENTAS CRÉDITO</text>
+  <text x="694" y="351" font-size="11" fill="#1f2933"><tspan font-weight="700" fill="#2f8f66">FK</tspan>  id_sucursal · id_role · id_asociado</text>
+  <text x="694" y="369" font-size="11" fill="#1f2933"><tspan font-weight="700" fill="#2f8f66">PK</tspan>  id_suc_aux · id_producto · id_auxiliar</text>
+  <text x="694" y="387" font-size="11" fill="#334155">monto_entregado · tasa_io</text>
+  <text x="694" y="405" font-size="11" fill="#334155">plazo · dias_por_plazo · fecha_* · estatus</text>
+  <text x="694" y="426" font-size="10.5" font-weight="700" fill="#2f8f66">sólo producto 5004 (One Click) vive en Aurum</text>
+  <text x="694" y="444" font-size="10" font-style="italic" fill="#8a94a6">misma estructura que acreedores</text>
+
+  <!-- ===== detalle_auxiliar (MOVIMIENTOS) ===== -->
+  <rect x="205" y="560" width="365" height="156" rx="8" fill="#ffffff" stroke="#e0a94f" stroke-width="1.6"/>
+  <path d="M205,576 a8,8 0 0 1 8,-8 h349 a8,8 0 0 1 8,8 v14 h-365 z" fill="#fdeccc"/>
+  <text x="219" y="587" font-size="13" font-weight="700" fill="#1f2933">detalle_auxiliar  ·  MOVIMIENTOS</text>
+  <text x="219" y="611" font-size="11" fill="#1f2933"><tspan font-weight="700" fill="#b9822a">PK</tspan>  secuencia <tspan fill="#3f9e6f" font-weight="700">✓</tspan></text>
+  <text x="219" y="629" font-size="11" fill="#1f2933"><tspan font-weight="700" fill="#b9822a">FK</tspan>  id_suc_aux · id_producto · id_auxiliar</text>
+  <text x="219" y="647" font-size="11" fill="#334155">fecha <tspan fill="#3f9e6f" font-weight="700">✓</tspan> · hora <tspan fill="#3f9e6f" font-weight="700">✓</tspan> · periodo · id_poliza</text>
+  <text x="219" y="665" font-size="11" fill="#334155">cargo · abono · saldo (final, sin saldo anterior)</text>
+  <text x="219" y="683" font-size="11" fill="#334155">monto_io · monto_imp</text>
+  <text x="219" y="701" font-size="11" fill="#334155">referencia · folio_ticket</text>
+
+  <!-- ===== detalle_auxiliar_masdatos (EXT) ===== -->
+  <rect x="650" y="560" width="385" height="156" rx="8" fill="#ffffff" stroke="#e0a94f" stroke-width="1.6"/>
+  <path d="M650,576 a8,8 0 0 1 8,-8 h369 a8,8 0 0 1 8,8 v14 h-385 z" fill="#fdeccc"/>
+  <text x="664" y="587" font-size="13" font-weight="700" fill="#1f2933">detalle_auxiliar_masdatos  ·  EXT. MOVIMIENTO</text>
+  <text x="664" y="611" font-size="11" fill="#1f2933"><tspan font-weight="700" fill="#b9822a">PK/FK</tspan>  secuencia <tspan fill="#3f9e6f" font-weight="700">✓</tspan></text>
+  <text x="664" y="629" font-size="11" fill="#1f2933"><tspan font-weight="700" fill="#c0392b">id_external</tspan>  (llave cross-sistema)</text>
+  <text x="664" y="647" font-size="11" fill="#334155">tipo_transaccion (3=SPEI · 183=transf · 0=interna)</text>
+  <text x="664" y="665" font-size="11" fill="#334155">concepto · referencia</text>
+  <text x="664" y="683" font-size="11" fill="#334155">id_asociado · origen</text>
+  <text x="664" y="701" font-size="10" font-style="italic" fill="#8a94a6">“masacote” de campos, con nulos</text>
+
+  <!-- external note -->
+  <rect x="650" y="762" width="385" height="52" rx="8" fill="#fbeeec" stroke="#d98b80" stroke-width="1.2"/>
+  <text x="664" y="783" font-size="11" font-weight="700" fill="#c0392b">id_external → middleware / AurumCore (transaction_*)</text>
+  <text x="664" y="800" font-size="10.5" fill="#8a5049">llave 1:1 entre sistemas · garantizada sólo en SPEI · puede ser NULL</text>
+
+  <!-- ===== relaciones ===== -->
+  <!-- asociados -> acreedores -->
+  <path d="M470,207 L235,300" fill="none" stroke="#64748b" stroke-width="1.6"/>
+  <text x="300" y="250" font-size="10.5" fill="#475569" transform="rotate(-22 300 250)">1 — N · llave cliente</text>
+  <!-- asociados -> deudores -->
+  <path d="M600,207 L860,300" fill="none" stroke="#64748b" stroke-width="1.6"/>
+  <text x="690" y="250" font-size="10.5" fill="#475569" transform="rotate(21 690 250)">1 — N · llave cliente</text>
+  <!-- acreedores -> detalle_auxiliar -->
+  <path d="M235,456 L370,560" fill="none" stroke="#64748b" stroke-width="1.6"/>
+  <text x="238" y="512" font-size="10.5" fill="#475569" transform="rotate(38 238 512)">1 — N · llave cuenta</text>
+  <!-- deudores -> detalle_auxiliar -->
+  <path d="M860,456 L545,560" fill="none" stroke="#64748b" stroke-width="1.6" stroke-dasharray="5 3"/>
+  <text x="640" y="500" font-size="10.5" fill="#475569" transform="rotate(-18 640 500)">1 — N · llave cuenta (sólo 5004)</text>
+  <!-- detalle_auxiliar -> masdatos (1:1) -->
+  <path d="M570,636 L650,636" fill="none" stroke="#3f9e6f" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="556" y="628" font-size="10.5" font-weight="700" fill="#2f8f66">1 — 1 · secuencia ✓</text>
+  <!-- masdatos -> external -->
+  <path d="M842,716 L842,760" fill="none" stroke="#c0392b" stroke-width="1.6" marker-end="url(#arr)"/>
+
+  <text x="36" y="852" font-size="10.5" fill="#94a3b8">Cadena: asociados →(llave cliente) acreedores/deudores →(llave cuenta) detalle_auxiliar →(secuencia) _masdatos.  Nombres físicos exactos y tipos: pendientes del describe (P-004).  El modelo de Aurum es P-011.</text>
+</svg>

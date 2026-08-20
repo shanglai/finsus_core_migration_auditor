@@ -1,0 +1,40 @@
+id: WRITEOFFS
+titulo: Quitas, condonaciones, castigos y reestructuras = poliza por evento
+motor: CTB
+dominio: COL
+regla_ref: [F-023, P-006]
+severidad: 2
+tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
+
+parametros:
+  - {nombre: fecha_ini, tipo: fecha, requerido: true}
+  - {nombre: fecha_fin, tipo: fecha, requerido: true}
+
+extraccion:
+  aurum: PENDIENTE
+
+oraculo: PENDIENTE
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: igualdad_montos
+  llaves: [evento_id]
+  columna_b: poliza_monto
+  columna_c: poliza_esperada
+  fuente_b: aurum
+
+identidad: >-
+  Cada evento de quita, condonacion, castigo o reestructura genera su propia poliza
+  contable, por evento. Viola el evento sin poliza y la poliza sin evento.
+
+matriz_esperada: >-
+  AurumCore afirma que SI genera poliza por evento, contra la marca de "proceso
+  externo" del gap analysis. Hay que validarlo en datos: es una afirmacion del
+  proveedor todavia sin evidencia.
+
+estado: PENDIENTE
+estado_origen: "NORTE_VALIDACION.md §1 REG: AurumCore dice que si genera poliza por evento — validar en datos + crear pieza"
+bloqueo: >-
+  Falta la pieza de conocimiento: no hay K-* que documente esta regla, solo una
+  afirmacion en F-023 §1. Primer paso es crear la pieza, no escribir codigo.
+cobertura_nota: "Caso nuevo, sin corridas. IFRS9 calcula reservas a cierre; las polizas individuales van al ERP."

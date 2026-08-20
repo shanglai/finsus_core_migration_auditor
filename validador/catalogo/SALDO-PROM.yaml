@@ -1,0 +1,45 @@
+id: SALDO-PROM
+titulo: Saldo promedio (saldo_anterior + suma de saldos diarios) / n_dias
+motor: DEV
+dominio: DEV
+regla_ref: [K-DEV-002, P-006]
+severidad: 1
+tolerancia: {tipo: redondeo, max_evento: "0.01", prueba_sesgo: true, alfa_sesgo: "0.01"}
+
+parametros:
+  - {nombre: cohorte, tipo: lista_cuentas, requerido: true}
+  - {nombre: fecha_ini, tipo: fecha, requerido: true}
+  - {nombre: fecha_fin, tipo: fecha, requerido: true}
+
+extraccion:
+  aurum: PENDIENTE
+
+oraculo: oraculos/rendimientos.py::fila_saldo_promedio
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: igualdad_montos
+  llaves: [cuenta, periodo]
+  columna_b: average_balance_amount
+  columna_c: saldo_promedio_oraculo
+  fuente_b: aurum
+
+identidad: >-
+  Para cada cuenta-periodo: C = (saldo x difference_of_days + acumulado) / elapsed_days
+  == B(account.average_balance_amount), dentro de +/- 0.01.
+
+matriz_esperada: >-
+  B == C obligatorio. Este saldo es la base del interes de vista Y de la exencion de
+  ISR: un error aqui se propaga a REND-VISTA y a ISR-01, por eso es severidad 1.
+
+estado: BLOQUEADO
+estado_origen: "NORTE_VALIDACION.md §1 DEV 2.1.3: formula declarada, falta corroborar con logs del core (P-006)"
+bloqueo: >-
+  P-006 abierta. La formula (F-022) esta declarada, pero la correspondencia con lo
+  que el CORE registra no se ha corroborado contra los logs (traza
+  "Calculating with average balance"). Ademas account_balance_tracking arranca
+  ~ago-2025 y no reconstruye cuentas viejas.
+cobertura_nota: >-
+  El oraculo existe y esta autoprobado contra el ejemplo del doc. Correrlo contra
+  datos sin cerrar P-006 produciria un veredicto que no se sostiene, asi que el
+  caso permanece BLOQUEADO a proposito. Pedir los logs del core es el desbloqueo.

@@ -1,0 +1,7 @@
+# VALIDADOR Independiente — motor C
+# Solo lectura contra las bases. Decimal en todo calculo monetario.
+polars>=1.0
+duckdb>=1.0
+psycopg2-binary>=2.9
+PyYAML>=6.0
+pytest>=8.0

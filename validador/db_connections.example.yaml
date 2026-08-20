@@ -1,0 +1,55 @@
+# Plantilla de conexiones del VALIDADOR.
+#
+# 1. Copiar a  validador/db_connections.yaml
+# 2. Llenar con credenciales de SOLO LECTURA
+# 3. db_connections.yaml esta en .gitignore — NUNCA se versiona
+#
+# El motor abre cada sesion con:
+#     SET default_transaction_read_only = on;
+# y ademas rechaza cualquier SQL que contenga verbos de escritura (ver
+# engine/extract.py::asegurar_solo_lectura). Aun asi, el usuario de BD
+# DEBE ser un rol de solo lectura: la defensa de la aplicacion no
+# sustituye a la defensa del servidor.
+#
+# La contrasena puede omitirse y tomarse del ambiente con `password_env`
+# o de un archivo .pgpass. Preferir eso a escribirla aqui.
+
+cores:
+  # A = openfin (core historico). NO es la verdad; es el motor A de la matriz.
+  openfin:
+    host: replica-openfin.interno
+    port: 5432
+    dbname: openfin
+    user: auditor_ro
+    password_env: OPENFIN_RO_PASSWORD   # variable de ambiente
+    # password: "solo-si-no-hay-otra-opcion"
+    sslmode: require
+    # Etiqueta que queda grabada en el manifiesto de evidencia.
+    etiqueta_snapshot: "replica openfin"
+    # Guardas de la corrida
+    statement_timeout_ms: 300000
+    read_only: true
+
+  # B = AurumCore (core bajo prueba).
+  aurum:
+    host: replica-aurum.interno
+    port: 5432
+    dbname: aurumcore
+    user: auditor_ro
+    password_env: AURUM_RO_PASSWORD
+    sslmode: require
+    etiqueta_snapshot: "replica aurum"
+    statement_timeout_ms: 300000
+    read_only: true
+
+# Limites globales de extraccion (defensa contra volcados masivos).
+# Ningun SQL del catalogo puede devolver mas de `max_filas`; si lo hace,
+# la corrida se aborta con "extraccion no acotada" en vez de truncar en
+# silencio (una truncada silenciosa se leeria como cobertura completa).
+extraccion:
+  max_filas: 500000
+  max_cohorte: 50000
+
+# Base analitica propia del auditor (DuckDB, archivo local).
+warehouse:
+  ruta: datos/validador.duckdb

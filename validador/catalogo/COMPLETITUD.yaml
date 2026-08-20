@@ -1,0 +1,62 @@
+id: COMPLETITUD
+titulo: Se come todas — existencia OpenFin vs AurumCore por cohorte
+motor: MOV
+dominio: MIG
+regla_ref: [K-PRC-001, K-MIG-002, K-MIG-005]
+severidad: 1
+tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
+
+parametros:
+  - {nombre: cohorte, tipo: lista_cuentas, requerido: false,
+     nota: "si se omite, la consulta corre por la ventana de fechas"}
+  - {nombre: cohorte_of, tipo: lista_llaves_of, requerido: false}
+  - {nombre: fecha_ini, tipo: fecha, requerido: true}
+  - {nombre: fecha_fin, tipo: fecha, requerido: true}
+
+extraccion:
+  openfin: 40_validaciones/extraccion/openfin_inversiones.sql
+  aurum: 40_validaciones/extraccion/aurum_inversiones.sql
+
+oraculo: PENDIENTE
+universo:
+  # La llave de correlacion NO existe con el mismo nombre en los dos cores y hay
+  # que derivarla (K-DAT-003). OpenFin la lleva partida en (idsucaux, idproducto,
+  # idauxiliar); AurumCore la lleva concatenada en account_number '100-2301-XXXX'.
+  # Sin normalizarla, el set-diff saldria enorme por un problema de llave y no de
+  # datos — un falso hallazgo cuesta tanta credibilidad como un falso pase.
+  sql_a: |
+    SELECT DISTINCT
+           idsucaux::VARCHAR || '-' || idproducto::VARCHAR || '-' || idauxiliar::VARCHAR
+             AS id_inversion
+    FROM completitud_openfin
+  sql_b: |
+    SELECT DISTINCT account_number AS id_inversion
+    FROM completitud_aurum
+
+comparacion:
+  tipo: existencia
+  llaves: [id_inversion]
+  fuente_a: openfin
+  fuente_b: aurum
+
+identidad: >-
+  El set-diff es vacio EN AMBOS SENTIDOS: toda inversion de OpenFin existe en
+  AurumCore y viceversa. Viola toda llave presente de un solo lado. Es la primera
+  de las dos preguntas de top level ("se come todo lo que opera").
+
+matriz_esperada: >-
+  Sin oraculo: en un caso de existencia el motor C es la identidad de conjuntos
+  misma. Las llaves que solo estan en AurumCore hay que leerlas contra K-MIG-002
+  (migrado vs generado post-cutover): referencia NULL o created < cutover
+  (~2026-08-03) implica migrado.
+
+estado: PARCIAL
+estado_origen: "NORTE_VALIDACION.md: arbol dia cero, riesgo metodologico #1 (P-013)"
+cobertura_nota: >-
+  Es el unico caso del catalogo que hoy es ejecutable de punta a punta sin insumos
+  faltantes, porque no necesita oraculo. Buen primer caso para probar el pipeline
+  contra la BD.
+
+supuestos:
+  - "La llave id_inversion se DERIVA: en OpenFin como idsucaux-idproducto-idauxiliar, en AurumCore como account_number tal cual. Se asume que ambas producen el mismo formato sucursal-producto-auxiliar (NORTE §2). Verificar contra K-DAT-003 en la primera corrida: si el set-diff sale masivo en ambos sentidos, el problema es la llave, no los datos."
+  - "El universo de OpenFin se filtra a estatus 3 y 4 (activa, cerrada) y productos 2301/2302/2307/2308; el de AurumCore a account_type INVESTMENT_ACCOUNT. Si los filtros no cubren el mismo universo, las diferencias son de alcance y no de completitud."

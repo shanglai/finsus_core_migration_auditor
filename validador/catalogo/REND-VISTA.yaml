@@ -1,0 +1,46 @@
+id: REND-VISTA
+titulo: Interes y capitalizacion de cuenta vista/ahorro
+motor: DEV
+dominio: DEV
+regla_ref: [K-DEV-002, K-DEV-001, K-TMP-001]
+severidad: 1
+tolerancia: {tipo: redondeo, max_evento: "0.01", prueba_sesgo: true, alfa_sesgo: "0.01"}
+
+parametros:
+  - {nombre: cohorte, tipo: lista_cuentas, requerido: true, nota: "productos 2006/2011/2012/2013/2015/2017/2019"}
+  - {nombre: fecha_ini, tipo: fecha, requerido: true}
+  - {nombre: fecha_fin, tipo: fecha, requerido: true}
+  - {nombre: tasa, tipo: decimal, requerido: true}
+  - {nombre: dias_anio, tipo: decimal, default: "360"}
+
+extraccion:
+  aurum: PENDIENTE
+  openfin: PENDIENTE
+
+oraculo: oraculos/rendimientos.py::fila_rendimiento_vista
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: igualdad_montos
+  llaves: [cuenta, fecha_capitalizacion]
+  columna_b: interes_posteado
+  columna_c: interes_oraculo
+  fuente_b: aurum
+
+identidad: >-
+  Para cada capitalizacion mensual: C == B(transaction_detail YIELD PAYMENT con
+  referencia "Capitaliza Interes DD/MM/AAAA, Retencion:N", source = target),
+  dentro de +/- 0.01 y sin sesgo.
+
+matriz_esperada: "B == C obligatorio. Sin A al mismo grano."
+
+estado: PARCIAL
+estado_origen: "NORTE_VALIDACION.md §1 DEV 2.1.1: PARCIAL, corrida viva 31-ago sin validar (P-015)"
+bloqueo: >-
+  Falta la consulta de extraccion: el universo depende del saldo promedio mensual,
+  cuya definicion exacta sigue abierta en P-006, y de la corrida viva del 31-ago
+  (P-015) que aun no existe. El oraculo esta listo y autoprobado; lo que falta es
+  el dato, no la regla.
+cobertura_nota: >-
+  Regla y ejercicio migrado OK. La corrida viva del 31-ago no se ha validado.
+  Escribir S-DEV-001 desbloquea este caso junto con SALDO-PROM.

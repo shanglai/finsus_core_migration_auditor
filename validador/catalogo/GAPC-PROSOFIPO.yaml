@@ -1,0 +1,46 @@
+id: GAPC-PROSOFIPO
+titulo: Cuota Prosofipo (Fondo de Proteccion) — motor faltante en el core
+motor: REG
+dominio: REG
+regla_ref: [K-REG-002, F-023]
+severidad: 2
+tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
+
+parametros:
+  - {nombre: fecha_corte, tipo: fecha, requerido: false}
+
+extraccion:
+  aurum: 40_validaciones/entrega_finsus/V4_gapC_prosofipo.sql
+
+oraculo: PENDIENTE
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: igualdad_montos
+  llaves: [fuente]
+  columna_b: coincidencias
+  columna_c: coincidencias_esperadas
+  fuente_b: aurum
+
+identidad: >-
+  Toda SOFIPO debe calcular y provisionar la cuota mensual al Fondo de Proteccion
+  (LACP Art. 104 Bis). La identidad afirma que ese motor existe en el core. Se
+  espera que NO exista: cero coincidencias en system_configuration, en tablas y en
+  columnas (excluyendo protection_percentage, que es garantia de credito y es otra
+  cosa).
+
+matriz_esperada: >-
+  HALLAZGO CONFIRMADO, no defecto de calculo: la cuota se calcula por fuera y
+  Finsus confirmo que seguira por fuera. El caso se queda en la bateria como
+  invariante de regresion: si algun dia el core la incorpora, esta consulta lo
+  detecta y el hallazgo cambia de estado.
+
+estado: HALLAZGO
+estado_origen: "NORTE_VALIDACION.md §1 REG: cuota faltante real (por fuera, aceptado); cobertura-841 si existe"
+bloqueo: >-
+  No hay oraculo porque no hay motor que recalcular: el hallazgo es la ausencia.
+  Convertirlo en identidad de monto exige que Finsus defina la formula de la cuota,
+  lo que solo tiene sentido si deciden traerla al core.
+cobertura_nota: >-
+  Re-verificar el termino de la cobertura-841 en System Config (NORTE §1 lo marca
+  como pendiente de re-verificacion).

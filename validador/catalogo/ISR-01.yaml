@@ -1,0 +1,59 @@
+id: ISR-01
+titulo: Retencion de ISR al pago de rendimientos = regla normativa
+motor: FIS
+dominio: FIS
+regla_ref: [K-FIS-002, K-FIS-004, S-FIS-001, K-DEV-001, C-002]
+severidad: 1
+tolerancia: {tipo: redondeo, max_evento: "0.01", prueba_sesgo: true, alfa_sesgo: "0.01"}
+
+parametros:
+  - {nombre: cohorte, tipo: lista_cuentas, requerido: true,
+     nota: "account_number '100-2301-X'. En Aurum la cohorte se ancla por cuenta: la llave '100-10-X' no existe alli."}
+  - {nombre: fecha_ini, tipo: fecha, requerido: true}
+  - {nombre: fecha_fin, tipo: fecha, requerido: true, nota: "exclusiva"}
+  - {nombre: anio_causacion, tipo: entero, default: 2026}
+  - {nombre: uma_anual, tipo: decimal, default: "42794.64",
+     nota: "UMA anual INEGI del anio de causacion. Cambia cada 1-feb (2025: 41273.52)."}
+  - {nombre: tasa_anual, tipo: decimal, default: "0.9",
+     nota: "porcentaje. LIF 2026 Art. 24 (2025 fue 0.5)."}
+  - {nombre: multiplicador_uma, tipo: decimal, default: "5", nota: "LISR Art. 93 fr. XX"}
+  - {nombre: dias_anio, tipo: decimal, default: "365", nota: "tax.days.year"}
+  - {nombre: modo_final, tipo: texto, default: "RoundHalfEven2",
+     nota: "[PENDIENTE menor] S-FIS-001: F-016 no desambigua half_even vs half_up. Es parametro para que la eleccion quede en la evidencia."}
+
+extraccion:
+  aurum: validador/extraccion/aurum/isr_al_pago_universo.sql
+  openfin: PENDIENTE
+
+oraculo: oraculos/isr.py::fila_isr_retenido
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: igualdad_montos
+  llaves: [accountholder_id, cuenta_inversion, periodo]
+  columna_b: isr_posteado
+  columna_c: isr_oraculo
+  fuente_b: aurum
+
+identidad: >-
+  Para cada evento de retencion: C(oraculo, desde la norma) == B(isr posteado por
+  AurumCore), dentro de +/- 0.01 por evento y SIN sesgo de signo. Viola quien no lo cumple.
+
+matriz_esperada: >-
+  B == C obligatorio (severidad 1 si falla). El motor A no entra a este caso: OpenFin
+  lleva ISR como devengo diario a nivel cliente, no como evento de retencion al pago,
+  asi que no hay llave comun al nivel de este universo. Esa diferencia de modelo es
+  justamente lo que prueba ISR-02, y aqui la matriz corre etiquetada "sin A" — la
+  ausencia de A NO se interpreta como coincidencia.
+
+estado: VALIDADO
+estado_origen: "NORTE_VALIDACION.md §1 FIS: VALIDADO, set 3,236/3,236 MODELO, C=B al pago"
+cobertura_nota: >-
+  Validado previamente fuera de esta herramienta (fase1_isr_desviacion.py, 3,236/3,236).
+  Este VALIDADOR aun no lo ha corrido: mientras no lo haga aparece NO-CORRIDO en
+  reportes/cobertura.md, y asi debe leerse.
+
+supuestos:
+  - "El evento de ISR se aparea con el periodo del plan de pagos por (titular, cuenta de inversion, fecha de pago). Dos pagos del mismo dia por la misma inversion quedan como filas separadas y el comparador las exhibe."
+  - "saldo_total_cliente se toma al dia del pago. S-FIS-001 no fija si debe ser el saldo del dia o el del cierre anterior; depende de P-006."
+  - "Se asume persona fisica (exencion aplicable). LISR Art. 54 excluye retencion a personas morales; el universo no distingue el tipo de persona todavia."

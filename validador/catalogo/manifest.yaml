@@ -1,0 +1,36 @@
+# Indice del catalogo de casos del VALIDADOR.
+#
+# Debe quedar SINCRONIZADO con los YAML de este directorio y con
+# 40_validaciones/NORTE_VALIDACION.md (misma nomenclatura y estado, §7.4).
+# `python cli.py --cobertura` verifica la sincronia contra los YAML y reporta
+# cualquier discrepancia; la sincronia contra el NORTE es manual.
+#
+# OJO con la semantica de `estado`: describe lo que se sabe de la VALIDACION
+# (segun el NORTE), no si esta herramienta la corrio. Eso ultimo vive en
+# reportes/cobertura.md, y un caso VALIDADO que este validador nunca ejecuto
+# aparece ahi como NO-CORRIDO.
+
+version: 1
+actualizado: "2026-08-20"
+fuente_de_verdad: 40_validaciones/NORTE_VALIDACION.md
+
+casos:
+  - {id: ISR-01,          motor: FIS, estado: VALIDADO,  severidad: 1, titulo: "Retencion de ISR al pago = regla normativa"}
+  - {id: ISR-02,          motor: FIS, estado: VALIDADO,  severidad: 2, titulo: "Descuadre OF vs AC = diferencia de MODELO"}
+  - {id: ISR-03,          motor: FIS, estado: VALIDADO,  severidad: 1, titulo: "Parametros ISR configurados vs norma (caso-trampa C-001)"}
+  - {id: REND-PLAZO,      motor: DEV, estado: VALIDADO,  severidad: 1, titulo: "Rendimiento plazo fijo al centavo"}
+  - {id: REND-VISTA,      motor: DEV, estado: PARCIAL,   severidad: 1, titulo: "Interes y capitalizacion de cuenta vista"}
+  - {id: SALDO-PROM,      motor: DEV, estado: BLOQUEADO, severidad: 1, titulo: "Saldo promedio (base de vista y de ISR)"}
+  - {id: DIARIO-B,        motor: MOV, estado: PARCIAL,   severidad: 2, titulo: "Transaccional diaria OF vs AC (2:1 / 1:1)"}
+  - {id: GAPB-IDNC,       motor: REG, estado: PARCIAL,   severidad: 2, titulo: "Suspension de devengo / IDNC en cartera vencida"}
+  - {id: GAPC-PROSOFIPO,  motor: REG, estado: HALLAZGO,  severidad: 2, titulo: "Cuota Prosofipo — motor faltante"}
+  - {id: WRITEOFFS,       motor: CTB, estado: PENDIENTE, severidad: 2, titulo: "Quitas, condonaciones y castigos = poliza por evento"}
+  - {id: CRED-IO,         motor: COL, estado: PENDIENTE, severidad: 1, titulo: "Interes ordinario/moratorio de credito One Click"}
+  - {id: CONTABLE-BC,     motor: CTB, estado: PENDIENTE, severidad: 1, titulo: "Doble partida y amarre auxiliar-balanza"}
+  - {id: COMPLETITUD,     motor: MOV, estado: PARCIAL,   severidad: 1, titulo: "Se come todas — existencia OF vs AC"}
+
+# Como crece este catalogo (§7):
+#   1. Requisito nuevo -> pieza K en 10_conocimiento/ -> YAML aqui -> alta en esta lista.
+#   2. Regla que cambia -> sube version de la pieza K -> los casos que la citan quedan
+#      "revision requerida" -> ajustar oraculo/identidad -> re-correr -> actualizar cobertura.
+#   3. Hallazgo confirmado -> invariante de regresion permanente en tests/.

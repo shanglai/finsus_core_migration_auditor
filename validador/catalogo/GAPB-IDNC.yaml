@@ -1,0 +1,45 @@
+id: GAPB-IDNC
+titulo: Suspension de devengo / IDNC en cartera vencida (>=90 dias, reserva 100%)
+motor: REG
+dominio: REG
+regla_ref: [K-REG-001, F-023]
+severidad: 2
+tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
+
+parametros:
+  - {nombre: dias_umbral, tipo: entero, default: 90,
+     nota: "Criterio B-4 CNBV / IFRS9: Etapa 3 a los 90 dias de atraso"}
+
+extraccion:
+  aurum: 40_validaciones/entrega_finsus/V3_gapB_idnc.sql
+
+oraculo: PENDIENTE
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: igualdad_montos
+  llaves: [stage, credito]
+  columna_b: iodnc_registrado
+  columna_c: iodnc_esperado
+  fuente_b: aurum
+
+identidad: >-
+  Para todo credito en Etapa 3 (>= 90 dias de atraso): el interes ordinario
+  devengado no cobrado sale de resultados (contra-cuenta IODNC), va a cuentas de
+  orden y queda reservado al 100%. Viola el credito que devenga a resultados
+  estando en etapa 3, o cuya reserva no llega al 100%.
+
+matriz_esperada: >-
+  Contrario al gap analysis, el mecanismo SI existe (lc_finantial_data_stage). Que
+  EXISTA no prueba que sea CORRECTO: falta el cuadre en datos.
+
+estado: PARCIAL
+estado_origen: "NORTE_VALIDACION.md §1 REG 2.1.7: existe + logica documentada, falta cuadre en datos"
+bloqueo: >-
+  V3 hoy es un diagnostico de existencia (conteos y sumas), no una identidad por
+  credito. Para escribir el oraculo falta el doc IFRS9 que fije como se calcula la
+  reserva y que cuentas de orden se usan. Sin eso, cualquier oraculo seria una
+  copia de lo que hace el core — prohibido (§9.1).
+cobertura_nota: >-
+  Ejemplo de trabajo: credito 123-1515-1837. Ya no esta bloqueado por documentacion
+  de la logica (F-023 la describe), pero si por la especificacion de la reserva.

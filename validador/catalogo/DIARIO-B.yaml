@@ -1,0 +1,52 @@
+id: DIARIO-B
+titulo: Transaccional diaria OpenFin vs AurumCore, normalizada por tipo (2:1 / 1:1)
+motor: MOV
+dominio: MOV
+regla_ref: [K-MOV-001, K-MOV-004, K-MOV-005, K-MOV-006, P-016]
+severidad: 2
+tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
+
+parametros:
+  - {nombre: fecha_ini, tipo: fecha, requerido: true}
+  - {nombre: fecha_fin, tipo: fecha, requerido: true}
+  - {nombre: cohorte, tipo: lista_cuentas, requerido: false,
+     nota: "opcional: el diario corre por dia completo, no por cohorte"}
+
+extraccion:
+  openfin: PENDIENTE
+  aurum: PENDIENTE
+
+oraculo: PENDIENTE
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: igualdad_montos
+  llaves: [fecha, categoria]
+  columna_a: total_openfin
+  columna_b: total_aurum
+  columna_c: total_normalizado
+  fuente_a: openfin
+  fuente_b: aurum
+
+identidad: >-
+  Por dia y categoria: el total de OpenFin normalizado por la regla de atomicidad
+  (cuenta-a-cuenta entre clientes Finsus = 2 tx OF -> 1 tx Aurum; unidireccionales
+  SPEI in/out y pago de servicios = 1:1) == el total de AurumCore, exacto.
+
+matriz_esperada: >-
+  A y B tienen que reconciliar DESPUES de normalizar. Hoy no lo hacen: total OF
+  29,029 vs AU cliente 29,530 = -1.7% (motor_b_diario.py, 14-ago). Por categoria
+  DEPOSITO -2.3%, SPEI +2.9%, TARJETA +1.8% si reconcilian; el residual es el NULL
+  "api_dimmer" (3,506 movimientos / $89M), que es un hueco de la vista de Finsus.
+
+estado: PARCIAL
+estado_origen: "NORTE_VALIDACION.md §0: CORRIENDO, -1.7%, falta match instancia (P-016)"
+bloqueo: >-
+  Faltan dos cosas y ninguna es codigo: (1) el detalle completo del catalogo de ~400
+  tipos contables que dice cuales caen en 2:1 y cuales en 1:1 esta [PENDIENTE] en
+  K-MOV-001 v2; (2) el match a nivel instancia y la explicacion de los NULL
+  "api_dimmer" siguen abiertos en P-016. Sin (1) el oraculo de normalizacion no se
+  puede escribir sin copiar la logica de un core, que es justo lo prohibido (§9.1).
+cobertura_nota: >-
+  Corriendo fuera de esta herramienta con comparadores/motor_b_diario.py. Se integra
+  aqui cuando K-MOV-001 fije el catalogo de normalizacion.
