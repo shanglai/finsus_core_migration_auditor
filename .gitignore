@@ -32,19 +32,21 @@ utils/extraccion_aurum/
 utils/extraccion_openfin/
 
 # --- Datos fuente: PII de clientes y binarios pesados ----------------------
-# Se versiona el REGISTRO (que dice que existe cada fuente y su sha256),
-# no el contenido de la fuente.
+# Se versiona 20_fuentes/REGISTRO_FUENTES.md (que declara que existe cada
+# fuente, con su sha256 y su marca de confidencialidad), NO el contenido de
+# las fuentes. El registro basta para auditar el linaje sin publicar el dato.
 20_fuentes/datos/
 20_fuentes/docs/
 20_fuentes/v2t/
 20_fuentes/diagramas/
-!20_fuentes/**/.gitkeep
-!20_fuentes/REGISTRO_FUENTES.md
 
-# --- Resultados intermedios con cohortes de clientes reales ----------------
+# --- Resultados de corridas con cohortes de clientes reales ----------------
+# Incluye REPORTE_FASE1_ISR.md y REPORTE_SET_DESVIACION_ISR.md: ambos
+# declaran en su propio encabezado que contienen "ids y cifras de clientes
+# reales", y la convencion del proyecto ya los tenia fuera del control de
+# versiones. Se respeta. Si se quiere publicar la conclusion, la via es
+# escribir una version sin identificadores en 50_hallazgos/, no relajar esto.
 40_validaciones/_resultados/
-!40_validaciones/_resultados/REPORTE_FASE1_ISR.md
-!40_validaciones/_resultados/REPORTE_SET_DESVIACION_ISR.md
 
 # --- Salidas del VALIDADOR (se regeneran; traen filas de clientes) ---------
 validador/datos/
