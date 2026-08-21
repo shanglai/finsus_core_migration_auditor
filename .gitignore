@@ -64,6 +64,14 @@ validador/reportes/*/
 *.duckdb
 *.duckdb.wal
 
+# --- Paquete de sincronizacion (entrada, no fuente) ------------------------
+# export_auditor/bundle/ es el paquete que llega del repo de validacion. Su
+# contenido ya se sincroniza al repo (10_conocimiento/, 40_validaciones/...),
+# asi que versionarlo guardaria DOS copias de cada pieza K esperando divergir.
+# PROMPT_SYNC_AUDITOR.md lo declara gitignored. Los prompts y el changelog
+# (MANIFEST.md, PROMPT_*.md, ensamblar.py) SI se versionan: son instrucciones.
+export_auditor/bundle/
+
 # --- Python ----------------------------------------------------------------
 __pycache__/
 *.py[cod]
