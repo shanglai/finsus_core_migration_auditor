@@ -38,6 +38,33 @@ def test_acepta_la_forma_previa_del_repositorio():
     assert d["cores"]["openfin"]["dbname"] == "openfin_aurum"
 
 
+def test_no_pierde_destinos_adicionales():
+    """El archivo real trae un tercer destino (`identityshared`).
+
+    Reconocer los cores por una lista de nombres conocidos lo habria dejado
+    fuera en silencio. Se reconocen por forma: un bloque con host+dbname (o
+    dsn) es una conexion.
+    """
+    d = config._normalizar_conexiones({
+        "aurum": {"host": "h1", "dbname": "aurumcore"},
+        "openfin": {"host": "h2", "dbname": "openfin_aurum"},
+        "identityshared": {"host": "h3", "dbname": "wso2_identity_shared_db"},
+    })
+    assert sorted(d["cores"]) == ["aurum", "identityshared", "openfin"]
+
+
+def test_no_confunde_los_bloques_de_configuracion_con_cores():
+    """`extraccion:` y `warehouse:` no tienen host: no son destinos."""
+    d = config._normalizar_conexiones({
+        "aurum": {"host": "h1", "dbname": "aurumcore"},
+        "extraccion": {"max_filas": 1000},
+        "warehouse": {"ruta": "datos/x.duckdb"},
+    })
+    assert sorted(d["cores"]) == ["aurum"]
+    assert d["extraccion"]["max_filas"] == 1000
+    assert d["warehouse"]["ruta"] == "datos/x.duckdb"
+
+
 def test_archivo_vacio_no_revienta():
     assert config._normalizar_conexiones({}) == {}
     assert config._normalizar_conexiones(None) == {}

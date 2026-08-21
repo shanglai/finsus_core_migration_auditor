@@ -79,11 +79,20 @@ def _normalizar_conexiones(datos: dict[str, Any]) -> dict[str, Any]:
         return {}
     if datos.get("cores"):
         return datos
-    conocidos = ("aurum", "openfin")
-    cores = {k: v for k, v in datos.items() if k in conocidos and isinstance(v, dict)}
+    # Un bloque de primer nivel es un core si parece una conexion: trae `dsn`,
+    # o trae `host` y `dbname`. Ese criterio (y no una lista de nombres
+    # conocidos) evita perder en silencio destinos adicionales como
+    # `identityshared`, y a la vez no confunde los bloques de configuracion
+    # `extraccion:` y `warehouse:`, que no tienen host.
+    def _es_conexion(v: Any) -> bool:
+        return isinstance(v, dict) and (
+            "dsn" in v or ("host" in v and "dbname" in v)
+        )
+
+    cores = {k: v for k, v in datos.items() if _es_conexion(v)}
     if not cores:
         return datos
-    resto = {k: v for k, v in datos.items() if k not in conocidos}
+    resto = {k: v for k, v in datos.items() if k not in cores}
     return {"cores": cores, **resto}
 
 
