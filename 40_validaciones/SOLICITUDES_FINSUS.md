@@ -122,6 +122,19 @@
 
 ---
 
+### D.5 — Identidad exacta de la suspension de devengo / IDNC (SOL-015) 🔴
+- **Contexto.** `REFERENCIA_TABLAS_POR_CASO.md §GAPB-IDNC` declara la identidad
+  `io + io_venc = 0`. Al correrla contra `lc_finantial_data_stage`
+  (2026-07-01..2026-08-18, filas con `io_venc <> 0`, n=45,761) **se cumple en 54.5%** y
+  **no correlaciona con la mora** (18,074/30,582 en ≥90 días vs 6,889/15,179 en <90).
+  La variante `io + iodnc = 0` se cumple en **85.2%** (315,188/369,904 filas con `iodnc <> 0`),
+  y `iodnc` es lo que `V3_gapB_idnc.sql` anota como "contra-cuenta (saca interés de resultados)".
+- **Pendiente.** Cuál es la identidad contable correcta de la suspensión, y por qué
+  ninguna de las dos variantes llega al 100%.
+- **Lo que buscamos.** Convertir GAPB-IDNC en invariante de regresión. No ajustamos la
+  identidad a la que "pasa más": eso sería fijar la regla al dato. El caso queda
+  BLOQUEADO por especificación hasta tener la respuesta.
+
 ## F. Insumos operativos (menores)
 - **F.1 (SOL-014) 🟢** — Queries del diario de **Sergio (Aurum)** y **Abraham (OpenFin)**, y el **mapeo de las ~400
   tx del catálogo de "Ines"** (cuáles 2:1 cuenta-a-cuenta vs 1:1 unidireccional) para acelerar/benchmarkear Motor B.

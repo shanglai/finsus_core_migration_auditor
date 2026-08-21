@@ -148,6 +148,12 @@ def preparar(texto: str, cohortes: dict[str, dict] | None = None,
     usados: set[str] = set()
     out: list[str] = []
     for s in stmts:
+        # Los `%` literales (patrones LIKE) se escapan ANTES de crear los
+        # placeholders. psycopg2 interpola con formato de porcentaje y no admite
+        # mezclar `%` crudos con `%(nombre)s`: falla con "argument formats can't
+        # be mixed". Como el escape va primero, los `%(nombre)s` que genera la
+        # sustitucion de `:param` quedan intactos.
+        s = s.replace("%", "%%")
         necesarias = {n: spec for n, spec in cohortes.items() if re.search(rf"\b{n}\b", s)}
         if necesarias:
             prefijo = cte_cohorte(necesarias).rstrip()          # "with a(...) as (...), b(...) as (...)"

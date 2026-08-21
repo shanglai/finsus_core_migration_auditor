@@ -19,7 +19,7 @@ universo: {fuente: aurum}
 
 comparacion:
   tipo: suma_cero
-  llaves: [contrato, fecha_informacion]
+  llaves: [stage_id]
   columnas: [io, io_venc]
   fuente_b: aurum
 
@@ -30,17 +30,36 @@ identidad: >-
   90 dias). Viola el contrato cuyo neto no sea 0.00: ahi el devengo NO se suspendio.
 
 matriz_esperada: >-
-  Contrario al gap analysis, el mecanismo SI existe y la mecanica ya se reprodujo
-  en datos (K-REG-001 v3). Este caso la convierte en invariante permanente.
-  Sin motor A: OpenFin no lleva el staging IFRS9 al mismo grano.
+  El mecanismo SI existe (contrario al gap analysis) — eso no esta en duda. Lo
+  que esta en duda es CUAL es la identidad exacta que lo expresa. Hasta que se
+  fije, este caso no emite veredicto sobre el core. Sin motor A: OpenFin no
+  lleva el staging IFRS9 al mismo grano.
 
-estado: VALIDADO
-estado_origen: "NORTE §1 REG 2.1.7: CONFIRMADA en datos — io_venc cancela exactamente io"
+estado: BLOQUEADO
+estado_origen: "NORTE §1 REG 2.1.7 dice CONFIRMADA (io_venc cancela io); la corrida NO lo reproduce — ver bloqueo"
+bloqueo: >-
+  [CONTRADICCION · 2026-08-21] La identidad declarada NO se reproduce y NO se
+  ajusta por cuenta propia. Corrida sobre 2026-07-01..2026-08-18, filas con
+  io_venc <> 0 (45,761):
+    io + io_venc = 0   se cumple en 24,963 / 45,761  (54.5%)
+                       y NO correlaciona con mora: 18,074/30,582 en el tramo
+                       >=90 dias contra 6,889/15,179 en <90.
+    io + iodnc   = 0   se cumple en 315,188 / 369,904 (85.2%) de las filas con
+                       iodnc <> 0.
+  La contra-cuenta que cancela el interes ordinario parece ser `iodnc`
+  (Interes Ordinario Devengado No Cobrado), que es lo que su nombre indica y lo
+  que anota V3_gapB_idnc.sql ("contra-cuenta, saca interes de resultados"),
+  NO `io_venc` como declara REFERENCIA_TABLAS_POR_CASO §GAPB-IDNC.
+  Cambiar la identidad a la variante que pasa mas seria ajustar la regla al
+  dato — all-pass por la puerta de atras. Se necesita que Finsus/IFRS9 fije
+  cual es la identidad correcta y por que ninguna de las dos llega al 100%.
 cobertura_nota: >-
-  Mecanica confirmada. Resta lo que este caso NO cubre: barrer la poblacion
-  completa y validar la contabilizacion a cuentas de orden y la reserva al 100%.
-  Este VALIDADOR aun no lo ha corrido.
+  El caso queda BLOQUEADO por especificacion, no por acceso: los datos estan y
+  la corrida se hizo. Las 20,798 filas que no cumplen NO se reportan como
+  defecto del core mientras la identidad este en disputa.
 
 supuestos:
+  - "La llave es stage_id, la de la fila del staging. Se descubrio en la primera corrida (2026-08-21) que la columna del contrato se llama lc_contract_id, no contract_id, y que un mismo contrato tiene varias filas por fecha: agrupar por (contrato, fecha) sumaria filas que la identidad evalua una por una."
   - "El universo se restringe a io_venc <> 0, que son las filas donde la suspension aplica. En un credito vigente io_venc es cero y io no, y la identidad no aplica: incluirlos convertiria todo el universo en violaciones y diria lo contrario de lo que pasa."
   - "Se prueba la MECANICA de la suspension, no su contabilizacion. Que io se cancele no demuestra que el importe haya ido a cuentas de orden ni que la reserva sea del 100%: eso sigue abierto y necesita el doc IFRS9."
+solicitudes: [SOL-015]

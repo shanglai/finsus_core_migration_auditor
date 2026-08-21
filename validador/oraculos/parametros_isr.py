@@ -29,6 +29,13 @@ CATALOGO_NORMATIVO: dict[str, str] = {
     "yield.tax.exempt.amount": "exencion",       # 5 x UMA del anio
     "tax.exempt.amount": "exencion",
     "exempt.amount": "exencion",
+    # [INFERIDO · 2026-08-21] Aparecio en la primera corrida real contra
+    # aurumcore. El nombre dice "amount" pero el valor configurado es 5, que
+    # coincide con el multiplicador de 5 x UMA de LISR Art. 93 fr. XX; se
+    # interpreta como el MULTIPLICADOR, no como un importe. Es inferencia por
+    # el valor, no confirmacion documental: pendiente de que Finsus lo valide
+    # junto con el resto de la taxonomia fiscal.
+    "yield.tax.exempt.uma.amount": "multiplicador_uma",
     "tax.days.year": "dias_anio",                # 365
     "cat_tax.isr": "tasa_isr_fraccion",          # 0.009 (fraccion, no porcentaje)
     "account_tax.isr": "tasa_isr_fraccion",
@@ -42,6 +49,7 @@ FUENTE_NORMATIVA = {
     "dias_anio": "Prorrateo anual de la tasa (S-FIS-001; tax.days.year)",
     "tasa_isr_fraccion": "LIF Art. 24 del ejercicio (remite a LISR 54/135)",
     "uma_anual": "UMA anual INEGI, vigente desde el 1-feb",
+    "multiplicador_uma": "LISR Art. 93 fr. XX — 5 x UMA (beneficio SOFIPO)",
 }
 
 
@@ -56,6 +64,8 @@ def valor_normativo(concepto: str, anio: int) -> Decimal:
         return Decimal(p["tasa_anual"]) / Decimal("100")
     if concepto == "uma_anual":
         return Decimal(p["uma_anual"])
+    if concepto == "multiplicador_uma":
+        return Decimal(p["multiplicador_uma"])
     raise KeyError(
         f"Concepto normativo desconocido: {concepto!r}. "
         f"Agregarlo exige actualizar K-FIS-004, no adivinar aqui."

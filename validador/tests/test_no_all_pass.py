@@ -201,3 +201,34 @@ def test_las_familias_sin_oraculo_no_lo_exigen():
     for cid, c in cat.cargar_todos().items():
         if c.comparacion.tipo in ("existencia", "suma_cero") and c.ejecutable:
             assert "oraculo PENDIENTE" not in c.motivo_no_ejecutable()
+
+
+# --- Preparacion de SQL: los `%` de LIKE conviven con los parametros --------
+
+def test_los_porcentajes_de_like_se_escapan():
+    """Regresion de un fallo real (2026-08-21, ISR-03 contra la base).
+
+    psycopg2 interpola con formato de porcentaje: un `%` crudo junto a un
+    `%(nombre)s` revienta con "argument formats can't be mixed". Los patrones
+    LIKE tienen que llegar escapados como `%%`.
+    """
+    sql = "select 1 from t where lower(name) like '%exempt%' and anio = :anio"
+    stmts, usados = extract.preparar(sql)
+    assert usados == ["anio"]
+    assert "'%%exempt%%'" in stmts[0], "el % literal de LIKE no se escapo"
+    assert "%(anio)s" in stmts[0], "el placeholder se daño al escapar"
+    assert "%%(anio)s" not in stmts[0]
+
+
+def test_el_escape_sobrevive_a_la_interpolacion_de_psycopg2():
+    """Tras el formateo, el patron LIKE vuelve a tener UN solo porcentaje."""
+    sql = "select 1 where name like '%uma%' and anio = :anio"
+    stmts, _ = extract.preparar(sql)
+    assert stmts[0] % {"anio": 2026} == "select 1 where name like '%uma%' and anio = 2026"
+
+
+def test_sql_sin_parametros_tambien_queda_consistente():
+    sql = "select 1 where name like '%tax%'"
+    stmts, usados = extract.preparar(sql)
+    assert not usados
+    assert stmts[0] % {} == "select 1 where name like '%tax%'"

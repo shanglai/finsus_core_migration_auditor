@@ -48,8 +48,20 @@ join aurumcore.transaction   t   on t.transaction_id  = td.transaction_id
 join aurumcore.account       pa  on pa.account_id     = t.payer_account_id
 join aurumcore.account       pe  on pe.account_id     = t.payee_account_id
 join aurumcore.accountholder ah  on ah.accountholder_id = pa.accountholder_id
-join aurumcore.account       inv on inv.accountholder_id = ah.accountholder_id
-                                and inv.product_type_key  = 'INVESTMENT_ACCOUNT'
+-- La inversion se identifica por la REFERENCIA del asiento
+-- ('Pago de rendimientos-100-2301-XXXX'), que es el metodo de
+-- isr_live_nativo.py. Las dos alternativas que se probaron el 2026-08-21
+-- estaban mal y quedan documentadas para que nadie las repita:
+--   * unir por accountholder: producto cartesiano entre TODAS las inversiones
+--     del cliente y su plan de pagos -> agotaba el statement_timeout;
+--   * unir contra la cohorte con ON TRUE: FABRICA filas (cada evento de ISR
+--     se apareaba con las 3 cuentas de la cohorte, 3 eventos -> 27 filas).
+-- El prefijo de la referencia NO es estable: se observaron '-100-2301-X',
+-- 'Pago de rendimientos-100-2301-X' y 'Pago de rendimientos 10-100-2301-X'.
+-- Lo estable es el SUFIJO con forma de numero de cuenta, asi que se extrae por
+-- patron en vez de por posicion de split_part.
+join aurumcore.account       inv on inv.account_number = substring(td.alfanumeric_reference from '[0-9]+-[0-9]+-[0-9]+$')
+                                and inv.product_type_key = 'INVESTMENT_ACCOUNT'
 join aurumcore.iv_payment_plan pp on pp.account_id = inv.account_id
                                 and pp.payment_date::date = td.created::date
 left join (

@@ -16,7 +16,7 @@ fuente_de_verdad: 40_validaciones/NORTE_VALIDACION.md
 espejado_de: "NORTE_VALIDACION.md actualizado 2026-08-20"
 
 casos:
-  - {id: ISR-01,          motor: FIS, estado: VALIDADO,  severidad: 1, titulo: "Retencion de ISR al pago = regla normativa"}
+  - {id: ISR-01,          motor: FIS, estado: PARCIAL,   severidad: 1, titulo: "Retencion de ISR al pago (universo por reconstruir)"}
   - {id: ISR-02,          motor: FIS, estado: VALIDADO,  severidad: 2, titulo: "Descuadre OF vs AC = diferencia de MODELO"}
   - {id: ISR-03,          motor: FIS, estado: VALIDADO,  severidad: 1, titulo: "Parametros ISR configurados vs norma (caso-trampa C-001)"}
   - {id: REND-PLAZO,      motor: DEV, estado: VALIDADO,  severidad: 1, titulo: "Rendimiento plazo fijo al centavo (migrado y live)"}
@@ -24,7 +24,7 @@ casos:
   - {id: SALDO-PROM,      motor: DEV, estado: BLOQUEADO, severidad: 1, titulo: "Saldo promedio (base de vista y de ISR)"}
   - {id: DIARIO-B,        motor: MOV, estado: PARCIAL,   severidad: 2, titulo: "Transaccional diaria OF vs AC (2:1 / 1:1)"}
   - {id: COMPLETITUD,     motor: MOV, estado: PARCIAL,   severidad: 1, titulo: "Se come todas — existencia OF vs AC"}
-  - {id: GAPB-IDNC,       motor: REG, estado: VALIDADO,  severidad: 2, titulo: "Suspension de devengo: io_venc cancela io"}
+  - {id: GAPB-IDNC,       motor: REG, estado: BLOQUEADO, severidad: 2, titulo: "Suspension de devengo: identidad en disputa (SOL-015)"}
   - {id: GAPC-PROSOFIPO,  motor: REG, estado: HALLAZGO,  severidad: 2, titulo: "Cuota Prosofipo — motor faltante"}
   - {id: WRITEOFFS,       motor: CTB, estado: PENDIENTE, severidad: 2, titulo: "Quitas, condonaciones y castigos = poliza por evento"}
   - {id: CONTABLE-B1,     motor: CTB, estado: VALIDADO,  severidad: 1, titulo: "Doble partida diaria (familia B)"}

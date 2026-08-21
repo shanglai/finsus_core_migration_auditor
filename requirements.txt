@@ -11,6 +11,10 @@
 # NO recalculan dinero: esa ruta va en decimal.Decimal, en Python.
 polars>=1.0
 duckdb>=1.0
+# Puente entre Polars y DuckDB. NO es opcional: sin el, cargar un DataFrame al
+# warehouse y leerlo de vuelta fallan con ModuleNotFoundError a media corrida
+# (descubierto en la primera corrida real contra la base, 2026-08-21).
+pyarrow>=15.0
 
 # --- Conexion a los cores (SOLO LECTURA) -----------------------------------
 psycopg2-binary>=2.9

@@ -19,7 +19,7 @@ universo: {fuente: aurum}
 
 comparacion:
   tipo: igualdad_montos
-  llaves: [parametro, fuente]
+  llaves: [parametro, ambito, fuente]
   columna_b: valor_configurado
   columna_c: valor_normativo
   fuente_b: aurum

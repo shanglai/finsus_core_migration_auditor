@@ -23,7 +23,7 @@ parametros:
      nota: "[PENDIENTE menor] S-FIS-001: F-016 no desambigua half_even vs half_up. Es parametro para que la eleccion quede en la evidencia."}
 
 extraccion:
-  aurum: validador/extraccion/aurum/isr_al_pago_universo.sql
+  aurum: PENDIENTE   # ver bloqueo; el borrador esta en isr_al_pago_universo.BORRADOR.sql
   openfin: PENDIENTE
 
 oraculo: oraculos/isr.py::fila_isr_retenido
@@ -47,12 +47,30 @@ matriz_esperada: >-
   justamente lo que prueba ISR-02, y aqui la matriz corre etiquetada "sin A" — la
   ausencia de A NO se interpreta como coincidencia.
 
-estado: VALIDADO
+estado: PARCIAL
 estado_origen: "NORTE_VALIDACION.md §1 FIS: VALIDADO, set 3,236/3,236 MODELO, C=B al pago"
+bloqueo: >-
+  La consulta del universo NO funciona y se retira a borrador. Corrida del
+  2026-08-21: el lado B extrae BIEN — aparecieron 46.37, 4.81 y 0.05, que son
+  exactamente las tres retenciones del caso de oro de S-FIS-001 — pero el
+  universo esta mal armado en dos puntos:
+    1. El apareo evento-de-ISR <-> inversion. Tres intentos fallaron: unir por
+       accountholder da producto cartesiano y agota el statement_timeout; unir
+       contra la cohorte con ON TRUE FABRICA filas (3 eventos -> 27); extraer la
+       cuenta de `alfanumeric_reference` por patron vuelve a agotar el timeout
+       porque no hay indice que lo soporte. El prefijo de la referencia ademas
+       NO es estable ('-100-2301-X', 'Pago de rendimientos-100-2301-X',
+       'Pago de rendimientos 10-100-2301-X').
+    2. `saldo_total_cliente` sale 0 en todas las filas: el join a
+       account_balance_tracking no resuelve, aunque la tabla si tiene datos en
+       la ventana (2025-08-22..2026-08-20). Con base 0 el oraculo devuelve 0 y
+       las 27 diferencias salieron todas del mismo signo.
+  Las 27 violaciones de esa corrida son defecto de ESTA consulta, no de
+  AurumCore, y asi quedaron registradas. Reconstruir el universo siguiendo el
+  metodo de comparadores/isr_live_nativo.py es el siguiente paso.
 cobertura_nota: >-
-  Validado previamente fuera de esta herramienta (fase1_isr_desviacion.py, 3,236/3,236).
-  Este VALIDADOR aun no lo ha corrido: mientras no lo haga aparece NO-CORRIDO en
-  reportes/cobertura.md, y asi debe leerse.
+  Validado previamente fuera de esta herramienta (fase1_isr_desviacion.py,
+  3,236/3,236). Este VALIDADOR NO lo ha reproducido todavia.
 
 supuestos:
   - "Delimitador de 'Aurum vivo' = `created >= cutover` (la ventana del caso), NO `origin is null`: transaction.origin tiene semantica mixta y los null aparecen desde abril-2026. `origin` viaja en el universo SOLO como desglose de transparencia. Metodo de isr_live_nativo.py; taxonomia sin confirmar (SOL-004)."

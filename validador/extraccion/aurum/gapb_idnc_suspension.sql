@@ -21,14 +21,16 @@
 -- suspension, no la contabilizacion.
 -- =============================================================================
 select
-    s.contract_id::text                     as contrato,
+    s.lc_contract_id::text                  as contrato,
+    s.stage_id::text                        as stage_id,
     s.information_date::text                as fecha_informacion,
     coalesce(s.io, 0)::text                 as io,
     coalesce(s.io_venc, 0)::text            as io_venc,
     coalesce(s.iodnc, 0)::text              as iodnc,
-    coalesce(s.capital_venc, 0)::text       as capital_venc
+    coalesce(s.capital_venc, 0)::text       as capital_venc,
+    coalesce(s.mora_days, 0)::text          as dias_mora
 from aurumcore.lc_finantial_data_stage s
 where s.information_date >= :fecha_ini
   and s.information_date <  :fecha_fin
   and coalesce(s.io_venc, 0) <> 0
-order by s.information_date, s.contract_id;
+order by s.information_date, s.lc_contract_id;
