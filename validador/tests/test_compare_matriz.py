@@ -165,3 +165,50 @@ def test_doble_partida_tolerancia_cero():
     assert r.violaciones["poliza"][0] == "p2"
     assert r.violaciones["descuadre"][0] == "0.01"
     assert r.tolerancia == "0.00"
+
+
+# --- suma_cero: la identidad "estas columnas se cancelan" -------------------
+
+def test_suma_cero_detecta_el_dia_descuadrado():
+    """CONTABLE-B1: debit viene negativo y credit positivo; deben cancelarse."""
+    df = pl.DataFrame({
+        "fecha": ["2026-08-10", "2026-08-11"],
+        "suma_debit": ["-1000.00", "-1000.00"],
+        "suma_credit": ["1000.00", "999.99"],
+    })
+    r = compare.comparar_suma_cero("CONTABLE-B1", df, ["fecha"],
+                                   ["suma_debit", "suma_credit"], Decimal("0"))
+    assert r.n_violaciones == 1
+    assert r.violaciones["fecha"][0] == "2026-08-11"
+    assert r.violaciones["descuadre"][0] == "-0.01"
+
+
+def test_suma_cero_no_admite_holgura():
+    """Identidad contable: un centavo ya es violacion."""
+    df = pl.DataFrame({"k": ["a"], "x": ["1.00"], "y": ["-0.99"]})
+    r = compare.comparar_suma_cero("T", df, ["k"], ["x", "y"], Decimal("0"))
+    assert r.n_violaciones == 1
+
+
+def test_suma_cero_agrega_por_llave():
+    """Varias filas del mismo grupo se suman antes de evaluar."""
+    df = pl.DataFrame({
+        "k": ["a", "a", "b", "b"],
+        "x": ["10.00", "5.00", "10.00", "5.00"],
+        "y": ["-10.00", "-5.00", "-10.00", "-4.00"],
+    })
+    r = compare.comparar_suma_cero("T", df, ["k"], ["x", "y"], Decimal("0"))
+    assert r.n_universo == 2 and r.n_violaciones == 1
+    assert r.violaciones["k"][0] == "b"
+
+
+def test_suma_cero_universo_vacio_no_es_pase():
+    df = pl.DataFrame(schema={"k": pl.Utf8, "x": pl.Utf8, "y": pl.Utf8})
+    r = compare.comparar_suma_cero("T", df, ["k"], ["x", "y"], Decimal("0"))
+    assert r.veredicto() == "UNIVERSO-VACIO"
+
+
+def test_suma_cero_rechaza_float():
+    df = pl.DataFrame({"k": ["a"], "x": [1.0], "y": ["-1.00"]})
+    with pytest.raises(compare.FloatEnDinero):
+        compare.comparar_suma_cero("T", df, ["k"], ["x", "y"], Decimal("0"))

@@ -4,6 +4,7 @@ motor: FIS
 dominio: FIS
 regla_ref: [K-FIS-002, K-FIS-004, S-FIS-001, K-DEV-001, C-002]
 severidad: 1
+norte_ref: \"NORTE_VALIDACION.md §1 FIS — ISR retencion al pago (motor B)\"
 tolerancia: {tipo: redondeo, max_evento: "0.01", prueba_sesgo: true, alfa_sesgo: "0.01"}
 
 parametros:
@@ -54,6 +55,8 @@ cobertura_nota: >-
   reportes/cobertura.md, y asi debe leerse.
 
 supuestos:
+  - "Delimitador de 'Aurum vivo' = `created >= cutover` (la ventana del caso), NO `origin is null`: transaction.origin tiene semantica mixta y los null aparecen desde abril-2026. `origin` viaja en el universo SOLO como desglose de transparencia. Metodo de isr_live_nativo.py; taxonomia sin confirmar (SOL-004)."
   - "El evento de ISR se aparea con el periodo del plan de pagos por (titular, cuenta de inversion, fecha de pago). Dos pagos del mismo dia por la misma inversion quedan como filas separadas y el comparador las exhibe."
-  - "saldo_total_cliente se toma al dia del pago. S-FIS-001 no fija si debe ser el saldo del dia o el del cierre anterior; depende de P-006."
+  - "saldo_total_cliente se toma al dia del pago desde account_balance_tracking. S-FIS-001 no fija si debe ser el saldo del dia o el del cierre anterior (P-006). isr_live_nativo.py documenta el mismo caveat: el residual incluye DERIVA DE SALDO, no solo defecto de calculo. Una diferencia aqui no se puede atribuir al motor sin descartar primero la deriva."
   - "Se asume persona fisica (exencion aplicable). LISR Art. 54 excluye retencion a personas morales; el universo no distingue el tipo de persona todavia."
+solicitudes: [SOL-004, SOL-011]

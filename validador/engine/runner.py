@@ -201,7 +201,9 @@ def correr_caso(
 
             universo = pl.DataFrame()
             conjuntos = None
-            if caso.comparacion.tipo == "existencia":
+            if caso.comparacion.tipo == "suma_cero":
+                universo = _construir_universo(caso, wh, extracciones)
+            elif caso.comparacion.tipo == "existencia":
                 conjuntos = _construir_conjuntos(caso, wh, extracciones)
             else:
                 universo = _construir_universo(caso, wh, extracciones)
@@ -211,7 +213,7 @@ def correr_caso(
         # ("el set-diff debe ser vacio en ambos sentidos"): no hay monto que
         # recalcular, asi que no hay oraculo que invocar.
         salida_c = None
-        if caso.comparacion.tipo != "existencia":
+        if caso.comparacion.tipo not in ("existencia", "suma_cero"):
             salida_c = oracle_runner.correr(
                 caso.oraculo, universo, caso.comparacion.llaves, params
             )
@@ -226,8 +228,14 @@ def correr_caso(
         resultado = _comparar(caso, universo, salida_c, extracciones, advertencias,
                               conjuntos=conjuntos)
 
-    except ErrorValidador as exc:
-        c = _evidencia_bloqueada(caso, params, str(exc), consultas, snapshot, estado="ERROR")
+    except Exception as exc:  # noqa: BLE001
+        # CUALQUIER fallo — no solo los nuestros. Una caida de red, un timeout
+        # o una columna que no existe tienen que terminar en EVIDENCIA con
+        # resultado ERROR, no en un traceback: un caso que revienta y no deja
+        # rastro se confunde despues con un caso que nunca se intento, y eso
+        # es exactamente el all-pass que este disenno persigue evitar.
+        detalle = f"{type(exc).__name__}: {exc}"
+        c = _evidencia_bloqueada(caso, params, detalle, consultas, snapshot, estado="ERROR")
         c.advertencias.extend(advertencias)
         return c
 
@@ -243,8 +251,12 @@ def correr_caso(
          "filas_calculadas": salida_c.n_calculadas,
          "filas_fallidas": salida_c.n_fallidas, "errores": salida_c.errores}
         if salida_c else
-        {"referencia": "n/a", "version_regla": "identidad de conjuntos (set-diff)",
-         "nota": "Caso de existencia: el motor C es la identidad, no un monto recalculado."}
+        {"referencia": "n/a",
+         "version_regla": ("identidad de conjuntos (set-diff)"
+                           if caso.comparacion.tipo == "existencia"
+                           else "identidad de suma (las columnas se cancelan)"),
+         "nota": ("El motor C es la identidad misma, no un monto recalculado: "
+                  "no hay oraculo que invocar.")}
     )
     man = evidencia.Manifiesto(
         caso_id=caso.id, titulo=caso.titulo, motor=caso.motor, dominio=caso.dominio,
@@ -336,6 +348,11 @@ def _comparar(caso: cat.Caso, universo: pl.DataFrame,
     if c.tipo == "existencia":
         df_a, df_b = conjuntos if conjuntos else (pl.DataFrame(), pl.DataFrame())
         return compare.comparar_existencia(caso.id, df_a, df_b, llaves)
+
+    if c.tipo == "suma_cero":
+        return compare.comparar_suma_cero(
+            caso.id, universo, llaves, c.columnas, caso.tolerancia.max_evento
+        )
 
     if c.tipo == "doble_partida":
         df = extracciones[c.fuente_b].principal

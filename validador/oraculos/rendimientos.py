@@ -98,12 +98,51 @@ def saldo_promedio_rendimiento(saldo_cuenta, difference_of_days, acumulado,
 
 
 # --- Adaptadores para el motor -----------------------------------------------
+def tasa_despejada(rend_periodo_1, capital, dias_periodo_1, dias_anio) -> Decimal:
+    """Despeja la tasa anual del PRIMER periodo del plan de pagos.
+
+        tasa = rend_1 x dias_anio / (capital x dias_1) x 100
+
+    K-DEV-003 / V5: la tasa contratada no esta limpia en el modelo
+    (`account_yield.interest_rate` = 0 para inversion), asi que se despeja y se
+    verifica que reproduzca TODOS los demas periodos. Es prueba fuerte
+    (775/775) pero NO sustituye leer la tasa de su tabla: si la tasa
+    configurada estuviera mal, el despeje la absorbe y el caso pasaria. El
+    hueco esta declarado en `supuestos:` de REND-PLAZO.
+
+    El despeje se hace aqui, en Decimal, y no en el SQL: la aritmetica del
+    servidor quedaria fuera de la ruta auditable del dinero.
+    """
+    r1 = _dec(rend_periodo_1, "rend_periodo_1")
+    cap = _dec(capital, "capital")
+    d1 = _dec(dias_periodo_1, "dias_periodo_1")
+    y = _dec(dias_anio, "dias_anio")
+    if cap == 0 or d1 == 0:
+        raise ZeroDivisionError(
+            "no se puede despejar la tasa: capital o dias del periodo 1 en cero"
+        )
+    return r1 * y / (cap * d1) * Decimal("100")
+
+
 def fila_rendimiento_plazo(fila: dict, params: dict) -> Decimal:
+    """Adaptador de REND-PLAZO.
+
+    La tasa se toma, en este orden: la que traiga la fila, la que se pase por
+    parametro, o la despejada del periodo 1. El orden importa: si algun dia
+    aparece la tasa contratada en el modelo, este adaptador la prefiere sin
+    tocar nada mas.
+    """
+    dias_anio = params["dias_anio"]
+    tasa = fila.get("tasa") or params.get("tasa")
+    if not tasa:
+        tasa = tasa_despejada(
+            fila["rend_periodo_1"], fila["capital"], fila["dias_periodo_1"], dias_anio
+        )
     return rendimiento_plazo(
         capital=fila["capital"],
-        tasa=fila.get("tasa") or params["tasa"],
+        tasa=tasa,
         dias_transcurridos=fila["dias_periodo"],
-        dias_anio=params["dias_anio"],
+        dias_anio=dias_anio,
     )
 
 

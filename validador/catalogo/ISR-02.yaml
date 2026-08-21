@@ -4,6 +4,7 @@ motor: FIS
 dominio: FIS
 regla_ref: [K-FIS-003, K-FIS-004, K-FIS-001]
 severidad: 2
+norte_ref: \"NORTE_VALIDACION.md §1 FIS — ISR devengo diario (motor A)\"
 tolerancia: {tipo: redondeo, max_evento: "0.02", prueba_sesgo: true, alfa_sesgo: "0.01"}
 
 parametros:

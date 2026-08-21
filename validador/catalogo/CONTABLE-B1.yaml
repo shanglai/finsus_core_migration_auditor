@@ -1,0 +1,46 @@
+id: CONTABLE-B1
+titulo: Doble partida diaria — la suma de cargos y abonos del dia se cancela
+motor: CTB
+dominio: CTB
+regla_ref: [K-CTB-001]
+severidad: 1
+norte_ref: "NORTE_VALIDACION.md §1 CTB — Doble partida / balanza (familia B)"
+tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
+
+parametros:
+  - {nombre: fecha_ini, tipo: fecha, requerido: true}
+  - {nombre: fecha_fin, tipo: fecha, requerido: true, nota: "exclusiva"}
+
+extraccion:
+  aurum: validador/extraccion/aurum/contable_b1_doble_partida.sql
+
+oraculo: PENDIENTE
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: suma_cero
+  llaves: [fecha]
+  columnas: [suma_debit, suma_credit]
+  fuente_b: aurum
+
+identidad: >-
+  Por dia: SUM(debit_amount) + SUM(credit_amount) = 0, EXACTO. En AurumCore
+  debit_amount viene negativo y credit_amount positivo, asi que la doble partida
+  es literalmente una suma que se cancela. Viola el dia cuyo neto no sea 0.00.
+
+matriz_esperada: >-
+  Sin oraculo y sin motor A: la identidad ES la suma, no hay monto que recalcular
+  ni contraparte historica que consultar. Cualquier violacion es severidad 1: no
+  hay lectura benigna de una contabilidad que no cuadra.
+
+estado: VALIDADO
+estado_origen: "NORTE §1 CTB: B1 CUADRA 0.00 (0/7 dias)"
+cobertura_nota: >-
+  contable_bc.py reporto 0 dias descuadrados de 7. Este VALIDADOR aun no lo ha
+  corrido. B3/B4 se cerraron via DuckDB (pools dominan; B4 deja 2,975 gaps por
+  investigar) y NO estan cubiertos por este caso.
+
+supuestos:
+  - "Es origin-agnostico a proposito: la doble partida debe cuadrar para todo lo que el core postea, migrado o vivo. Filtrar por origin escondaria justo el asiento descuadrado que se busca."
+  - "La agregacion por dia se hace en el servidor porque el detalle son millones de filas. Eso significa que el caso localiza el DIA descuadrado, no el asiento: para bajar al asiento hay que correr una ventana de un solo dia sobre el detalle."
+  - "Data-quality conocida (PLAN_CONTABLE_BC.md): ~510 movimientos/dia de credito traen '' en la cuenta contable. No afectan la suma, pero si el amarre de la familia C."

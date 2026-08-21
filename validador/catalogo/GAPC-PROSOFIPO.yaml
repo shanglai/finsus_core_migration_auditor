@@ -4,6 +4,7 @@ motor: REG
 dominio: REG
 regla_ref: [K-REG-002, F-023]
 severidad: 2
+norte_ref: \"NORTE_VALIDACION.md §1 REG — Cuota Prosofipo\"
 tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
 
 parametros:
@@ -44,3 +45,4 @@ bloqueo: >-
 cobertura_nota: >-
   Re-verificar el termino de la cobertura-841 en System Config (NORTE §1 lo marca
   como pendiente de re-verificacion).
+solicitudes: [SOL-010, SOL-013]

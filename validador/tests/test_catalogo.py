@@ -169,4 +169,5 @@ estado: PENDIENTE
 def test_severidad_1_no_se_diluye():
     """Los casos que bloquean go-live siguen marcados como tales."""
     sev1 = {cid for cid, c in CASOS.items() if c.severidad == 1}
-    assert {"ISR-01", "ISR-03", "REND-PLAZO", "SALDO-PROM", "CONTABLE-BC"} <= sev1
+    assert {"ISR-01", "ISR-03", "REND-PLAZO", "SALDO-PROM",
+            "CONTABLE-B1", "CONTABLE-C", "COMPLETITUD"} <= sev1

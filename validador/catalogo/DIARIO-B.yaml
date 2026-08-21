@@ -4,6 +4,7 @@ motor: MOV
 dominio: MOV
 regla_ref: [K-MOV-001, K-MOV-004, K-MOV-005, K-MOV-006, P-016]
 severidad: 2
+norte_ref: \"NORTE_VALIDACION.md §0 — Motor B, validador de la transaccional diaria\"
 tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
 
 parametros:
@@ -34,19 +35,26 @@ identidad: >-
   SPEI in/out y pago de servicios = 1:1) == el total de AurumCore, exacto.
 
 matriz_esperada: >-
-  A y B tienen que reconciliar DESPUES de normalizar. Hoy no lo hacen: total OF
-  29,029 vs AU cliente 29,530 = -1.7% (motor_b_diario.py, 14-ago). Por categoria
-  DEPOSITO -2.3%, SPEI +2.9%, TARJETA +1.8% si reconcilian; el residual es el NULL
-  "api_dimmer" (3,506 movimientos / $89M), que es un hueco de la vista de Finsus.
+  A y B reconcilian DESPUES de normalizar: total OF 29,029 vs AU cliente 29,020 =
+  +0.0% (motor_b_diario.py, con filtro `origin is null`). Antes daba -1.7%; la
+  diferencia era lo migrado, que el filtro ahora excluye, en linea con Sergio
+  (F-027). El residual por categoria es el NULL "api_dimmer", que es un hueco de
+  la vista de Finsus, no un descuadre de AurumCore.
 
 estado: PARCIAL
-estado_origen: "NORTE_VALIDACION.md §0: CORRIENDO, -1.7%, falta match instancia (P-016)"
+estado_origen: "NORTE §0: CORRIENDO, +0.0% con origin is null, falta match instancia (P-016)"
 bloqueo: >-
-  Faltan dos cosas y ninguna es codigo: (1) el detalle completo del catalogo de ~400
-  tipos contables que dice cuales caen en 2:1 y cuales en 1:1 esta [PENDIENTE] en
-  K-MOV-001 v2; (2) el match a nivel instancia y la explicacion de los NULL
-  "api_dimmer" siguen abiertos en P-016. Sin (1) el oraculo de normalizacion no se
-  puede escribir sin copiar la logica de un core, que es justo lo prohibido (§9.1).
+  El agregado ya reconcilia; lo que falta es el match a nivel INSTANCIA (P-016) y
+  el acceso a `openfin_migracion`/`openfin_m` (SOL-001), sin el cual
+  `vista_movimientos` no permite emparejar cargo contra abono de forma fiable.
+  Ademas el detalle del catalogo de ~400 tipos (cuales 2:1 y cuales 1:1) sigue
+  [PENDIENTE] en K-MOV-001 v2 (SOL-014): sin el, el oraculo de normalizacion no
+  se puede escribir sin copiar la logica de un core, que es lo prohibido (§9.1).
 cobertura_nota: >-
   Corriendo fuera de esta herramienta con comparadores/motor_b_diario.py. Se integra
   aqui cuando K-MOV-001 fije el catalogo de normalizacion.
+
+supuestos:
+  - "[CONTRADICCION vigente] motor_b_diario.py usa `origin is null` como delimitador de vivo, pero REFERENCIA_TABLAS_POR_CASO advierte que el robusto para transaccional es `created >= cutover`, porque transaction.origin tiene semantica mixta y los null aparecen desde abril-2026 (periodo shadow). El +0.0% se obtuvo con el filtro discutido. NO se resuelve por cuenta propia: escalado como SOL-004 / P-013."
+
+solicitudes: [SOL-001, SOL-004, SOL-014]

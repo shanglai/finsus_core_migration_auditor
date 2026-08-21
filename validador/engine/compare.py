@@ -348,6 +348,80 @@ def comparar_existencia(
 
 
 # ---------------------------------------------------------------------------
+# Suma-cero: la identidad "estas columnas se cancelan" (tolerancia 0.00)
+# ---------------------------------------------------------------------------
+
+def comparar_suma_cero(
+    caso_id: str,
+    df: pl.DataFrame,
+    llaves: Sequence[str],
+    columnas: Sequence[str],
+    tolerancia: Decimal = Decimal("0"),
+) -> ResultadoComparacion:
+    """Por grupo de `llaves`: la suma de `columnas` debe ser exactamente cero.
+
+    Cubre dos identidades del NORTE que tienen la misma forma:
+
+      CONTABLE-B1  Sum(debit_amount) + Sum(credit_amount) = 0 por dia.
+                   `debit_amount` viene NEGATIVO y `credit_amount` POSITIVO en
+                   transaction_detail, asi que la doble partida es literalmente
+                   una suma que se cancela (REFERENCIA_TABLAS_POR_CASO §CONTABLE-B1).
+
+      GAPB-IDNC    io + io_venc = 0 por contrato: al pasar a cartera vencida,
+                   `io_venc` cancela exactamente el interes ordinario devengado
+                   (suspension del devengo, K-REG-001 v3).
+
+    Se prefiere esta forma sobre restar dos columnas: restar obliga a decidir
+    cual va con signo negativo, y ese signo ya viene en el dato.
+    """
+    llaves, columnas = list(llaves), list(columnas)
+    asegurar_sin_float(df, columnas)
+    faltan = [c for c in llaves + columnas if c not in df.columns]
+    if faltan:
+        raise KeyError(f"{caso_id}: faltan columnas {faltan}")
+
+    acumulado: dict[tuple, list[Decimal]] = {}
+    for fila in df.iter_rows(named=True):
+        k = tuple(fila[x] for x in llaves)
+        sumas = acumulado.setdefault(k, [Decimal("0")] * len(columnas))
+        for i, col in enumerate(columnas):
+            sumas[i] += _a_decimal(fila.get(col)) or Decimal("0")
+
+    registros = []
+    for k, sumas in acumulado.items():
+        total = sum(sumas, Decimal("0"))
+        excede = abs(total) > tolerancia
+        registros.append({
+            **dict(zip(llaves, k)),
+            **{f"suma_{c}": str(s) for c, s in zip(columnas, sumas)},
+            "descuadre": str(total),
+            "motivo": (f"suma({'+'.join(columnas)}) = {total}, se exige 0 "
+                       f"(tolerancia {tolerancia})") if excede else None,
+            "_viola": excede,
+        })
+
+    if registros:
+        universo = pl.DataFrame(registros)
+    else:
+        universo = pl.DataFrame(schema={
+            **{k: pl.Utf8 for k in llaves},
+            **{f"suma_{c}": pl.Utf8 for c in columnas},
+            "descuadre": pl.Utf8, "motivo": pl.Utf8, "_viola": pl.Boolean,
+        })
+    violaciones = universo.filter(pl.col("_viola")).drop("_viola")
+    universo = universo.drop("_viola")
+
+    return ResultadoComparacion(
+        caso_id=caso_id, tipo="suma_cero", universo=universo,
+        violaciones=violaciones,
+        matriz={"grupos": len(registros), "descuadrados": violaciones.height},
+        tolerancia=str(tolerancia), universo_vacio=not registros,
+        notas=(["UNIVERSO VACIO: no hay filas en la ventana. NO es un pase."]
+               if not registros else []),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Doble partida (familias contables B/C, tolerancia 0.00)
 # ---------------------------------------------------------------------------
 

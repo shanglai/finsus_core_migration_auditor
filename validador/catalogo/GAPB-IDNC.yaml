@@ -1,45 +1,46 @@
 id: GAPB-IDNC
-titulo: Suspension de devengo / IDNC en cartera vencida (>=90 dias, reserva 100%)
+titulo: Suspension de devengo en cartera vencida — io_venc cancela io
 motor: REG
 dominio: REG
 regla_ref: [K-REG-001, F-023]
 severidad: 2
+norte_ref: "NORTE_VALIDACION.md §1 REG 2.1.7 — Suspension de devengo / IDNC"
 tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
 
 parametros:
-  - {nombre: dias_umbral, tipo: entero, default: 90,
-     nota: "Criterio B-4 CNBV / IFRS9: Etapa 3 a los 90 dias de atraso"}
+  - {nombre: fecha_ini, tipo: fecha, requerido: true, nota: "sobre information_date"}
+  - {nombre: fecha_fin, tipo: fecha, requerido: true, nota: "exclusiva"}
 
 extraccion:
-  aurum: 40_validaciones/entrega_finsus/V3_gapB_idnc.sql
+  aurum: validador/extraccion/aurum/gapb_idnc_suspension.sql
 
 oraculo: PENDIENTE
 universo: {fuente: aurum}
 
 comparacion:
-  tipo: igualdad_montos
-  llaves: [stage, credito]
-  columna_b: iodnc_registrado
-  columna_c: iodnc_esperado
+  tipo: suma_cero
+  llaves: [contrato, fecha_informacion]
+  columnas: [io, io_venc]
   fuente_b: aurum
 
 identidad: >-
-  Para todo credito en Etapa 3 (>= 90 dias de atraso): el interes ordinario
-  devengado no cobrado sale de resultados (contra-cuenta IODNC), va a cuentas de
-  orden y queda reservado al 100%. Viola el credito que devenga a resultados
-  estando en etapa 3, o cuya reserva no llega al 100%.
+  Para todo credito con suspension activa: io + io_venc = 0, EXACTO. Al pasar a
+  cartera vencida, io_venc cancela el interes ordinario devengado y el devengo
+  deja de reconocerse en resultados (Criterio B-4 CNBV / IFRS9, etapa 3 a los
+  90 dias). Viola el contrato cuyo neto no sea 0.00: ahi el devengo NO se suspendio.
 
 matriz_esperada: >-
-  Contrario al gap analysis, el mecanismo SI existe (lc_finantial_data_stage). Que
-  EXISTA no prueba que sea CORRECTO: falta el cuadre en datos.
+  Contrario al gap analysis, el mecanismo SI existe y la mecanica ya se reprodujo
+  en datos (K-REG-001 v3). Este caso la convierte en invariante permanente.
+  Sin motor A: OpenFin no lleva el staging IFRS9 al mismo grano.
 
-estado: PARCIAL
-estado_origen: "NORTE_VALIDACION.md §1 REG 2.1.7: existe + logica documentada, falta cuadre en datos"
-bloqueo: >-
-  V3 hoy es un diagnostico de existencia (conteos y sumas), no una identidad por
-  credito. Para escribir el oraculo falta el doc IFRS9 que fije como se calcula la
-  reserva y que cuentas de orden se usan. Sin eso, cualquier oraculo seria una
-  copia de lo que hace el core — prohibido (§9.1).
+estado: VALIDADO
+estado_origen: "NORTE §1 REG 2.1.7: CONFIRMADA en datos — io_venc cancela exactamente io"
 cobertura_nota: >-
-  Ejemplo de trabajo: credito 123-1515-1837. Ya no esta bloqueado por documentacion
-  de la logica (F-023 la describe), pero si por la especificacion de la reserva.
+  Mecanica confirmada. Resta lo que este caso NO cubre: barrer la poblacion
+  completa y validar la contabilizacion a cuentas de orden y la reserva al 100%.
+  Este VALIDADOR aun no lo ha corrido.
+
+supuestos:
+  - "El universo se restringe a io_venc <> 0, que son las filas donde la suspension aplica. En un credito vigente io_venc es cero y io no, y la identidad no aplica: incluirlos convertiria todo el universo en violaciones y diria lo contrario de lo que pasa."
+  - "Se prueba la MECANICA de la suspension, no su contabilizacion. Que io se cancele no demuestra que el importe haya ido a cuentas de orden ni que la reserva sea del 100%: eso sigue abierto y necesita el doc IFRS9."

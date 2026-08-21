@@ -4,6 +4,7 @@ motor: DEV
 dominio: DEV
 regla_ref: [K-DEV-002, K-DEV-001, K-TMP-001]
 severidad: 1
+norte_ref: \"NORTE_VALIDACION.md §1 DEV 2.1.1 — Interes propio vista/ahorro\"
 tolerancia: {tipo: redondeo, max_evento: "0.01", prueba_sesgo: true, alfa_sesgo: "0.01"}
 
 parametros:
@@ -44,3 +45,4 @@ bloqueo: >-
 cobertura_nota: >-
   Regla y ejercicio migrado OK. La corrida viva del 31-ago no se ha validado.
   Escribir S-DEV-001 desbloquea este caso junto con SALDO-PROM.
+solicitudes: [SOL-003]

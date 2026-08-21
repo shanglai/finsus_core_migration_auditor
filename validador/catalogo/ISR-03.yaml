@@ -4,6 +4,7 @@ motor: FIS
 dominio: FIS
 regla_ref: [K-FIS-004, S-FIS-001, C-001]
 severidad: 1
+norte_ref: \"NORTE_VALIDACION.md §1 FIS — Parametros ISR vs norma\"
 tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
 
 parametros:
@@ -44,3 +45,4 @@ cobertura_nota: >-
 supuestos:
   - "El mapeo nombre-del-parametro-en-el-core -> concepto normativo vive en oraculos/parametros_isr.py::CATALOGO_NORMATIVO. Un parametro fiscal fuera de ese mapeo NO se aprueba: se marca 'sin C' y aparece como violacion, para que nadie lo pierda de vista."
   - "cat_tax se filtra por status no inactivo. Si el core marcara la vigencia de otra forma, la consulta traeria tasas historicas y el caso las exhibiria como violaciones."
+solicitudes: [SOL-012, SOL-011]

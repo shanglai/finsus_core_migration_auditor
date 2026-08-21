@@ -4,6 +4,7 @@ motor: DEV
 dominio: DEV
 regla_ref: [K-DEV-002, P-006]
 severidad: 1
+norte_ref: \"NORTE_VALIDACION.md §1 DEV 2.1.3 — Saldo promedio\"
 tolerancia: {tipo: redondeo, max_evento: "0.01", prueba_sesgo: true, alfa_sesgo: "0.01"}
 
 parametros:
@@ -43,3 +44,4 @@ cobertura_nota: >-
   El oraculo existe y esta autoprobado contra el ejemplo del doc. Correrlo contra
   datos sin cerrar P-006 produciria un veredicto que no se sostiene, asi que el
   caso permanece BLOQUEADO a proposito. Pedir los logs del core es el desbloqueo.
+solicitudes: [SOL-003]

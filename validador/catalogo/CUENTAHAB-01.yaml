@@ -1,0 +1,54 @@
+id: CUENTAHAB-01
+titulo: Identidad WSO2 contra padron de cuentahabientes de AurumCore
+motor: MIG
+dominio: DAT
+regla_ref: [K-DAT-005, P-017]
+severidad: 2
+norte_ref: "REFERENCIA_TABLAS_POR_CASO.md §CUENTAHAB-01"
+tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
+
+parametros:
+  - {nombre: fecha_corte, tipo: fecha, requerido: false}
+
+extraccion:
+  identityshared: PENDIENTE
+  aurum: PENDIENTE
+
+oraculo: PENDIENTE
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: existencia
+  llaves: [telefono]
+  fuente_a: identityshared
+  fuente_b: aurum
+
+identidad: >-
+  Todo cliente con roles CTP de onboarding en WSO2 tiene su accountholder en
+  AurumCore, y viceversa. La llave es el telefono de 10 digitos. Viola toda
+  identidad presente de un solo lado.
+
+matriz_esperada: >-
+  Asimetria YA MEDIDA y sin resolver: Aurum->WSO2 practicamente completo (solo
+  20 clientes sin identidad), pero 181,844 identidades WSO2 con roles completos
+  SIN accountholder en Aurum. La hipotesis es churn — `accountholder` es 100%
+  ACTIVE, es decir NO retiene cerradas, mientras WSO2 conserva la identidad tras
+  el cierre. Hasta que Finsus lo confirme, NO se puede decidir si es defecto de
+  migracion o asimetria de retencion esperada, y el caso no emite veredicto.
+
+estado: BLOQUEADO
+estado_origen: "SOLICITUDES_FINSUS SOL-007 (P-017) — ciclo de vida de la identidad en WSO2"
+bloqueo: >-
+  Doble bloqueo. (1) Falta la respuesta de Finsus sobre si la identidad WSO2
+  persiste tras cerrar la cuenta y si existe padron de cuentas cerradas (SOL-007):
+  sin eso, 181,844 diferencias no se pueden interpretar. (2) La base
+  `identityshared` esta marcada `sensible: true` en db_connections.yaml, asi que
+  el motor NO extrae de ella sin --permitir-sensible explicito.
+cobertura_nota: >-
+  cuentahabientes_wso2.py trabaja sobre CSV exportados a landing/, no contra la
+  base. Ese camino evita tocar identityshared y es el preferido.
+solicitudes: [SOL-007]
+
+supuestos:
+  - "La llave es el telefono de 10 digitos, normalizado en ambos lados (WSO2.um_user_name contra AU.username o contact_mobile_phone). Si la normalizacion difiere, el set-diff sale enorme por un problema de llave y no de padron."
+  - "Se excluye la sucursal 201 en ambos lados, como en el resto del catalogo."

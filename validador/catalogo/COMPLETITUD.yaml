@@ -4,6 +4,7 @@ motor: MOV
 dominio: MIG
 regla_ref: [K-PRC-001, K-MIG-002, K-MIG-005]
 severidad: 1
+norte_ref: \"NORTE_VALIDACION.md §0 — se come todo lo que opera\"
 tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
 
 parametros:
@@ -60,3 +61,4 @@ cobertura_nota: >-
 supuestos:
   - "La llave id_inversion se DERIVA: en OpenFin como idsucaux-idproducto-idauxiliar, en AurumCore como account_number tal cual. Se asume que ambas producen el mismo formato sucursal-producto-auxiliar (NORTE §2). Verificar contra K-DAT-003 en la primera corrida: si el set-diff sale masivo en ambos sentidos, el problema es la llave, no los datos."
   - "El universo de OpenFin se filtra a estatus 3 y 4 (activa, cerrada) y productos 2301/2302/2307/2308; el de AurumCore a account_type INVESTMENT_ACCOUNT. Si los filtros no cubren el mismo universo, las diferencias son de alcance y no de completitud."
+solicitudes: [SOL-005]

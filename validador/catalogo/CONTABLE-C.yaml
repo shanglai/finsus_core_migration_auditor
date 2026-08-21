@@ -1,0 +1,40 @@
+id: CONTABLE-C
+titulo: Amarre auxiliar contra mayor por producto y dia
+motor: CTB
+dominio: CTB
+regla_ref: [K-CTB-001]
+severidad: 1
+norte_ref: "NORTE_VALIDACION.md §1 CTB — Amarre auxiliar<->mayor (familia C)"
+tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
+
+parametros:
+  - {nombre: fecha_ini, tipo: fecha, requerido: true}
+  - {nombre: fecha_fin, tipo: fecha, requerido: true}
+
+extraccion:
+  aurum: PENDIENTE
+
+oraculo: PENDIENTE
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: suma_cero
+  llaves: [producto, fecha]
+  columnas: [suma_auxiliar, suma_mayor_negada]
+  fuente_b: aurum
+
+identidad: >-
+  Por producto y dia: la suma del auxiliar iguala al mayor, EXACTO. Viola el
+  par producto-dia cuyo neto no sea 0.00.
+
+matriz_esperada: "Cualquier violacion es severidad 1. Sin motor A."
+
+estado: PENDIENTE
+estado_origen: "NORTE §1 CTB: version por-producto lista; amarre a cuenta contable pendiente"
+bloqueo: >-
+  Falta la consulta. AurumCore NO persiste el mayor/balanza como tabla: hay que
+  derivarlo de los movimientos, y la version por cuenta contable aun no esta
+  construida. Ademas PLAN_CONTABLE_BC.md documenta ~510 movimientos/dia de
+  credito con '' en la cuenta contable, que es precisamente lo que rompe este
+  amarre y hay que resolver antes.
+cobertura_nota: "Familia C sin construir. Es el hueco mas grande del catalogo en severidad 1."

@@ -26,7 +26,7 @@ PENDIENTE = "PENDIENTE"
 
 ESTADOS = ("VALIDADO", "PARCIAL", "PENDIENTE", "BLOQUEADO", "HALLAZGO")
 MOTORES = ("FIS", "DEV", "MOV", "REG", "CTB", "COL", "PRC", "MIG")
-TIPOS_COMPARACION = ("igualdad_montos", "existencia", "doble_partida")
+TIPOS_COMPARACION = ("igualdad_montos", "existencia", "doble_partida", "suma_cero")
 TIPOS_TOLERANCIA = ("contable", "redondeo")
 
 # Ids en mayusculas, con o sin guion: ISR-01, GAPB-IDNC, COMPLETITUD.
@@ -63,6 +63,7 @@ class Comparacion:
     columna_a: str | None = None
     columna_b: str | None = None
     columna_c: str | None = None
+    columnas: tuple[str, ...] = ()      # para suma_cero
     # De que core sale cada motor. Por omision B = aurum (el core bajo prueba) y
     # A = openfin (el historico). ISR-02 es la excepcion: ahi el motor bajo
     # prueba es OpenFin, y se declara explicitamente.
@@ -90,6 +91,8 @@ class Caso:
     cobertura_nota: str = ""
     bloqueo: str = ""
     estado_origen: str = ""         # lo que el documento fuente afirmaba
+    norte_ref: str = ""             # fila del NORTE que este caso espeja (fuente unica)
+    solicitudes: tuple[str, ...] = ()   # SOL-* que lo desbloquean
     supuestos: tuple[str, ...] = ()
     ruta: Path | None = field(default=None, compare=False)
 
@@ -109,20 +112,24 @@ class Caso:
     def ejecutable(self) -> bool:
         """Hay con que correr el caso.
 
-        Un caso de EXISTENCIA no lleva oraculo: la identidad es el set-diff
-        entre los dos cores, y para eso hacen falta las dos consultas.
-        Los demas exigen oraculo + la consulta del core bajo prueba.
+        Hay dos familias que NO llevan oraculo, porque la identidad es la
+        comparacion misma y no hay monto que recalcular:
+          - EXISTENCIA: el set-diff entre los dos cores (exige ambas consultas).
+          - SUMA_CERO : las columnas se cancelan (exige la del core bajo prueba).
+        Las demas exigen oraculo + la consulta del core bajo prueba.
         """
         if self.comparacion.tipo == "existencia":
             return self._sql_listo(self.comparacion.fuente_a) and \
                    self._sql_listo(self.comparacion.fuente_b)
+        if self.comparacion.tipo == "suma_cero":
+            return self._sql_listo(self.comparacion.fuente_b)
         if self.oraculo_pendiente:
             return False
         return self._sql_listo(self.comparacion.fuente_b)
 
     def motivo_no_ejecutable(self) -> str:
         faltantes = []
-        if self.oraculo_pendiente and self.comparacion.tipo != "existencia":
+        if self.oraculo_pendiente and self.comparacion.tipo not in ("existencia", "suma_cero"):
             faltantes.append("oraculo PENDIENTE (falta pieza de conocimiento)")
         for core in self.sql_pendientes:
             faltantes.append(f"SQL de {core} PENDIENTE")
@@ -222,6 +229,9 @@ def cargar_caso(ruta: Path) -> Caso:
             f"comparacion.tipo invalido: {comp.get('tipo')!r} (validos {TIPOS_COMPARACION})", ruta)
     _exigir(isinstance(comp.get("llaves"), list) and comp["llaves"],
             "comparacion.llaves debe ser una lista no vacia", ruta)
+    if comp["tipo"] == "suma_cero":
+        _exigir(isinstance(comp.get("columnas"), list) and len(comp["columnas"]) >= 2,
+                "comparacion.columnas debe listar al menos dos columnas para suma_cero", ruta)
     if comp["tipo"] == "igualdad_montos":
         for col in ("columna_b", "columna_c"):
             _exigir(bool(comp.get(col)),
@@ -232,6 +242,7 @@ def cargar_caso(ruta: Path) -> Caso:
         columna_a=comp.get("columna_a"),
         columna_b=comp.get("columna_b"),
         columna_c=comp.get("columna_c"),
+        columnas=tuple(comp.get("columnas") or []),
         fuente_a=comp.get("fuente_a", "openfin"),
         fuente_b=comp.get("fuente_b", "aurum"),
     )
@@ -249,6 +260,8 @@ def cargar_caso(ruta: Path) -> Caso:
         universo=d.get("universo") or {},
         cobertura_nota=d.get("cobertura_nota", ""), bloqueo=d.get("bloqueo", ""),
         estado_origen=d.get("estado_origen", ""),
+        norte_ref=d.get("norte_ref", ""),
+        solicitudes=tuple(d.get("solicitudes") or []),
         supuestos=tuple(d.get("supuestos") or []), ruta=ruta,
     )
 

@@ -38,7 +38,11 @@ select
     (pp.due_date - pp.start_date)::text          as dias_periodo,
     coalesce(st.saldo_total, 0)::text            as saldo_total_cliente,
     false                                        as persona_moral,
-    pe.account_number                            as cuenta_isr_contraparte
+    pe.account_number                            as cuenta_isr_contraparte,
+    -- Delimitador "Aurum vivo" = `created >= cutover` (la ventana de este
+    -- query). `origin` viaja SOLO para transparencia del desglose, no como
+    -- filtro: su semantica es mixta y sigue sin confirmarse (SOL-004 / P-013).
+    coalesce(t.origin, '(null)')                 as origen
 from aurumcore.transaction_detail td
 join aurumcore.transaction   t   on t.transaction_id  = td.transaction_id
 join aurumcore.account       pa  on pa.account_id     = t.payer_account_id

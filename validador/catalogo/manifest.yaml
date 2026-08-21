@@ -1,36 +1,40 @@
 # Indice del catalogo de casos del VALIDADOR.
 #
-# Debe quedar SINCRONIZADO con los YAML de este directorio y con
-# 40_validaciones/NORTE_VALIDACION.md (misma nomenclatura y estado, §7.4).
-# `python cli.py --cobertura` verifica la sincronia contra los YAML y reporta
-# cualquier discrepancia; la sincronia contra el NORTE es manual.
+# FUENTE UNICA (decision C): el catalogo de casos vive en
+# 40_validaciones/NORTE_VALIDACION.md. Este directorio es su ESPEJO ejecutable,
+# no un catalogo paralelo. Cada YAML declara `norte_ref` con la fila del NORTE
+# que espeja; si el NORTE cambia, se re-espeja aqui (ver
+# export_auditor/PROMPT_SYNC_AUDITOR.md).
 #
-# OJO con la semantica de `estado`: describe lo que se sabe de la VALIDACION
-# (segun el NORTE), no si esta herramienta la corrio. Eso ultimo vive en
-# reportes/cobertura.md, y un caso VALIDADO que este validador nunca ejecuto
-# aparece ahi como NO-CORRIDO.
+# `estado` describe lo que se sabe de la VALIDACION segun el NORTE, no si esta
+# herramienta la corrio. Eso vive en reportes/cobertura.md: un caso VALIDADO que
+# el validador nunca ejecuto aparece ahi como NO-CORRIDO.
 
-version: 1
-actualizado: "2026-08-20"
+version: 2
+actualizado: "2026-08-21"
 fuente_de_verdad: 40_validaciones/NORTE_VALIDACION.md
+espejado_de: "NORTE_VALIDACION.md actualizado 2026-08-20"
 
 casos:
   - {id: ISR-01,          motor: FIS, estado: VALIDADO,  severidad: 1, titulo: "Retencion de ISR al pago = regla normativa"}
   - {id: ISR-02,          motor: FIS, estado: VALIDADO,  severidad: 2, titulo: "Descuadre OF vs AC = diferencia de MODELO"}
   - {id: ISR-03,          motor: FIS, estado: VALIDADO,  severidad: 1, titulo: "Parametros ISR configurados vs norma (caso-trampa C-001)"}
-  - {id: REND-PLAZO,      motor: DEV, estado: VALIDADO,  severidad: 1, titulo: "Rendimiento plazo fijo al centavo"}
+  - {id: REND-PLAZO,      motor: DEV, estado: VALIDADO,  severidad: 1, titulo: "Rendimiento plazo fijo al centavo (migrado y live)"}
   - {id: REND-VISTA,      motor: DEV, estado: PARCIAL,   severidad: 1, titulo: "Interes y capitalizacion de cuenta vista"}
   - {id: SALDO-PROM,      motor: DEV, estado: BLOQUEADO, severidad: 1, titulo: "Saldo promedio (base de vista y de ISR)"}
   - {id: DIARIO-B,        motor: MOV, estado: PARCIAL,   severidad: 2, titulo: "Transaccional diaria OF vs AC (2:1 / 1:1)"}
-  - {id: GAPB-IDNC,       motor: REG, estado: PARCIAL,   severidad: 2, titulo: "Suspension de devengo / IDNC en cartera vencida"}
+  - {id: COMPLETITUD,     motor: MOV, estado: PARCIAL,   severidad: 1, titulo: "Se come todas — existencia OF vs AC"}
+  - {id: GAPB-IDNC,       motor: REG, estado: VALIDADO,  severidad: 2, titulo: "Suspension de devengo: io_venc cancela io"}
   - {id: GAPC-PROSOFIPO,  motor: REG, estado: HALLAZGO,  severidad: 2, titulo: "Cuota Prosofipo — motor faltante"}
   - {id: WRITEOFFS,       motor: CTB, estado: PENDIENTE, severidad: 2, titulo: "Quitas, condonaciones y castigos = poliza por evento"}
+  - {id: CONTABLE-B1,     motor: CTB, estado: VALIDADO,  severidad: 1, titulo: "Doble partida diaria (familia B)"}
+  - {id: CONTABLE-C,      motor: CTB, estado: PENDIENTE, severidad: 1, titulo: "Amarre auxiliar contra mayor (familia C)"}
+  - {id: BALANZA-D,       motor: CTB, estado: PARCIAL,   severidad: 2, titulo: "Balanza por producto, cruce A/B (familia D)"}
   - {id: CRED-IO,         motor: COL, estado: PENDIENTE, severidad: 1, titulo: "Interes ordinario/moratorio de credito One Click"}
-  - {id: CONTABLE-BC,     motor: CTB, estado: PENDIENTE, severidad: 1, titulo: "Doble partida y amarre auxiliar-balanza"}
-  - {id: COMPLETITUD,     motor: MOV, estado: PARCIAL,   severidad: 1, titulo: "Se come todas — existencia OF vs AC"}
+  - {id: CUENTAHAB-01,    motor: MIG, estado: BLOQUEADO, severidad: 2, titulo: "Identidad WSO2 contra padron de AurumCore"}
 
-# Como crece este catalogo (§7):
-#   1. Requisito nuevo -> pieza K en 10_conocimiento/ -> YAML aqui -> alta en esta lista.
-#   2. Regla que cambia -> sube version de la pieza K -> los casos que la citan quedan
-#      "revision requerida" -> ajustar oraculo/identidad -> re-correr -> actualizar cobertura.
-#   3. Hallazgo confirmado -> invariante de regresion permanente en tests/.
+# Como crece este catalogo (PROMPT_SYNC_AUDITOR.md):
+#   1. La sesion del repo fuente actualiza pieza K -> fila del NORTE -> codigo/SQL.
+#   2. Corre ensamblar.py y anota el changelog en export_auditor/MANIFEST.md.
+#   3. Aqui se re-espeja el caso, se re-corre lo afectado y se actualiza cobertura.md.
+#   4. Hallazgo confirmado -> invariante de regresion permanente en tests/.

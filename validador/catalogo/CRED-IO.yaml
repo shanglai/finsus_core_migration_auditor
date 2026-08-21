@@ -4,6 +4,7 @@ motor: COL
 dominio: COL
 regla_ref: [K-COL-001, P-006]
 severidad: 1
+norte_ref: \"NORTE_VALIDACION.md §1 CAP/COL — Credito One Click, devengamiento\"
 tolerancia: {tipo: redondeo, max_evento: "0.01", prueba_sesgo: true, alfa_sesgo: "0.01"}
 
 parametros:
@@ -40,3 +41,4 @@ bloqueo: >-
 cobertura_nota: >-
   La EXISTENCIA de creditos si cuadra 100% (arbol dia cero, K-COL-001). Lo que
   falta es el CALCULO.
+solicitudes: [SOL-008]

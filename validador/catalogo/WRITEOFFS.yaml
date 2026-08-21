@@ -4,6 +4,7 @@ motor: CTB
 dominio: COL
 regla_ref: [F-023, P-006]
 severidad: 2
+norte_ref: \"NORTE_VALIDACION.md §1 REG — Write-offs\"
 tolerancia: {tipo: contable, max_evento: "0.00", prueba_sesgo: false}
 
 parametros:
@@ -38,3 +39,4 @@ bloqueo: >-
   Falta la pieza de conocimiento: no hay K-* que documente esta regla, solo una
   afirmacion en F-023 §1. Primer paso es crear la pieza, no escribir codigo.
 cobertura_nota: "Caso nuevo, sin corridas. IFRS9 calcula reservas a cierre; las polizas individuales van al ERP."
+solicitudes: [SOL-009]

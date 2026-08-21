@@ -156,3 +156,40 @@ def test_los_defaults_del_catalogo_llegan_a_los_parametros():
     assert p["uma_anual"] == "42794.64"
     assert p["tasa_anual"] == "0.9"
     assert Decimal(p["uma_anual"]) * Decimal("5") == Decimal("213973.20")
+
+
+def test_un_fallo_de_conexion_deja_evidencia_no_un_traceback(tmp_path, monkeypatch):
+    """Una caida de red tiene que terminar en evidencia ERROR, no reventando.
+
+    Regresion de un defecto real (2026-08-21): la VPN se cayo a media corrida y
+    el runner dejo escapar psycopg2.OperationalError como traceback. Un caso que
+    revienta sin dejar rastro se confunde despues con uno que nunca se intento.
+    """
+    from engine import extract
+
+    monkeypatch.setattr(evidencia.config, "REPORTES", tmp_path)
+
+    def _explota(*a, **k):
+        raise ConnectionError("connection to server ... failed: Connection timed out")
+
+    monkeypatch.setattr(extract, "extraer_archivo", _explota)
+    caso = cat.cargar_todos()["ISR-03"]
+    corrida = runner.correr_caso(caso, overrides={"anio_causacion": 2026}, dry_run=False)
+
+    assert corrida.estado == "ERROR"
+    d = json.loads((Path(corrida.ruta_evidencia) / "manifiesto.json").read_text(encoding="utf-8"))
+    assert d["resultado_global"] == "ERROR"
+    assert "Connection timed out" in d["bloqueo"]
+    assert d["resultado"]["veredicto"] != "SIN-VIOLACIONES"
+
+
+def test_cobertura_lee_el_error_como_no_corrido(tmp_path, monkeypatch):
+    from engine import extract
+    monkeypatch.setattr(evidencia.config, "REPORTES", tmp_path)
+    monkeypatch.setattr(extract, "extraer_archivo",
+                        lambda *a, **k: (_ for _ in ()).throw(ConnectionError("sin red")))
+    runner.correr_caso(cat.cargar_todos()["ISR-03"],
+                       overrides={"anio_causacion": 2026}, dry_run=False)
+    fila = [l for l in cobertura.generar(raiz_reportes=tmp_path).splitlines()
+            if "**ISR-03**" in l][0]
+    assert "NO-CORRIDO" in fila

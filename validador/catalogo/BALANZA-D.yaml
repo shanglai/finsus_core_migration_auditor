@@ -1,0 +1,52 @@
+id: BALANZA-D
+titulo: Balanza por producto — cruce AurumCore contra OpenFin
+motor: CTB
+dominio: CTB
+regla_ref: [K-CTB-001, K-DAT-004]
+severidad: 2
+norte_ref: "NORTE_VALIDACION.md §1 CTB — Balanza por producto · cross A/B (familia D)"
+tolerancia: {tipo: redondeo, max_evento: "0.01", prueba_sesgo: true, alfa_sesgo: "0.01"}
+
+parametros:
+  - {nombre: fecha_corte, tipo: fecha, requerido: true}
+
+extraccion:
+  aurum: PENDIENTE
+  openfin: PENDIENTE
+
+oraculo: PENDIENTE
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: igualdad_montos
+  llaves: [producto]
+  columna_a: saldo_openfin
+  columna_b: saldo_aurum
+  columna_c: saldo_esperado
+  fuente_a: openfin
+  fuente_b: aurum
+
+identidad: >-
+  Por producto: AU account.balance_amount == OF acreedores.saldo. Viola el
+  producto cuya diferencia exceda la tolerancia.
+
+matriz_esperada: >-
+  A != B ESPERADO y no es defecto: OpenFin es replica t-1 y AurumCore es actual,
+  asi que la diferencia de sincronia es estructural. Reconcilia ~1-2% por
+  producto (2301 y 2002 casi al punto). El 2001 a -34% ya esta EXPLICADO:
+  concentracion en pocas cuentas grandes (OF max $53.5M vs AU $20M) = sincronia,
+  no defecto de calculo. Este caso mide deriva, no correccion.
+
+estado: PARCIAL
+estado_origen: "NORTE §1 CTB familia D: reconcilia ~1-2%/producto; 2001 -34% explicado"
+bloqueo: >-
+  Falta el script `contable_d_balanza.py` (el NORTE lo marca pendiente) y las
+  dos consultas de extraccion. La regla y los localizadores ya estan; lo que
+  falta es construirlo.
+cobertura_nota: >-
+  Hallazgo asociado: `daily_account_balances` esta STALE (solo oct-nov 2025 y
+  omite inversiones) — NO usar como fuente. Escalado como SOL-006 / P-018.
+solicitudes: [SOL-006]
+
+supuestos:
+  - "La tolerancia de 0.01 con prueba de sesgo es un marcador, no la definitiva: mientras la comparacion sea t-1 contra actual, la diferencia de sincronia domina sobre el redondeo y la prueba de signo medira la deriva temporal, no un sesgo de calculo. Fijar la tolerancia real exige comparar contra un corte del mismo instante."

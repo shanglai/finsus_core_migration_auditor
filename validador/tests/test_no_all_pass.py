@@ -174,3 +174,30 @@ def test_extraccion_no_acotada_es_un_error_no_una_truncada():
 def test_catalogo_y_manifest_sincronizados():
     problemas = cat.verificar_sincronia()
     assert not problemas, "catalogo/manifest desincronizados:\n  " + "\n  ".join(problemas)
+
+
+# --- Fuente unica: el catalogo espeja el NORTE, no compite con el -----------
+
+def test_todo_caso_declara_la_fila_del_norte_que_espeja():
+    """Decision C: el NORTE es la fuente unica; esto es su espejo ejecutable.
+
+    Un caso sin `norte_ref` es un catalogo paralelo empezando a nacer, que es
+    justo lo que PROMPT_SYNC_AUDITOR.md prohibe.
+    """
+    for cid, c in cat.cargar_todos().items():
+        assert c.norte_ref.strip(), f"{cid} no declara que fila del NORTE espeja"
+
+
+def test_todo_caso_bloqueado_dice_que_insumo_lo_desbloquea():
+    """Un bloqueo sin salida es una queja; con SOL-* es una peticion accionable."""
+    for cid, c in cat.cargar_todos().items():
+        if c.estado in ("BLOQUEADO", "PENDIENTE") or not c.ejecutable:
+            tiene_via = bool(c.solicitudes) or bool(c.bloqueo) or bool(c.sql_pendientes)
+            assert tiene_via, f"{cid} esta detenido y no dice que lo desbloquea"
+
+
+def test_las_familias_sin_oraculo_no_lo_exigen():
+    """existencia y suma_cero son identidades, no recalculos de monto."""
+    for cid, c in cat.cargar_todos().items():
+        if c.comparacion.tipo in ("existencia", "suma_cero") and c.ejecutable:
+            assert "oraculo PENDIENTE" not in c.motivo_no_ejecutable()

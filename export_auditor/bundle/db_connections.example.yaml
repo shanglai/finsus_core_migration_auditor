@@ -1,0 +1,21 @@
+# Plantilla de conexiones para Fase 1 (SOLO LECTURA).
+# COPIA este archivo a  db_connections.yaml  (gitignored) y pon las credenciales reales.
+# NUNCA pongas credenciales en este .example (sí se versiona).
+#
+#   cp db_connections.example.yaml db_connections.yaml
+#
+openfin:                 # OpenFin t-1 (replica). base -> "OF"
+  host: CAMBIAR
+  port: 5432
+  dbname: openfin_aurum
+  user: CAMBIAR
+  password: CAMBIAR
+  sslmode: require       # opcional (require | prefer | disable)
+
+aurum:                   # AurumCore. base -> "AC"
+  host: CAMBIAR
+  port: 5432
+  dbname: aurumcore
+  user: CAMBIAR
+  password: CAMBIAR
+  sslmode: require       # opcional
