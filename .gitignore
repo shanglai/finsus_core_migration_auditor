@@ -25,6 +25,15 @@
 # --- Credenciales — NUNCA versionar ----------------------------------------
 db_connections.yaml
 validador/db_connections.yaml
+# Cualquier derivado: respaldos, copias con fecha, .bak, .old, .tmp.
+# Un `cp db_connections.yaml db_connections.yaml.bak` antes de editar es lo
+# normal, y sin esta linea el respaldo aparece como archivo sin rastrear con
+# las credenciales adentro.
+db_connections.yaml.*
+db_connections*.yaml
+!db_connections.example.yaml
+!validador/db_connections.example.yaml
+*.bak
 *.pgpass
 .env
 .env.*

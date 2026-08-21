@@ -183,7 +183,8 @@ def parsear_params(pares: list[str], archivo_cohorte: str | None,
 # Corrida
 # ---------------------------------------------------------------------------
 
-def correr(caso: cat.Caso, params: dict, dry_run: bool, max_filas: int | None) -> int:
+def correr(caso: cat.Caso, params: dict, dry_run: bool, max_filas: int | None,
+           permitir_sensible: bool = False) -> int:
     explicar(caso, params)
 
     if dry_run:
@@ -191,7 +192,8 @@ def correr(caso: cat.Caso, params: dict, dry_run: bool, max_filas: int | None) -
         print("Estas son las consultas EXACTAS que se enviarian:\n")
 
     corrida = runner.correr_caso(caso, overrides=params, dry_run=dry_run,
-                                 max_filas=max_filas)
+                                 max_filas=max_filas,
+                                 permitir_sensible=permitir_sensible)
 
     if dry_run:
         for core, info in corrida.consultas.items():
@@ -255,7 +257,7 @@ def menu(casos: dict[str, cat.Caso]) -> int:
 
 # ---------------------------------------------------------------------------
 
-def probar_conexion() -> int:
+def probar_conexion(permitir_sensible: bool = False) -> int:
     """Prueba de vuelo previa: a que base me voy a pegar y en que modo."""
     from engine import extract
 
@@ -277,7 +279,11 @@ def probar_conexion() -> int:
         return 2
 
     problemas = 0
+    omitidos = []
     for core in cores:
+        if config.es_sensible(core, conexiones) and not permitir_sensible:
+            omitidos.append(core)
+            continue
         print(f"\n  --- {core} ---")
         try:
             info = extract.probar_conexion(core, conexiones)
@@ -289,18 +295,27 @@ def probar_conexion() -> int:
         print(f"    usuario        : {info['usuario']}")
         print(f"    servidor       : {info['servidor']}")
         print(f"    hora servidor  : {info['hora_servidor']}")
-        print(f"    replica        : {'si' if info['es_replica'] else 'NO — es primaria'}")
+        print(f"    rol declarado  : {info['rol'] or '(sin declarar en db_connections.yaml)'}")
+        print(f"    en recuperacion: {'si' if info['en_recuperacion'] else 'no'}"
+              f"   (standby por streaming; una replica t-1 restaurada dice 'no')")
         print(f"    solo lectura   : {'si' if info['solo_lectura'] else 'NO'}")
         print(f"    escritura      : {'bloqueada' if info['escritura_bloqueada'] else 'PERMITIDA'}")
+        if info["nota"]:
+            print(f"    nota           : {info['nota']}")
 
         if not info["escritura_bloqueada"]:
             problemas += 1
             print("    [!] El servidor ACEPTO una escritura. El VALIDADOR nunca escribe, pero")
             print("        el rol de base deberia ser de solo lectura: la defensa de la")
             print("        aplicacion no sustituye a la del servidor.")
-        if not info["es_replica"]:
-            print("    [!] No es una replica. NORTE_VALIDACION §0 indica apuntar a la REPLICA,")
-            print("        no al T-1 ni a la primaria.")
+        if not info["rol"]:
+            print("    [!] Sin `rol:` declarado. El rol NO se infiere de pg_is_in_recovery():")
+            print("        esa bandera solo detecta standby por streaming. Declararlo en")
+            print("        db_connections.yaml para que quede en la evidencia de cada corrida.")
+
+    if omitidos:
+        print(f"\n  --- OMITIDOS por `sensible: true`: {', '.join(omitidos)} ---")
+        print("    No se conecto a estos destinos. Para incluirlos: --permitir-sensible")
 
     limite = config.limite_filas(conexiones)
     print(f"\n  cota de extraccion: {limite:,} filas por consulta "
@@ -336,10 +351,12 @@ def main(argv: list[str] | None = None) -> int:
                     help="corre la bateria de tests (sin base de datos)")
     ap.add_argument("--probar-conexion", action="store_true",
                     help="conecta a cada core en solo lectura y describe el destino; no corre ningun caso")
+    ap.add_argument("--permitir-sensible", action="store_true",
+                    help="permite tocar destinos marcados `sensible: true` en db_connections.yaml")
     args = ap.parse_args(argv)
 
     if args.probar_conexion:
-        return probar_conexion()
+        return probar_conexion(permitir_sensible=args.permitir_sensible)
 
     if args.autopruebas:
         import subprocess
@@ -390,7 +407,8 @@ def main(argv: list[str] | None = None) -> int:
         dry = True
 
     try:
-        return correr(casos[cid], params, dry_run=dry, max_filas=args.max_filas)
+        return correr(casos[cid], params, dry_run=dry, max_filas=args.max_filas,
+                      permitir_sensible=args.permitir_sensible)
     except ErrorValidador as exc:
         print(f"\n[X] {exc}")
         return 2

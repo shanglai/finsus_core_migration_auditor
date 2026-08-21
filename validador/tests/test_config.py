@@ -111,6 +111,58 @@ def test_se_busca_en_validador_y_en_la_raiz_del_repo():
     assert config.UBICACIONES_CONEXIONES[1].parent == config.RAIZ_REPO
 
 
+def test_el_rol_se_declara_no_se_infiere():
+    """pg_is_in_recovery() solo detecta standby por streaming.
+
+    Una replica t-1 restaurada desde respaldo responde `false` y sigue siendo
+    replica. Inferir el rol de esa bandera produce una advertencia falsa, que
+    es peor que no advertir: entrena a quien audita a ignorar los avisos.
+    """
+    conexiones = {"cores": {"openfin": {"host": "h", "dbname": "d", "rol": "replica_t1"}}}
+    assert config.metadatos_core("openfin", conexiones)["rol"] == "replica_t1"
+    # Sin declarar, queda vacio — nunca se adivina.
+    assert config.metadatos_core("x", {"cores": {"x": {}}})["rol"] == ""
+
+
+def test_destino_sensible_se_marca_y_se_respeta():
+    conexiones = {"cores": {
+        "identityshared": {"host": "h", "dbname": "d", "sensible": True},
+        "aurum": {"host": "h", "dbname": "d"},
+    }}
+    assert config.es_sensible("identityshared", conexiones)
+    assert not config.es_sensible("aurum", conexiones)
+
+
+def test_extraer_de_un_destino_sensible_falla_ANTES_de_conectar():
+    """El candado tiene que actuar antes del socket, no despues.
+
+    El host es inalcanzable a proposito: si saliera un error de conexion en
+    vez de DestinoSensible, significaria que ya intento pegarse.
+    """
+    from engine import extract
+    from engine.errores import DestinoSensible
+
+    conexiones = {"cores": {"sensible_x": {
+        "host": "192.0.2.1", "port": 5432, "dbname": "d",  # TEST-NET-1, no enrutable
+        "user": "u", "password": "x", "sensible": True,
+    }}}
+    with pytest.raises(DestinoSensible, match="sensible"):
+        extract.ejecutar("sensible_x", ["select 1"], {}, conexiones=conexiones)
+
+
+def test_los_metadatos_no_se_pasan_como_parametros_de_conexion():
+    """`rol`, `sensible` y `nota` son metadatos nuestros: psycopg2 los rechazaria."""
+    from engine import extract
+    cfg = {"host": "h", "port": 5432, "dbname": "d", "user": "u", "password": "p",
+           "sslmode": "require", "rol": "replica_t1", "sensible": False,
+           "nota": "x", "etiqueta_snapshot": "y", "statement_timeout_ms": 1000}
+    import inspect
+    fuente = inspect.getsource(extract.conectar)
+    for clave in ("rol", "sensible", "nota", "etiqueta_snapshot"):
+        assert f'"{clave}"' not in fuente, f"{clave} no debe viajar a psycopg2"
+    assert '"host", "port", "dbname", "user", "password", "sslmode"' in fuente
+
+
 def test_el_archivo_de_credenciales_no_esta_versionado():
     """Invariante de seguridad: si esto falla, hay credenciales en git."""
     import subprocess

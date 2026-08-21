@@ -45,3 +45,12 @@ class FloatEnDinero(ErrorValidador):
 
 class ConexionNoConfigurada(ErrorValidador):
     """Falta db_connections.yaml o la entrada del core solicitado."""
+
+
+class DestinoSensible(ErrorValidador):
+    """Se intento extraer de un destino marcado `sensible: true`.
+
+    Hay bases que aguantan una auditoria y bases que no. La marca la pone
+    quien conoce la infraestructura, y el motor la respeta: extraer de un
+    destino sensible exige decirlo en voz alta, no que nadie se acuerde.
+    """

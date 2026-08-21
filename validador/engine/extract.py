@@ -33,7 +33,7 @@ from typing import Any, Sequence
 import polars as pl
 
 from . import config
-from .errores import ExtraccionNoAcotada, SolaLecturaViolada
+from .errores import DestinoSensible, ExtraccionNoAcotada, SolaLecturaViolada
 
 # Verbos de escritura y DDL. Se busca como palabra completa, fuera de comentarios.
 _VERBOS_PROHIBIDOS = (
@@ -197,16 +197,22 @@ def probar_conexion(core: str, conexiones: dict | None = None) -> dict[str, Any]
     """Prueba de vuelo previa: conecta en SOLO LECTURA y describe el destino.
 
     No corre ningun caso. Sirve para responder, antes de auditar nada:
-    ¿a que base estoy pegado, con que usuario, es la replica, y estoy
-    realmente en solo lectura?
+    ¿a que base estoy pegado, con que usuario, y estoy realmente en solo
+    lectura?
 
     Ademas INTENTA una escritura trivial y verifica que el servidor la
     rechace. Confiar en que la sesion es de solo lectura sin comprobarlo es
     justo el tipo de supuesto que este proyecto no acepta.
+
+    Sobre el rol del servidor: se REPORTA `pg_is_in_recovery()`, que no es lo
+    mismo que "es replica". Solo detecta standby por streaming; una replica
+    t-1 restaurada desde respaldo responde `false` y sigue siendo replica. El
+    rol se DECLARA en db_connections.yaml (`rol:`), no se infiere.
     """
     conexiones = conexiones if conexiones is not None else config.cargar_conexiones()
     cfg = config.config_core(core, conexiones)
-    info: dict[str, Any] = {"core": core}
+    meta = config.metadatos_core(core, conexiones)
+    info: dict[str, Any] = {"core": core, **meta}
 
     conn = conectar(cfg)
     try:
@@ -217,11 +223,12 @@ def probar_conexion(core: str, conexiones: dict | None = None) -> dict[str, Any]
                 "SELECT current_database(), current_user, version(), "
                 "pg_is_in_recovery(), current_setting('transaction_read_only'), now()"
             )
-            db, usuario, version, en_replica, solo_lectura, ahora = cur.fetchone()
+            db, usuario, version, en_recuperacion, solo_lectura, ahora = cur.fetchone()
             info.update({
                 "base": db, "usuario": usuario,
                 "servidor": version.split(",")[0],
-                "es_replica": bool(en_replica),
+                # Observado, no interpretado: `false` NO significa "no es replica".
+                "en_recuperacion": bool(en_recuperacion),
                 "solo_lectura": solo_lectura == "on",
                 "hora_servidor": ahora.isoformat(),
             })
@@ -250,11 +257,19 @@ def ejecutar(
     max_filas: int | None = None,
     conexiones: dict | None = None,
     statement_timeout_ms: int | None = None,
+    permitir_sensible: bool = False,
 ) -> Extraccion:
     """Corre los statements contra `core` en SOLO LECTURA y devuelve DataFrames."""
-    import psycopg2  # se importa aqui: --dry-run no debe exigir el driver
-
     conexiones = conexiones if conexiones is not None else config.cargar_conexiones()
+
+    if config.es_sensible(core, conexiones) and not permitir_sensible:
+        raise DestinoSensible(
+            f"El destino {core!r} esta marcado `sensible: true` en "
+            f"db_connections.yaml y no aguanta una extraccion de auditoria. "
+            f"No se conecto. Si de verdad hace falta, correr con "
+            f"--permitir-sensible y con una cohorte minima."
+        )
+
     cfg = config.config_core(core, conexiones)
     limite = max_filas or config.limite_filas(conexiones)
     timeout = statement_timeout_ms or int(cfg.get("statement_timeout_ms", 300_000))
@@ -306,6 +321,7 @@ def extraer_archivo(
     max_filas: int | None = None,
     conexiones: dict | None = None,
     dry_run: bool = False,
+    permitir_sensible: bool = False,
 ) -> Extraccion:
     """Prepara y (salvo dry-run) ejecuta un SQL del catalogo."""
     ruta = config.resolver_ruta(str(ruta_sql))
@@ -325,4 +341,5 @@ def extraer_archivo(
                           params=efectivos, tablas=[], filas=[])
 
     return ejecutar(core, stmts, efectivos, archivo=str(ruta_sql),
-                    max_filas=max_filas, conexiones=conexiones)
+                    max_filas=max_filas, conexiones=conexiones,
+                    permitir_sensible=permitir_sensible)

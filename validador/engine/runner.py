@@ -133,6 +133,7 @@ def correr_caso(
     conexiones: dict | None = None,
     max_filas: int | None = None,
     escribir_evidencia: bool = True,
+    permitir_sensible: bool = False,
 ) -> Corrida:
     """Corre un caso de punta a punta."""
     conexiones = conexiones if conexiones is not None else config.cargar_conexiones()
@@ -186,7 +187,8 @@ def correr_caso(
                 )
                 continue
             ext = extract.extraer_archivo(core, ruta_sql, params, cohortes,
-                                          max_filas=max_filas, conexiones=conexiones)
+                                          max_filas=max_filas, conexiones=conexiones,
+                                          permitir_sensible=permitir_sensible)
             extracciones[core] = ext
             consultas[core]["filas"] = ext.filas
 

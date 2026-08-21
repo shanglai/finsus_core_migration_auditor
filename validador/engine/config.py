@@ -142,6 +142,28 @@ def config_core(nombre: str, conexiones: dict[str, Any] | None = None) -> dict[s
     return cfg
 
 
+def metadatos_core(nombre: str, conexiones: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Metadatos declarados de un destino: rol, sensibilidad, etiqueta.
+
+    `rol` lo DECLARA quien configura; no se infiere. `pg_is_in_recovery()` solo
+    detecta standby por streaming: una replica t-1 restaurada desde respaldo
+    responde `false` y no por eso deja de ser replica. Inferir el rol de esa
+    bandera produce una advertencia falsa, que es peor que no advertir.
+    """
+    conexiones = conexiones if conexiones is not None else cargar_conexiones()
+    cfg = ((conexiones or {}).get("cores") or {}).get(nombre) or {}
+    return {
+        "rol": cfg.get("rol", ""),                     # p.ej. replica_t1 | primaria | no_operacional
+        "sensible": bool(cfg.get("sensible", False)),  # exige --permitir-sensible para extraer
+        "etiqueta": cfg.get("etiqueta_snapshot", ""),
+        "nota": cfg.get("nota", ""),
+    }
+
+
+def es_sensible(nombre: str, conexiones: dict[str, Any] | None = None) -> bool:
+    return metadatos_core(nombre, conexiones)["sensible"]
+
+
 def limite_filas(conexiones: dict[str, Any] | None = None) -> int:
     conexiones = conexiones if conexiones is not None else cargar_conexiones()
     return int(((conexiones or {}).get("extraccion") or {}).get("max_filas", MAX_FILAS_DEFAULT))
