@@ -11,7 +11,14 @@
 - **Contexto.** Los queries del diario de Finsus (Sergio) corren *desde AurumCore* y jalan OpenFin por `dblink`
   contra `openfin_migracion` (host 10.10.164.25), usando vistas pre-armadas `openfin_m.aurum_transaction_final_complete`,
   `aurum_transaction_credit_complete_live`, `lc_loan_contract_live`. Nosotros solo alcanzamos `openfin_aurum/public`.
-- **Pendiente.** Acceso de **solo lectura** a `openfin_migracion` (esquema `openfin_m`).
+- **Pendiente.** `[PARCIAL 2026-08-23]` Ya conectamos a la **base** `openfin_migracion`, pero el **esquema
+  `openfin_m`** da *"permiso denegado"* (ahí viven las vistas `aurum_transaction_*`). Falta el grant específico
+  para `dlopez_linko`:
+  ```sql
+  GRANT USAGE ON SCHEMA openfin_m TO dlopez_linko;
+  GRANT SELECT ON ALL TABLES IN SCHEMA openfin_m TO dlopez_linko;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA openfin_m GRANT SELECT ON TABLES TO dlopez_linko;
+  ```
 - **Lo que buscamos.** Hacer el cruce transaccional **a nivel de operación** (hoy `vista_movimientos` no permite
   emparejar cargo↔abono de forma fiable) y **benchmarkear** su mapeo contra nuestra reconstrucción independiente.
 
@@ -122,18 +129,23 @@
 
 ---
 
-### D.5 — Identidad exacta de la suspension de devengo / IDNC (SOL-015) 🔴
-- **Contexto.** `REFERENCIA_TABLAS_POR_CASO.md §GAPB-IDNC` declara la identidad
-  `io + io_venc = 0`. Al correrla contra `lc_finantial_data_stage`
-  (2026-07-01..2026-08-18, filas con `io_venc <> 0`, n=45,761) **se cumple en 54.5%** y
-  **no correlaciona con la mora** (18,074/30,582 en ≥90 días vs 6,889/15,179 en <90).
-  La variante `io + iodnc = 0` se cumple en **85.2%** (315,188/369,904 filas con `iodnc <> 0`),
-  y `iodnc` es lo que `V3_gapB_idnc.sql` anota como "contra-cuenta (saca interés de resultados)".
-- **Pendiente.** Cuál es la identidad contable correcta de la suspensión, y por qué
-  ninguna de las dos variantes llega al 100%.
-- **Lo que buscamos.** Convertir GAPB-IDNC en invariante de regresión. No ajustamos la
-  identidad a la que "pasa más": eso sería fijar la regla al dato. El caso queda
-  BLOQUEADO por especificación hasta tener la respuesta.
+### D.5 — Manual de Cálculos Oficiales de Finsus (SOL-015) 🔴
+- **Contexto.** La Estrategia (F-028, nota 7.1) formaliza un **"Manual de Cálculos Oficiales"** como la política
+  propia que guía las fórmulas de captación y crédito. El dictamen del 7-sep certifica los motores **contra esas
+  fórmulas oficiales**. Nosotros hemos implementado el oráculo desde los docs de producto (F-016/F-019) y la norma.
+- **Pendiente.** El **Manual de Cálculos Oficiales** (documento).
+- **Lo que buscamos.** Confirmar que nuestro oráculo (C) implementa **exactamente** las fórmulas oficiales
+  (ISR ÷saldo total, plazo Ceil10/base 360, vista, saldo promedio, interés/moratorio de crédito). Es la fuente
+  autorizada del dictamen.
+- **[2026-08-23] SOL-015 es el desbloqueo maestro de los "cierres" pendientes.** Los motores están construidos y
+  validados donde el dato alcanza; los residuos convergen en el Manual + unas tablas de config:
+  - **IFRS 9 `reserva_int` + "capital exigible":** qué componentes de interés forman los "intereses exigibles"
+    (io/iodnc_venc/io_imp no cuadran limpio) y cuál es la base de capital exigible para E1/E2 amortizando.
+  - **IFRS 9 PI comercial:** la tabla numérica de Probabilidad de Incumplimiento (no está en el doc).
+  - **GAT per-contrato:** la tabla de **tramos de tasa de inversión** (product+plazo+monto → tasa); `iv_products`
+    tiene los rangos pero no la tasa; `cat_reference_rate` es catálogo de índices, no tramos.
+  - **CAT per-contrato:** confirmar si `lc_loan_contract.cat` es per-contrato o **nominal-producto** (miles con
+    `cat=27.1`) + la convención de días del CAT.
 
 ## F. Insumos operativos (menores)
 - **F.1 (SOL-014) 🟢** — Queries del diario de **Sergio (Aurum)** y **Abraham (OpenFin)**, y el **mapeo de las ~400

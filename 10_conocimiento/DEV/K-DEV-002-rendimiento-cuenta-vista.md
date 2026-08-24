@@ -4,10 +4,12 @@ titulo: Cálculo de rendimiento de cuentas a la vista (AurumCore)
 dominio: DEV
 estado: CONFIRMADO
 confianza: alta
-version: 3
+version: 4
 creado: 2026-08-14
-actualizado: 2026-08-19
+actualizado: 2026-08-23
 fuentes:
+  - ref: landing/aurum_docs/GTM-Saldo Promedio - Módulo Cuentas-170826-221047.pdf
+    ubicacion: "p.2-3 (formula CORE), p.7-10 (saldo promedio para pago de rendimiento + validacion en logs)"
   - ref: 20_fuentes/docs/GTM-Pago de Rendimientos-140826-230050.pdf
     ubicacion: "§5.1 (p.2-3)"
   - ref: extraccion BD AurumCore (solo lectura)
@@ -87,10 +89,40 @@ medianoche, los saldos nunca empatan al momento; la validación correcta es que 
 a su propio saldo promedio** (contra C/ley), no contra OF. Acotar el universo a **cuentas con el mismo
 saldo promedio** para el análisis. → F-021 @01:04-01:20.
 
+## Fórmula oficial del saldo promedio de rendimiento (GTM-Saldo Promedio, doc oficial AurumCore)
+[CONFIRMADO] El doc oficial "Saldo Promedio - Módulo Cuentas" confirma y precisa la fórmula, y aclara un
+**matiz crítico**: el **saldo promedio para pago de rendimiento ≠ saldo promedio de consulta de la cuenta**
+(el campo `account.average_balance_amount` es el de *consulta*; el de rendimiento **puede diferir**).
+  → fuente: GTM-Saldo Promedio p.7-10.
+
+- **Saldo promedio de rendimiento** = `(saldo_cuenta × difference_of_days + acumulado_historico) / elapsed_days`.
+  - `difference_of_days`: conteo **exclusivo** (no cuenta el día inicial) = días que el saldo quedó sin cambio;
+    es el **multiplicador**. En logs: `Calculating with difference of days`.
+  - `elapsed_days`: conteo **inclusivo** (sí cuenta el día inicial) = días desde la creación de la cuenta hasta
+    la fecha del proceso; es el **divisor** y también los "días del periodo". En logs: `ELAPSED DAYS`.
+  - `acumulado_historico`: acumulado previo del CORE (no recalcula día por día).
+  - Ejemplo del doc: `(30,000×8 + 20,000)/9 = 28,888.88`.
+- **Rendimiento** = `saldo_prom_rend × (tasa/100) × (elapsed_days / base_dias)`; base **360 o 365 por
+  producto/esquema (NO global)**. Ejemplo: `28,888.88 × 0.1 × 9/360 = 72.22` (coincide con portal).
+- **[CONFIRMADO — vindica el enfoque de logs]** Estos valores (`difference of days`, `elapsed days`, saldo
+  promedio de rendimiento) **NO existen en la BD antes del proceso**; se generan **solo durante el pago** y
+  **la validación oficial es en los logs del CORE**. Trazas exactas: `Calculating with average balance` y
+  `Calculating yield amount Using RATE..., DaysOfYear[360|365]` en `trace.log`. → cierra [[P-006]] (fórmula).
+
 ## Puntos abiertos
-- [PENDIENTE] Corroborar la fórmula de saldo promedio con los **logs del CORE** (`Calculating with average
-  balance`) y precisar si "saldo_anterior" es el saldo de cierre del día previo al periodo. El ejemplo de
-  vista del doc quedó cortado en la extracción (resto de [[P-006]]).
+- [CONFIRMADO EMPÍRICO 2026-08-23 · logs] La traza de **vista** NO existe hoy en los logs retenidos: en
+  `core-rendimientos` (todos los gz + mule.log*, fechas 06→23-ago) **`Capitaliza` = 0 ocurrencias**, `DaysOfYear`
+  = 0, `Calculating yield amount` = 0; el único `average balance` presente es de **crédito** (`InternalPaymentGateway.java:543`,
+  montos negativos, diario). Los strings del doc (`Calculating with average balance` / `...Using RATE, DaysOfYear`)
+  son **ilustrativos**. → La validación viva de vista está **bloqueada por TIEMPO**, no por ubicación: la corrida
+  mensual (día 1°) **aún no corre post-cutover**; primer cierre **31-ago-2026**. Confirma [[P-015]]. Reintentar la
+  captura de la traza tras el cierre de 31-ago / 1-sep.
+- [HALLAZGO DB 2026-08-23] `aurumcore.account` tiene los componentes del SPM como columnas: `average_balance_amount`,
+  `average_balance_last_updated`, **`prev_average_daily_balance`, `prev_average_last_updated`** (+ `days_in_year` en
+  el esquema de rendimiento). Posible ruta **alternativa** de reconstrucción desde BD, aunque el doc dice que el SPM
+  de rendimiento "solo existe en logs" — verificar si estas columnas bastan cuando exista la corrida de 31-ago.
+- [PENDIENTE] El campo `account.average_balance_amount` es el saldo promedio de **consulta** (rolling); NO usar
+  para reconstruir el rendimiento (el doc dice que difieren). Confirmar si hay historia punto-en-tiempo.
 - [PENDIENTE] Nombres comerciales de los productos 2006/2011/2012/2013/2015/2017/2019 (el join por
   `account_scheme_id` a `mt_producto` no resolvió; query AA devolvió `None`).
 
@@ -106,3 +138,4 @@ saldo promedio** para el análisis. → F-021 @01:04-01:20.
 | 1 | 2026-08-14 | Creada desde F-009. | F-009 |
 | 2 | 2026-08-19 | Confirmado el ejercicio en BD (~100K cuentas, $59.7M/7mo, mecanismo `Capitaliza Interes` src=tgt); separado del depósito de rendimiento de inversión; hallazgo: corrida viva pendiente (1er cierre 31-ago). | Extracción BD AurumCore 2026-08-19 |
 | 3 | 2026-08-19 | Fórmula de saldo promedio declarada por Finsus `(saldo_ant+Σsaldos_día)/n_días`; vista paga día 1°; se valida contra oráculo (no OpenFin) acotando a mismo saldo promedio. | F-021, F-022 |
+| 4 | 2026-08-23 | Fórmula CONFIRMADA por doc oficial (GTM-Saldo Promedio): saldo_prom_rend=(saldo×diff_days+acum)/elapsed_days; rend=saldo_prom×tasa/100×elapsed_days/base(360\|365 por producto). Matiz crítico: saldo prom de rendimiento ≠ `average_balance_amount` (consulta). Datos SOLO en logs (`Calculating with average balance`/`Calculating yield amount Using RATE`) → vindica enfoque de logs; corrige que la columna DB NO sirve para reconstruir. Cierra P-006. | GTM-Saldo Promedio (doc oficial) |

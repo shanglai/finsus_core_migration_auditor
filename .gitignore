@@ -64,6 +64,13 @@ validador/reportes/*/
 *.duckdb
 *.duckdb.wal
 
+# --- Salidas del tablero (se regeneran; traen filas de clientes) -----------
+# resultados/ y datos.js llevan muestras de puntos con ids truncados y montos
+# reales. Se regeneran con `python backend/runner.py`, asi que versionarlos
+# solo agregaria datos de cliente al repo sin ganar nada.
+auditor_spa/resultados/
+auditor_spa/spa/datos.js
+
 # --- Paquete de sincronizacion (entrada, no fuente) ------------------------
 # export_auditor/bundle/ es el paquete que llega del repo de validacion. Su
 # contenido ya se sincroniza al repo (10_conocimiento/, 40_validaciones/...),

@@ -26,6 +26,11 @@ INCLUYE = [
     # --- Oraculos (motor C, Decimal) ---
     "40_validaciones/entrega_finsus/oraculo_isr.py",
     "40_validaciones/comparadores/oraculo_rendimientos.py",
+    "40_validaciones/comparadores/oraculo_credito.py",
+    "40_validaciones/comparadores/oraculo_gat.py",
+    "40_validaciones/comparadores/oraculo_ifrs9.py",
+    "40_validaciones/comparadores/oraculo_amortizacion.py",
+    "40_validaciones/comparadores/oraculo_cat.py",
     # --- Comparadores ---
     "40_validaciones/comparadores/motor_b_diario.py",
     "40_validaciones/comparadores/contable_bc.py",
@@ -35,6 +40,9 @@ INCLUYE = [
     "40_validaciones/comparadores/fase1_isr_desviacion.py",
     "40_validaciones/comparadores/fase1_isr_comparador.py",
     "40_validaciones/comparadores/fase1_isr_runner.py",
+    # --- Extractores de logs (SOL-003; read-only SSH) ---
+    "40_validaciones/comparadores/log_extractor.py",
+    "40_validaciones/comparadores/barrido_average_balance.py",
     # --- SQL (extraccion + validaciones) ---
     "40_validaciones/entrega_finsus/V1_isr_al_pago_aurum.sql",
     "40_validaciones/entrega_finsus/V2_isr_devengo_openfin.sql",
@@ -43,8 +51,14 @@ INCLUYE = [
     "40_validaciones/entrega_finsus/V5_rendimiento_plazo.sql",
     "40_validaciones/entrega_finsus/consultas_validacion.sql",
     "40_validaciones/extraccion/wso2_cuentahabientes.sql",
+    # --- Indice maestro + comparacion C vs doc + dossier de motores (para el agente conversacional) ---
+    "40_validaciones/INDICE_PRODUCTOS_PROCESOS.md",
+    "40_validaciones/COMPARACION_C_vs_DOC.md",
+    "40_validaciones/DOSSIER_MOTORES_ORACULO_C.md",
+    "40_validaciones/PROMPT_AUDITOR_SPA.md",
     # --- Planes / especificaciones / referencias ---
     "40_validaciones/entrega_finsus/README_VALIDACION.md",
+    "40_validaciones/entrega_finsus/DOSSIER_VALIDACION.md",
     "40_validaciones/extraccion/REFERENCIA_queries_diario_finsus.md",
     "40_validaciones/PLAN_MOTOR_B_DIARIO.md",
     "40_validaciones/PLAN_CONTABLE_BC.md",

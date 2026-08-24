@@ -96,3 +96,4 @@ es **provisión-devengo vs retención-al-pago**, no sobre-retención (ver REPORT
 | 1 | 2026-08-14 | Creada desde F-009 + F-010. | F-009, F-010 |
 | 2 | 2026-08-18 | F-016 (spec oficial) confirma mecánica y parámetros (0.9%, 365, 5×UMA, 213,973.20, personas morales 0, ISR al pago). Validación en BD real (C=B, 765.75). Se abre **C-002** (proporción doc ÷base_gravable vs comportamiento ÷saldo_total). | F-016, BD (REPORTE_FASE1_ISR) |
 | 3 | 2026-08-19 | **P-010 CERRADA**: parámetros confirmados contra la norma ([[K-FIS-004]]). **C-002 RESUELTA** (F-019 corrige a ÷saldo_total). | K-FIS-004, F-019 |
+| 4 | 2026-08-23 | **C-002 confirmada cerrada por Finsus** (usuario): fue **error de su documentación** (el ejemplo ÷base_gravable); lo correcto es ÷saldo_total, como C y la BD. No es desviación de motor; residuo cosmético (ejemplo del doc sin corregir). | Finsus (corroboración) |
