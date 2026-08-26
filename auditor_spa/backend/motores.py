@@ -109,12 +109,20 @@ MOTORES: tuple[Motor, ...] = (
         formula="Rendimiento = Round2( Trunc20( Trunc20((SPM x Tasa)/100) / DiasAnio ) x DiasPeriodo )",
         ejemplo="SPM 5,000 · tasa 7% · base 360 · 31 dias -> 30.14",
         fuentes=(Fuente(D, "GTM-Pago de Rendimientos p.3"),),
-        oraculo="oraculo_rendimientos.rendimiento_vista", estado="bloqueado",
-        insumos="esquema de rendimientos (tasa, dias anio) + SPM (ver SALDO-PROM)",
-        bloqueo=("Bloqueado por TIEMPO, no por dato: la vista capitaliza el dia 1 de cada mes y "
-                 "la primera corrida viva post-cutover es el 31-ago. La traza no existe todavia."),
-        no_conformes="Sin corrida. Riesgo latente: el doc no define el modo del Round2 (posible +/- un centavo).",
-        clase_no_conforme="bloqueo", solicitudes=("SOL-003",), depende_de_logs=True,
+        oraculo="oraculo_rendimientos.rendimiento_vista", estado="parcial",
+        dossier_pct="82.1",
+        dossier_detalle=("DESTRABADO 2026-08-24: ya no hay que esperar al 31-ago. El SPM se "
+                         "reconstruye de `aurumcore.finsus_account_history` y reconcilia el 82.1% "
+                         "de los posteos reales del 31-jul (70.7% con dt=31 fijo)."),
+        insumos="finsus_account_history (average_balance_amount, interest_rate, iv_term_days) + esquema de rendimientos",
+        bloqueo=("Ya NO es bloqueo de tiempo. El 18% residual depende de dos cosas: la convencion "
+                 "exacta de `dt` (inclusivo en ambos extremos, el dia de fondeo no cuenta) y el "
+                 "SPM-de-RENDIMIENTO, que Finsus dice se guarda en la poliza de intereses y PUEDE "
+                 "DIFERIR del average de consulta. En transaction_detail no esta."),
+        no_conformes=("El 18% que no cuadra NO se puede atribuir todavia ni al motor ni al metodo: "
+                      "falta el SPM de la poliza para comparar contra lo correcto. El riesgo del "
+                      "redondeo si se cerro: Finsus confirmo half-up sin arrastre del sub-centavo."),
+        clase_no_conforme="data-sourcing", solicitudes=("SOL-003",), depende_de_logs=False,
         caso_validador="REND-VISTA", autopruebas="reproduce el 30.14 del doc",
     ),
     Motor(
@@ -135,14 +143,19 @@ MOTORES: tuple[Motor, ...] = (
         formula="SPM = (saldo_cuenta x difference_of_days + acumulado) / elapsed_days",
         ejemplo="(30,000 x 8 + 20,000) / 9 -> 28,888.88",
         fuentes=(Fuente(D, "GTM-Saldo Promedio p.8-9"),),
-        oraculo="oraculo_rendimientos.saldo_promedio_rendimiento", estado="bloqueado",
-        insumos="account_balance_tracking · trazas de log del CORE",
-        bloqueo=("El SPM de RENDIMIENTO solo existe en los logs de la corrida mensual (31-ago). "
-                 "`account.average_balance_amount` es el SPM de CONSULTA (rolling) y el propio doc "
-                 "advierte que puede diferir: usarlo para reconstruir el rendimiento seria una "
-                 "aproximacion presentada como validacion."),
-        no_conformes="Sin corrida.", clase_no_conforme="bloqueo",
-        solicitudes=("SOL-003",), depende_de_logs=True, caso_validador="SALDO-PROM",
+        oraculo="oraculo_rendimientos.saldo_promedio_rendimiento", estado="parcial",
+        dossier_detalle=("Formula CONFIRMADA al centavo por Finsus (2026-08-24): base 360, "
+                         "interes = SPM x dt x tasa / 36000. Caso limpio 6de5351e: "
+                         "10,165.70 x 31 x 4% / 36000 = 35.02 = posteado. Promedia sobre los dias "
+                         "efectivamente DEVENGADOS, no los naturales del mes."),
+        insumos="finsus_account_history (105M filas, por cuenta y por dia) · poliza de intereses (SPM + dt)",
+        bloqueo=("`account.average_balance_amount` es el SPM de CONSULTA (rolling) y el propio doc "
+                 "advierte que puede diferir del SPM de RENDIMIENTO: usarlo como sustituto seria "
+                 "una aproximacion presentada como validacion. El SPM de rendimiento vive en la "
+                 "poliza de intereses, cuyas formulas exactas siguen en el doc pendiente."),
+        no_conformes="Sin corrida propia todavia: la consulta contra finsus_account_history esta por escribir.",
+        clase_no_conforme="data-sourcing",
+        solicitudes=("SOL-003",), depende_de_logs=False, caso_validador="SALDO-PROM",
         autopruebas="reproduce el 28,888.89 del doc",
     ),
     Motor(
@@ -259,9 +272,14 @@ MOTORES: tuple[Motor, ...] = (
                  Fuente(D, "GTM-IFRS9 Tablas 1/2/3")),
         oraculo="oraculo_ifrs9.etapa / pct_consumo / reserva_pct", estado="parcial",
         dossier_detalle="C = configuracion real de Aurum: es la validacion mas fuerte que tenemos en el conjunto.",
-        no_conformes=("La base 'capital / intereses exigibles' para E1 y E2 amortizando, y la composicion "
-                      "de `reserva_int`, no cuadran contra un solo campo: dependen del spec. La tabla de PI "
-                      "comercial no esta en el doc."),
+        no_conformes=("[ACLARADO 2026-08-24] El Core NO calcula PD: usa el % directo de CNBV "
+                      "(DOF 04/jun/2012) por dias de mora, que es justo lo que validamos 37/37. "
+                      "El modelo EI x PI x SP de oraculo_ifrs9 NO aplica al motor de Aurum y queda "
+                      "marcado como no usado. La composicion de `reserva_int` tambien quedo definida "
+                      "(EPRC cubierta + expuesta + intereses vencidos; en E3 el interes vencido es "
+                      "INFORMATIVO y no entra al requerimiento) — eso explica por que no cuadraba "
+                      "contra un solo campo. Falta: las 9 tablas de % y las formulas exactas, y "
+                      "validar las variantes comercio y reestructurado, que aun no se prueban."),
         clase_no_conforme="data-sourcing", solicitudes=("SOL-015",),
         insumos="lc_risk_stage · lc_reserve_ifrs · lc_finantial_data",
         autopruebas="14/14",

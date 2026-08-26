@@ -1,0 +1,10 @@
+:root{
+  /* Linko is a near-flat system: shadows are wide, very low opacity, used only to
+     lift the floating nav and white cards off the off-white page. */
+  --shadow-none:none;
+  --shadow-card:0 2px 24px rgba(9,53,59,.05);
+  --shadow-raised:0 8px 40px rgba(9,53,59,.08);
+  --shadow-nav:0 4px 30px rgba(9,53,59,.06);
+  --blur-chrome:blur(18px); /* @kind other */
+  --scrim-nav:rgba(242,242,242,.72);
+}

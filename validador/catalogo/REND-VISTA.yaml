@@ -38,11 +38,15 @@ matriz_esperada: "B == C obligatorio. Sin A al mismo grano."
 estado: PARCIAL
 estado_origen: "NORTE_VALIDACION.md §1 DEV 2.1.1: PARCIAL, corrida viva 31-ago sin validar (P-015)"
 bloqueo: >-
-  Falta la consulta de extraccion: el universo depende del saldo promedio mensual,
-  cuya definicion exacta sigue abierta en P-006, y de la corrida viva del 31-ago
-  (P-015) que aun no existe. El oraculo esta listo y autoprobado; lo que falta es
-  el dato, no la regla.
+  [DESTRABADO PARCIAL 2026-08-24] La regla quedo confirmada y el insumo aparecio:
+  `aurumcore.finsus_account_history` permite reconstruir el SPM sin esperar al
+  31-ago. A volumen reconcilia el 82.1% de los posteos reales del 31-jul
+  (`Capitaliza Interes` / `YIELD PAYMENT`). Falta la consulta de extraccion y
+  cerrar el 18%, que depende de la convencion exacta de `dt` y del SPM-de-
+  rendimiento de la poliza (ver SALDO-PROM). La corrida viva del 31-ago sigue
+  siendo la observacion directa del motor, pero ya no es el unico camino.
 cobertura_nota: >-
-  Regla y ejercicio migrado OK. La corrida viva del 31-ago no se ha validado.
-  Escribir S-DEV-001 desbloquea este caso junto con SALDO-PROM.
+  Regla y ejercicio migrado OK. Redondeo CONFIRMADO por Finsus 2026-08-24:
+  half-up a 2 decimales, sin arrastre del sub-centavo entre meses — cierra el
+  riesgo latente que el doc dejaba abierto. Este VALIDADOR aun no lo ha corrido.
 solicitudes: [SOL-003]

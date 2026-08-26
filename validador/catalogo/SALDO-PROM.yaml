@@ -33,15 +33,26 @@ matriz_esperada: >-
   B == C obligatorio. Este saldo es la base del interes de vista Y de la exencion de
   ISR: un error aqui se propaga a REND-VISTA y a ISR-01, por eso es severidad 1.
 
-estado: BLOQUEADO
+estado: PARCIAL
 estado_origen: "NORTE_VALIDACION.md §1 DEV 2.1.3: formula declarada, falta corroborar con logs del core (P-006)"
 bloqueo: >-
-  P-006 abierta. La formula (F-022) esta declarada, pero la correspondencia con lo
-  que el CORE registra no se ha corroborado contra los logs (traza
-  "Calculating with average balance"). Ademas account_balance_tracking arranca
-  ~ago-2025 y no reconstruye cuentas viejas.
+  [DESTRABADO PARCIAL 2026-08-24] Ya NO se depende de esperar al 31-ago. Finsus
+  confirmo la formula y su insumo esta en la BD: `aurumcore.finsus_account_history`
+  (105M filas, por cuenta y por dia: average_balance_amount, interest_rate,
+  balance_amount, iv_term_days). Base 360:
+      interes = SPM x dt x tasa / 36000
+  Reconcilio al centavo en el caso limpio (cuenta 6de5351e: 10,165.70 x 31 x 4%
+  / 36000 = 35.02 = posteado) y al 82.1% a volumen sobre los posteos reales del
+  31-jul. Lo que FALTA para cerrar: (1) la convencion exacta de `dt` — inclusivo
+  en ambos extremos y el dia de fondeo no cuenta — y (2) el SPM-de-RENDIMIENTO,
+  que Finsus dice se guarda en la poliza de intereses y PUEDE DIFERIR del average
+  de consulta. Ese SPM no esta en transaction_detail. Mientras (2) no se resuelva,
+  el 18% residual no se puede atribuir ni al motor ni al metodo.
 cobertura_nota: >-
-  El oraculo existe y esta autoprobado contra el ejemplo del doc. Correrlo contra
-  datos sin cerrar P-006 produciria un veredicto que no se sostiene, asi que el
-  caso permanece BLOQUEADO a proposito. Pedir los logs del core es el desbloqueo.
+  El oraculo esta autoprobado contra el ejemplo del doc. Este VALIDADOR aun no ha
+  corrido el cruce contra finsus_account_history: la consulta esta por escribir y
+  la tabla son 105M filas, asi que exige cohorte y ventana estrictas.
+  IMPORTANTE: NO usar `account.average_balance_amount` como sustituto — es el SPM
+  de CONSULTA (rolling) y el propio doc advierte que puede diferir del SPM de
+  rendimiento. Sustituirlo seria una aproximacion presentada como validacion.
 solicitudes: [SOL-003]

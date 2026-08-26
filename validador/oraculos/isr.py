@@ -5,10 +5,10 @@ Portado de 40_validaciones/entrega_finsus/oraculo_isr.py (autoprueba 5/5),
 con dos cambios y ninguno en la aritmetica:
 
   1. Los redondeos se toman de engine/redondeo.py (parametro explicito), en
-     vez de estar fijos en el cuerpo de la funcion. S-FIS-001 §Precision deja
-     [PENDIENTE menor] si el cierre a 2 decimales es half_even o half_up; al
-     ser parametro, la eleccion queda escrita en el manifiesto de cada
-     corrida en vez de esconderse en el codigo.
+     vez de estar fijos en el cuerpo de la funcion. S-FIS-001 §Precision dejo
+     abierto si el cierre a 2 decimales era half_even o half_up; Finsus lo
+     confirmo el 2026-08-24 (half-up, homogeneo, por evento). Se conserva como
+     parametro para que la eleccion siga viajando en la evidencia.
   2. Los parametros normativos se resuelven POR ANIO DE CAUSACION. La UMA
      cambia cada 1-feb y la tasa se fija anual en la LIF; fijarlos en el
      codigo es exactamente el rezago que produjo C-001.
@@ -52,7 +52,7 @@ MODO_PROPORCION = "Trunc20"
 MODO_TASA_DIARIA = "Trunc20"
 MODO_ISR_DIARIO = "Trunc5"
 MODO_DEVENGADO = "Trunc20"
-MODO_FINAL_DEFAULT = "RoundHalfEven2"   # [PENDIENTE menor] half_even vs half_up (S-FIS-001)
+MODO_FINAL_DEFAULT = "Round2"           # half-up: confirmado por Finsus 2026-08-24
 
 
 def parametros_anio(anio: int) -> dict[str, str]:

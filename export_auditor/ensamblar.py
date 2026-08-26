@@ -56,6 +56,12 @@ INCLUYE = [
     "40_validaciones/COMPARACION_C_vs_DOC.md",
     "40_validaciones/DOSSIER_MOTORES_ORACULO_C.md",
     "40_validaciones/PROMPT_AUDITOR_SPA.md",
+    # --- Para auditoria: manuales + guia + estado + respuesta Finsus ---
+    "40_validaciones/GUIA_AUDITORIA.md",
+    "40_validaciones/MANUAL_DEFINICIONES.md",
+    "40_validaciones/MANUAL_USO_ORACULO_AUDITOR.md",
+    "40_validaciones/ESTADO_RESUMEN.md",
+    "40_validaciones/RESPUESTA_FINSUS_2026-08-24.md",
     # --- Planes / especificaciones / referencias ---
     "40_validaciones/entrega_finsus/README_VALIDACION.md",
     "40_validaciones/entrega_finsus/DOSSIER_VALIDACION.md",

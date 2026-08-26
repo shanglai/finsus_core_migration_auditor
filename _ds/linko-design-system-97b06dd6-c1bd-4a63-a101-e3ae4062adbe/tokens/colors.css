@@ -1,0 +1,42 @@
+:root{
+  /* Brand — sampled from linko.ai screenshots */
+  --green-500:#02b101;      /* primary brand green: logo, buttons, links */
+  --green-600:#019701;      /* hover / pressed */
+  --green-400:#3bb75e;      /* outlined circle motif, soft strokes */
+  --green-200:#a5dbb0;
+  --green-100:#d2edd7;
+  --lime-500:#addb4f;       /* illustration accent */
+  --lime-300:#bfda7c;
+  --lime-100:#deecbf;
+
+  --ink-900:#09353b;        /* deep teal-navy: headings, dark pills */
+  --ink-700:#1c4a50;
+  --ink-500:#305257;
+  --ink-300:#828385;
+
+  --neutral-0:#ffffff;
+  --neutral-50:#f8faf8;     /* page background */
+  --neutral-100:#f2f2f2;    /* nav bar, footer, chrome */
+  --neutral-200:#e6e7e6;
+  --neutral-300:#d8d9d4;
+
+  /* Semantic */
+  --surface-page:var(--neutral-50);
+  --surface-card:var(--neutral-0);
+  --surface-chrome:var(--neutral-100);
+  --surface-brand:var(--green-500);
+  --surface-ink:var(--ink-900);
+
+  --text-heading:var(--ink-900);
+  --text-body:var(--ink-700);
+  --text-muted:var(--ink-300);
+  --text-on-brand:var(--neutral-0);
+  --text-on-ink:var(--neutral-0);
+  --text-brand:var(--green-500);
+
+  --border-subtle:var(--neutral-200);
+  --border-brand:var(--green-500);
+  --border-brand-soft:var(--green-400);
+
+  --focus-ring:var(--green-500);
+}

@@ -1,0 +1,31 @@
+:root{
+  --font-sans:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --font-display:var(--font-sans);
+
+  --fs-display-xl:76px;   --lh-display-xl:1.04; /* @kind other */
+  --fs-display-l:56px;    --lh-display-l:1.08; /* @kind other */
+  --fs-display-m:44px;    --lh-display-m:1.12; /* @kind other */
+  --fs-heading-l:34px;    --lh-heading-l:1.16; /* @kind other */
+  --fs-heading-m:26px;    --lh-heading-m:1.2; /* @kind other */
+  --fs-heading-s:20px;    --lh-heading-s:1.3; /* @kind other */
+  --fs-body-l:19px;       --lh-body-l:1.5; /* @kind other */
+  --fs-body-m:17px;       --lh-body-m:1.55; /* @kind other */
+  --fs-body-s:15px;       --lh-body-s:1.5; /* @kind other */
+  --fs-label:16px;        --lh-label:1.2; /* @kind other */
+  --fs-caption:13px;      --lh-caption:1.4; /* @kind other */
+
+  --fw-regular:400; /* @kind other */
+  --fw-medium:500; /* @kind other */
+  --fw-semibold:600; /* @kind other */
+  --fw-bold:700; /* @kind other */
+
+  --tracking-display:-0.02em; /* @kind other */
+  --tracking-heading:-0.012em; /* @kind other */
+  --tracking-body:0em; /* @kind other */
+
+  /* Semantic roles */
+  --type-hero:var(--fw-regular) var(--fs-display-xl)/var(--lh-display-xl) var(--font-display); /* @kind other */
+  --type-section:var(--fw-regular) var(--fs-display-m)/var(--lh-display-m) var(--font-display); /* @kind other */
+  --type-card-title:var(--fw-medium) var(--fs-heading-s)/var(--lh-heading-s) var(--font-sans); /* @kind other */
+  --type-body:var(--fw-regular) var(--fs-body-m)/var(--lh-body-m) var(--font-sans); /* @kind other */
+}

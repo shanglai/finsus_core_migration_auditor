@@ -19,8 +19,8 @@ parametros:
      nota: "porcentaje. LIF 2026 Art. 24 (2025 fue 0.5)."}
   - {nombre: multiplicador_uma, tipo: decimal, default: "5", nota: "LISR Art. 93 fr. XX"}
   - {nombre: dias_anio, tipo: decimal, default: "365", nota: "tax.days.year"}
-  - {nombre: modo_final, tipo: texto, default: "RoundHalfEven2",
-     nota: "[PENDIENTE menor] S-FIS-001: F-016 no desambigua half_even vs half_up. Es parametro para que la eleccion quede en la evidencia."}
+  - {nombre: modo_final, tipo: texto, default: "Round2",
+     nota: "[RESUELTO 2026-08-24] Finsus confirma redondeo HOMOGENEO en todo el core: 2 decimales half-up, aplicado POR EVENTO y no al cierre. Era el [PENDIENTE menor] de S-FIS-001. Sigue siendo parametro para que la eleccion quede en la evidencia de cada corrida."}
 
 extraccion:
   aurum: PENDIENTE   # ver bloqueo; el borrador esta en isr_al_pago_universo.BORRADOR.sql

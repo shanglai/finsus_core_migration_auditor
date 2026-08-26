@@ -53,6 +53,12 @@ bloqueo: >-
   Cambiar la identidad a la variante que pasa mas seria ajustar la regla al
   dato — all-pass por la puerta de atras. Se necesita que Finsus/IFRS9 fije
   cual es la identidad correcta y por que ninguna de las dos llega al 100%.
+  Levantada como AUD-001 en 50_hallazgos/SOLICITUDES_DEL_AUDITOR.md (aun sin
+  escalar; el numero SOL lo asigna el repo fuente).
+  [2026-08-24] La respuesta de Finsus define iodnc = devengado no cobrado
+  vigente e iodnc_venc = traspaso a vencido, y aclara que en E3 los intereses
+  vencidos son informativos. Puede estar ahi la respuesta, pero las formulas
+  exactas siguen pendientes: el caso NO se desbloquea todavia.
 cobertura_nota: >-
   El caso queda BLOQUEADO por especificacion, no por acceso: los datos estan y
   la corrida se hizo. Las 20,798 filas que no cumplen NO se reportan como
@@ -62,4 +68,4 @@ supuestos:
   - "La llave es stage_id, la de la fila del staging. Se descubrio en la primera corrida (2026-08-21) que la columna del contrato se llama lc_contract_id, no contract_id, y que un mismo contrato tiene varias filas por fecha: agrupar por (contrato, fecha) sumaria filas que la identidad evalua una por una."
   - "El universo se restringe a io_venc <> 0, que son las filas donde la suspension aplica. En un credito vigente io_venc es cero y io no, y la identidad no aplica: incluirlos convertiria todo el universo en violaciones y diria lo contrario de lo que pasa."
   - "Se prueba la MECANICA de la suspension, no su contabilizacion. Que io se cancele no demuestra que el importe haya ido a cuentas de orden ni que la reserva sea del 100%: eso sigue abierto y necesita el doc IFRS9."
-solicitudes: [SOL-015]
+solicitudes: [AUD-001]

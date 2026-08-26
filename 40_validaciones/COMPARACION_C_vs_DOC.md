@@ -53,7 +53,7 @@
 ### C1. Interés ORDINARIO
 1. **¿En doc?** Sí — D-CRE p.3. `C×(i/100)×(t/DíasAño)`, base = **Saldo Insoluto del Capital**, provisión **diaria**, base 360 (`calendar_type 1`).
 2. **Corroboración:** 🟢 **validado vivo: 96.8% exacto a 1e-8** vs `capital` DB, **0/4,091 mismatch de tasa** (feed `credits-closing` 08-20); ejemplo del doc (20.83) reproducido.
-3. **Desviación:** ninguna de motor. Residual 3% = **P-019 (linaje):** tres tablas de `capital` discrepan punto-en-tiempo (stage/fin_data/current), NO defecto de cálculo.
+3. **Desviación:** ninguna de motor. **P-019 RESUELTO (2026-08-24, log↔DB):** del log despejé el capital que el motor usó → son fracciones amortizadas sensatas (mediana 95.5% del loan) = **motor correcto**. 84.2% stage+fin_data coinciden. El residuo ~12% es un **gap de población de la financial-data/reserva (lote 5004)** intra-mes, NO del motor de interés → **potencial subestimación de RESERVA** (escalar: confirmar cobertura al cierre de mes). Ver P-019b.
 
 ### C2. Interés MORATORIO
 1. **¿En doc?** Sí — D-CRE p.3. `C_vencido×(i_mor/100)×(t_atraso/DíasAño)`, base = **Capital Vencido No Pagado**.

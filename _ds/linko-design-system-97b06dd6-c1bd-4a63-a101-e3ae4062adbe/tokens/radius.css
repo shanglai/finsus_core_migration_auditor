@@ -1,0 +1,9 @@
+:root{
+  --radius-xs:6px;
+  --radius-s:12px;
+  --radius-m:20px;
+  --radius-l:28px;      /* cards, media panels */
+  --radius-xl:40px;     /* large photo blocks */
+  --radius-pill:999px;  /* nav bar, buttons, chips, toggles */
+  --radius-circle:50%;
+}

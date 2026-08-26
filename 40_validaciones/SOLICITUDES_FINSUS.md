@@ -11,9 +11,10 @@
 - **Contexto.** Los queries del diario de Finsus (Sergio) corren *desde AurumCore* y jalan OpenFin por `dblink`
   contra `openfin_migracion` (host 10.10.164.25), usando vistas pre-armadas `openfin_m.aurum_transaction_final_complete`,
   `aurum_transaction_credit_complete_live`, `lc_loan_contract_live`. Nosotros solo alcanzamos `openfin_aurum/public`.
-- **Pendiente.** `[PARCIAL 2026-08-23]` Ya conectamos a la **base** `openfin_migracion`, pero el **esquema
-  `openfin_m`** da *"permiso denegado"* (ahí viven las vistas `aurum_transaction_*`). Falta el grant específico
-  para `dlopez_linko`:
+- **Pendiente.** `[RECONFIRMADO 2026-08-24]` Host `10.10.164.25` alcanzable, base `openfin_migracion` conecta, y el
+  esquema `openfin_m` **EXISTE** (visible en `pg_namespace`) — pero las 3 vistas (`aurum_transaction_final_complete`,
+  `aurum_transaction_credit_complete_live`, `lc_loan_contract_live`) dan **"permiso denegado al esquema openfin_m"**.
+  Falta ÚNICAMENTE el grant para `dlopez_linko` (lo debe correr un rol owner del esquema):
   ```sql
   GRANT USAGE ON SCHEMA openfin_m TO dlopez_linko;
   GRANT SELECT ON ALL TABLES IN SCHEMA openfin_m TO dlopez_linko;
@@ -146,6 +147,30 @@
     tiene los rangos pero no la tasa; `cat_reference_rate` es catálogo de índices, no tramos.
   - **CAT per-contrato:** confirmar si `lc_loan_contract.cat` es per-contrato o **nominal-producto** (miles con
     `cat=27.1`) + la convención de días del CAT.
+- **[RESPUESTA PARCIAL FINSUS 2026-08-24]** (doc completo en preparación) — ver `RESPUESTA_FINSUS_2026-08-24.md`:
+  1. **PD/IFRS 9:** el Core **no calcula PD**; usa **% directo CNBV (DOF 04/jun/2012)** por días de mora (9 tablas:
+     consumo/comercio/vivienda × micro/reestructurado). Entregan las 9 tablas. → **confirma nuestro enfoque**; el
+     modelo EI×PI×SP no aplica al Core; falta validar comercio/reestructurado.
+  2. **Base de reserva de intereses:** definida (io/iodnc/iodnc_venc/io_impuesto; EPRC cubierta+expuesta+vencidos;
+     **en E3 los intereses vencidos son informativos, no en el requerimiento**). Fórmulas exactas en el doc.
+  3. **Tramos de tasa de inversión:** existen en 2 estructuras (monto por producto+fecha; plazo en curva PF/PM);
+     arman la tabla consolidada. **La tasa puede venir del canal**; el sistema cae a la tabla solo si no la recibe.
+  4. **Redondeo:** **2 dec half-up, por evento (no al cierre)** — cada devengo se redondea antes de acumular; IVA
+     por abono; vista sin arrastre. **Días = param por producto (30/360/365)**, entregan la lista.
+  5. **Saldo promedio:** **se guarda en la póliza de intereses con `dt`** (días devengados); base 360,
+     `interés = SPM×dt×tasa/36000`, reconcilia al centavo. → **posible destrabe de vista/saldo promedio sin esperar
+     al 31-ago** (verificar la póliza en BD).
+  **Pendiente (doc completo):** las 9 tablas de %, fórmulas exactas de reserva de intereses, tabla consolidada de
+  tasas de inversión, lista de convención de días por producto.
+
+### E.3 — Cobertura de la financial-data/reserva de crédito al cierre (SOL-016) 🟠
+- **Contexto.** Cruce log↔DB (2026-08-24, P-019b): el **motor de interés operativo es correcto** (usa el capital
+  vivo real), pero **~12% de los créditos ACTIVE (486/4,091 el 08-20)** no tienen ese capital en las tablas que
+  alimentan la **reserva/IFRS** (`lc_finantial_data`/`_stage`, lote `maestro_5004`): 89 en `estado=PENDIENTE`(=0),
+  ~397 sin fila. Intra-mes eso subestimaría la reserva de ese subconjunto.
+- **Pendiente.** Confirmar que el **lote 5004 (financial-data/reserva) cubre TODOS los créditos activos al cierre
+  de mes** (sin gap de reserva), y el rol de `estado=PENDIENTE` (placeholder pre-certificación).
+- **Lo que buscamos.** Descartar subestimación de reserva; liga con la respuesta #2 (EPRC / régimen transitorio).
 
 ## F. Insumos operativos (menores)
 - **F.1 (SOL-014) 🟢** — Queries del diario de **Sergio (Aurum)** y **Abraham (OpenFin)**, y el **mapeo de las ~400

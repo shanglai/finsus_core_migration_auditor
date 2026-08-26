@@ -11,9 +11,9 @@
 # el validador nunca ejecuto aparece ahi como NO-CORRIDO.
 
 version: 2
-actualizado: "2026-08-21"
+actualizado: "2026-08-26"
 fuente_de_verdad: 40_validaciones/NORTE_VALIDACION.md
-espejado_de: "NORTE_VALIDACION.md actualizado 2026-08-20"
+espejado_de: "bundle 2026-08-26 + RESPUESTA_FINSUS_2026-08-24"
 
 casos:
   - {id: ISR-01,          motor: FIS, estado: PARCIAL,   severidad: 1, titulo: "Retencion de ISR al pago (universo por reconstruir)"}
@@ -21,7 +21,7 @@ casos:
   - {id: ISR-03,          motor: FIS, estado: VALIDADO,  severidad: 1, titulo: "Parametros ISR configurados vs norma (caso-trampa C-001)"}
   - {id: REND-PLAZO,      motor: DEV, estado: VALIDADO,  severidad: 1, titulo: "Rendimiento plazo fijo al centavo (migrado y live)"}
   - {id: REND-VISTA,      motor: DEV, estado: PARCIAL,   severidad: 1, titulo: "Interes y capitalizacion de cuenta vista"}
-  - {id: SALDO-PROM,      motor: DEV, estado: BLOQUEADO, severidad: 1, titulo: "Saldo promedio (base de vista y de ISR)"}
+  - {id: SALDO-PROM,      motor: DEV, estado: PARCIAL,   severidad: 1, titulo: "Saldo promedio — destrabado por finsus_account_history"}
   - {id: DIARIO-B,        motor: MOV, estado: PARCIAL,   severidad: 2, titulo: "Transaccional diaria OF vs AC (2:1 / 1:1)"}
   - {id: COMPLETITUD,     motor: MOV, estado: PARCIAL,   severidad: 1, titulo: "Se come todas — existencia OF vs AC"}
   - {id: GAPB-IDNC,       motor: REG, estado: BLOQUEADO, severidad: 2, titulo: "Suspension de devengo: identidad en disputa (SOL-015)"}
