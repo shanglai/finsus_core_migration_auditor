@@ -25,6 +25,7 @@ casos:
   - {id: DIARIO-B,        motor: MOV, estado: PARCIAL,   severidad: 2, titulo: "Transaccional diaria OF vs AC (2:1 / 1:1)"}
   - {id: COMPLETITUD,     motor: MOV, estado: PARCIAL,   severidad: 1, titulo: "Se come todas — existencia OF vs AC"}
   - {id: GAPB-IDNC,       motor: REG, estado: BLOQUEADO, severidad: 2, titulo: "Suspension de devengo: identidad en disputa (SOL-015)"}
+  - {id: IFRS9-E3,        motor: REG, estado: PARCIAL,   severidad: 1, titulo: "IFRS 9 — reserva de capital en etapa 3"}
   - {id: GAPC-PROSOFIPO,  motor: REG, estado: HALLAZGO,  severidad: 2, titulo: "Cuota Prosofipo — motor faltante"}
   - {id: WRITEOFFS,       motor: CTB, estado: PENDIENTE, severidad: 2, titulo: "Quitas, condonaciones y castigos = poliza por evento"}
   - {id: CONTABLE-B1,     motor: CTB, estado: VALIDADO,  severidad: 1, titulo: "Doble partida diaria (familia B)"}

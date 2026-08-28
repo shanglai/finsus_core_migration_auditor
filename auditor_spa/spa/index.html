@@ -253,6 +253,41 @@ function dibujar(cv,pts,opt){
 }
 const conf=(p,tol)=>Math.abs(num(p.delta)||0)<=(num(tol)||0);
 
+/* Qué respalda a un motor cuando NO hay porcentaje.
+
+   Un % ausente no es cobertura ausente. Hay motores cuya prueba es MAS FUERTE
+   que un porcentaje —reproducir la configuración real del core no depende de
+   qué cohorte se elija— y otros cuya única prueba es la autoprueba de la
+   fórmula. Tratarlos igual subreporta al primero y sobrevende al segundo, así
+   que la tarjeta dice cuál de los dos es, por jerarquía de evidencia:
+   config > norma > doc > inferencia > sólo autoprueba. */
+function respaldo(m, largo){
+  const de = t => (m.valida_contra||[]).filter(f=>f.tipo===t);
+  const citas = a => a.map(f=>esc(f.cita)).join(' · ');
+  const cfg=de('config'), nor=de('norma'), doc=de('doc'), inf=de('inferencia');
+  let cabeza, cuerpo='';
+  if(cfg.length){
+    cabeza='Validado contra la <em>configuración real de AurumCore</em>'; cuerpo=citas(cfg);
+    if(largo) cuerpo+=`<br><span class="cita">Es una prueba más fuerte que un % sobre una muestra:
+      no depende de qué cohorte se elija. Un porcentaje aparecería si además se cruzara evento
+      por evento contra datos.</span>`;
+  } else if(nor.length){
+    cabeza='Contrastado contra la <em>norma</em>'; cuerpo=citas(nor);
+  } else if(doc.length){
+    cabeza='Contrastado contra el <em>documento oficial</em>'; cuerpo=citas(doc);
+  } else if(inf.length){
+    cabeza='Mecánica <em>deducida de los datos</em> — por confirmar'; cuerpo=citas(inf);
+  } else {
+    cabeza='Sin porcentaje y sin cruce';
+    cuerpo='La fórmula está autoprobada contra el ejemplo de su documento. <strong>Eso no es un pase.</strong>';
+  }
+  let extra='';
+  if(m.tolerancia_propia) extra+=`<br><span class="cita">Tolerancia propia:
+    <span class="mono">${esc(m.tolerancia_propia.regla)}</span> — ${esc(m.tolerancia_propia.porque)}</span>`;
+  if(largo && m.dossier_detalle) extra+=`<br><span class="cita">${esc(m.dossier_detalle)}</span>`;
+  return `<div class="sinpct"><strong>${cabeza}</strong><br>${cuerpo}${extra}</div>`;
+}
+
 /* ---------- vista: galería ---------- */
 function galeria(cat){
   const lista=IDX.motores.filter(m=>!cat||m.categoria===cat);
@@ -275,12 +310,7 @@ function galeria(cat){
         <div class="cat-chip">${esc(m.categoria)}</div>
         ${p!==null?`<div class="pct"><span class="val">${p.toFixed(2)+'%'}</span>
           <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span></div>`
-        : `<div class="sinpct">${(m.valida_contra||[]).filter(f=>f.tipo==='config').length
-             ? `<strong>Validado contra la configuración real del core</strong><br>
-                ${m.valida_contra.filter(f=>f.tipo==='config').map(f=>esc(f.cita)).join(' · ')}`
-             : `Sin porcentaje: ${(m.valida_contra||[]).length
-                  ? 'la fórmula se contrasta contra '+m.valida_contra.map(f=>f.tipo).join(', ')
-                  : 'sin cruce contra datos'}`}</div>`}
+        : respaldo(m,false)}
         <div class="cita"><span class="badge b-${m.origen_resultado==='corrida_local'?'corrida_local':
           (m.origen_resultado==='dossier'?'dossier':'sin_cruce')}">${esc(et)}</span></div>
       </div>`;}).join('')}</div>`;
@@ -362,14 +392,7 @@ function detalle(id){
 
     ${p!==null?`<div class="pct"><span class="val">${p.toFixed(2)+'%'}</span>
       <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span></div>`
-    : `<div class="sinpct">${(m.valida_contra||[]).filter(f=>f.tipo==='config').length
-        ? `<strong>No hay porcentaje, y no por falta de validación.</strong>
-           Este motor se contrasta contra la <em>configuración real de AurumCore</em>
-           (${m.valida_contra.filter(f=>f.tipo==='config').map(f=>esc(f.cita)).join(' · ')}),
-           que es una prueba más fuerte que un % sobre una muestra: no depende de qué cohorte se
-           elija. Un porcentaje aparecería si además se cruzara evento por evento contra datos.`
-        : `<strong>Sin porcentaje.</strong> No hay cruce contra datos desde este tablero; la fórmula
-           está autoprobada contra el ejemplo de su documento. Eso no es un pase.`}</div>`}
+    : respaldo(m,true)}
 
     <div class="exec">
       <button id="b-run" ${puede?'':'disabled'} data-motor="${m.id}">Ejecutar</button>

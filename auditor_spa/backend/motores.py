@@ -313,7 +313,11 @@ MOTORES: tuple[Motor, ...] = (
                  Fuente(C, "lc_risk_stage — etapas exactas"),
                  Fuente(D, "GTM-IFRS9 Tablas 1/2/3")),
         oraculo="oraculo_ifrs9.etapa / pct_consumo / reserva_pct", estado="parcial",
-        dossier_detalle="C = configuracion real de Aurum: es la validacion mas fuerte que tenemos en el conjunto.",
+        caso_validador="IFRS9-E3",
+        dossier_detalle=("C = configuracion real de Aurum: es la validacion mas fuerte del conjunto. "
+                         "Corrida propia 2026-08-28 sobre 20,000 filas de etapa 3: CERO violaciones "
+                         "al centavo; los porcentajes 75/90/100 del GTM reproducen exactamente lo "
+                         "que aplica el core."),
         no_conformes=("[ACLARADO 2026-08-24] El Core NO calcula PD: usa el % directo de CNBV "
                       "(DOF 04/jun/2012) por dias de mora, que es justo lo que validamos 37/37. "
                       "El modelo EI x PI x SP de oraculo_ifrs9 NO aplica al motor de Aurum y queda "
@@ -321,7 +325,12 @@ MOTORES: tuple[Motor, ...] = (
                       "(EPRC cubierta + expuesta + intereses vencidos; en E3 el interes vencido es "
                       "INFORMATIVO y no entra al requerimiento) — eso explica por que no cuadraba "
                       "contra un solo campo. Falta: las 9 tablas de % y las formulas exactas, y "
-                      "validar las variantes comercio y reestructurado, que aun no se prueban."),
+                      "validar las variantes comercio y reestructurado, que aun no se prueban. "
+                      "La prueba de signo marca sesgo (2,381 diferencias sub-centavo, todas "
+                      "negativas) y NO es del core: la mitad del sesgo original era nuestro por "
+                      "omitir el redondeo half-up que Finsus confirmo, y en el resto el porcentaje "
+                      "implicito sale correcto (75.0000 / 90.0001 / 100.0000) — la diferencia esta "
+                      "en la precision de la base, que leemos a 4 decimales. Misma clase que P-019."),
         clase_no_conforme="data-sourcing", solicitudes=("SOL-015",),
         insumos="lc_risk_stage · lc_reserve_ifrs · lc_finantial_data",
         autopruebas="14/14",

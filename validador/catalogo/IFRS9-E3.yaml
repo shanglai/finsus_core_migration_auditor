@@ -1,0 +1,72 @@
+id: IFRS9-E3
+titulo: IFRS 9 — reserva de capital en etapa 3 = capital vencido por su porcentaje
+motor: REG
+dominio: REG
+regla_ref: [K-REG-001, F-023]
+severidad: 1
+norte_ref: "NORTE_VALIDACION.md §1 REG — IFRS 9 etapas y reserva por porcentaje"
+tolerancia: {tipo: redondeo, max_evento: "0.01", prueba_sesgo: true, alfa_sesgo: "0.01"}
+
+parametros:
+  - {nombre: fecha_ini, tipo: fecha, requerido: true, nota: "sobre information_date"}
+  - {nombre: fecha_fin, tipo: fecha, requerido: true, nota: "exclusiva"}
+  - {nombre: limite, tipo: entero, default: 20000, nota: "cota de la muestra"}
+
+extraccion:
+  aurum: validador/extraccion/aurum/ifrs9_e3_reserva.sql
+
+oraculo: oraculos/ifrs9.py::fila_reserva_e3
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: igualdad_montos
+  llaves: [stage_id]
+  columna_b: reserva_posteada
+  columna_c: reserva_oraculo
+  fuente_b: aurum
+
+identidad: >-
+  Para todo credito en etapa 3 (>= 90 dias de mora) con capital vencido:
+  C = |capital_venc| x pct(dias_mora) == B(reserva_cap_activo), dentro de
+  +/- 0.01 y sin sesgo. El pct de C sale de las Tablas 1/2/3 del GTM-IFRS9,
+  no de la configuracion del core.
+
+matriz_esperada: >-
+  B == C obligatorio. La independencia es lo que da valor a este caso: si el
+  porcentaje de C se leyera de `lc_reserve_ifrs`, el cruce probaria que el core
+  es consistente consigo mismo, no que aplica la norma. Sale de la tabla del
+  documento, y que ademas coincida 37/37 con la configuracion del core es un
+  resultado adicional, no el metodo. Sin motor A: OpenFin no lleva el staging
+  IFRS9 al mismo grano.
+
+estado: PARCIAL
+estado_origen: "DOSSIER: C = config de Aurum, 37/37 exacto; aplicacion en E3 vencido"
+cobertura_nota: >-
+  CORRIDO 2026-08-28: 20,000 filas de agosto, CERO violaciones al centavo. Los
+  porcentajes del oraculo (75 / 90 / 100 por tramo de mora, de las Tablas del
+  GTM) reproducen exactamente lo que aplica el core.
+  La prueba de signo marca SESGO — 2,381 diferencias sub-centavo, todas
+  negativas — y el diagnostico dice que NO es del core:
+    (1) 5,133 diferencias iniciales bajaron a 2,381 al aplicar el redondeo
+        half-up que Finsus confirmo y que este oraculo omitia. Ese tramo del
+        sesgo era defecto propio.
+    (2) En las 2,381 restantes, el porcentaje IMPLICITO (reserva / capital) sale
+        75.0000, 90.0001, 100.0000 — o sea, el porcentaje correcto. La
+        diferencia esta en la PRECISION DE LA BASE: leemos `capital_venc` a 4
+        decimales y el core calculo con mas. Misma clase que P-019.
+  ALCANCE DELIBERADAMENTE ESTRECHO: solo etapa 3, consumo, zona no marginada.
+  Es la parte donde la regla esta cerrada y se puede afirmar algo. Lo demas se
+  queda fuera y se declara, en vez de cubrirse con una aproximacion.
+bloqueo: >-
+  Lo que este caso NO cubre y por que: (1) la base de E1/E2 amortizando —
+  "capital / intereses exigibles" depende del spec que sigue pendiente;
+  (2) `reserva_int` — Finsus definio su composicion el 2026-08-24 (EPRC
+  cubierta + expuesta + intereses vencidos, informativos en E3) pero sin las
+  formulas exactas; (3) las variantes comercio y reestructurado, que llegan con
+  las 9 tablas de porcentajes prometidas.
+solicitudes: [SOL-015]
+
+supuestos:
+  - "Se asume cartera de CONSUMO y zona NO MARGINADA para toda la muestra. El DOSSIER dice que la cartera de Finsus es consumo, pero la zona no viene en el staging: si hubiera creditos en zona marginada, su porcentaje seria 80% en el tramo 90-120 y apareceran como violaciones. Hay que leerlas como mezcla de zona, no como defecto del motor, hasta que se pueda unir la zona real."
+  - "El sesgo que marca la prueba de signo es de PRECISION DE LA BASE, no del motor: el capital vencido se lee del staging a 4 decimales y el core calculo con mas. Se muestra la bandera igual — ocultarla seria peor — pero leerla como defecto del motor de reservas seria una acusacion falsa."
+  - "Se compara contra `reserva_cap_activo` en valor absoluto. El staging guarda capital_venc y reserva_cap_result en negativo por ser contra-cuentas; comparar signos contrarios daria 100% de violaciones por convencion de presentacion."

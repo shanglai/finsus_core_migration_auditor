@@ -1,12 +1,12 @@
 # Cobertura del VALIDADOR — que se corrio, que no y que esta bloqueado
 
-> Generado: 2026-08-28T10:42:53+00:00 · `python cli.py --cobertura`
+> Generado: 2026-08-28T11:15:00+00:00 · `python cli.py --cobertura`
 >
 > **NO-CORRIDO NO ES PASO.** Un caso que no se ejecuto no aporta cobertura y no
 > puede pintarse verde en ningun tablero. Esta tabla existe para que la ausencia
 > de evidencia sea tan visible como la evidencia (charter §5.3).
 
-**5 de 16 casos corridos** · 3 con hallazgo · 11 sin corrida util.
+**6 de 17 casos corridos** · 4 con hallazgo · 11 sin corrida util.
 
 | caso | motor | sev | estado catalogo | ultima corrida | fecha | violaciones | evidencia |
 |---|---|---|---|---|---|---|---|
@@ -19,6 +19,7 @@
 | **DIARIO-B** | MOV | 2 | PARCIAL | NO-CORRIDO · nunca ejecutado | — | — | — |
 | **GAPB-IDNC** | REG | 2 | BLOQUEADO | corrido · CON VIOLACIONES | 2026-08-21 | 20798 | GAPB-IDNC_2026-08-21_ea327ce3bee7 |
 | **GAPC-PROSOFIPO** | REG | 2 | HALLAZGO | NO-CORRIDO · nunca ejecutado | — | — | — |
+| **IFRS9-E3** | REG | 1 | PARCIAL | corrido · SESGO DETECTADO (severidad 1) | 2026-08-28 | 0 | IFRS9-E3_2026-08-28_9c08a9a10209 |
 | **ISR-01** | FIS | 1 | PARCIAL | NO-CORRIDO · error de ejecucion | 2026-08-21 | — | ISR-01_2026-08-21_06d1a7859246 |
 | **ISR-02** | FIS | 2 | VALIDADO | NO-CORRIDO · nunca ejecutado | — | — | — |
 | **ISR-03** | FIS | 1 | VALIDADO | corrido · CON VIOLACIONES | 2026-08-21 | 1 | ISR-03_2026-08-21_a61c52894d7e |
@@ -66,6 +67,14 @@ Reconcilio al centavo en el caso limpio (cuenta 6de5351e: 10,165.70 x 31 x 4% / 
 - celda dominante de la matriz A/B/C: `grupos`
 - matriz: {'grupos': 45761, 'descuadrados': 20798}
 - evidencia: `GAPB-IDNC_2026-08-21_ea327ce3bee7`
+
+### IFRS9-E3 — IFRS 9 — reserva de capital en etapa 3 = capital vencido por su porcentaje
+
+- veredicto: **SESGO** · violaciones: **0** de 20000 filas
+- celda dominante de la matriz A/B/C: `B=C (sin A)`
+- matriz: {'B=C (sin A)': 20000}
+- **sesgo detectado** (p=0): Sesgo negativo (C < B): 2381 de 2381 diferencias no nulas caen del mismo lado. Severidad 1 (charter §1.7): el agregado esta mal aunque cada evento respete la tolerancia.
+- evidencia: `IFRS9-E3_2026-08-28_9c08a9a10209`
 
 ### ISR-03 — Parametros de ISR configurados en el core = norma del anio de causacion
 
