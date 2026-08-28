@@ -50,6 +50,7 @@ cobertura_nota: >-
   validate_plazo_origin.py. Este VALIDADOR aun no lo ha corrido a escala.
 
 supuestos:
+  - "[§11.3 LECTURA DEL SESGO] Corre prueba de signo. En la corrida del 2026-08-28 no marco sesgo (302 de 302 con delta EXACTAMENTE cero, z=0), asi que no hay bandera que interpretar. Si en una muestra mayor apareciera, el orden es el del playbook: descartar primero nuestro redondeo (half-up por evento) y despues la precision de la base, antes de tratarlo como defecto del core."
   - "Aqui `origin is null` SI es delimitador limpio porque iv_payment_plan solo trae FINSUS o null: no tiene tags de canal (DIMO, FINSUS_CREDIT), que son los que le dan semantica mixta a transaction.origin. La regla es POR TABLA. Para transaccional y completitud el delimitador robusto sigue siendo created >= cutover. La taxonomia de origin sigue sin confirmar (SOL-004)."
   - "La tasa se despeja del periodo 1 y se verifica que reproduzca todos los demas. Es prueba fuerte pero NO sustituye leerla de su tabla: si la tasa configurada estuviera mal, el despeje la absorbe y el caso pasaria."
   - "dias_anio se pasa como parametro unico para toda la cohorte. Si la muestra mezclara productos con bases distintas (360 y 365), los de la otra base apareceran como violaciones: hay que leerlo como mezcla de bases, no como defecto del motor."

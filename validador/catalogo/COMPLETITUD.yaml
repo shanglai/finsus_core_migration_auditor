@@ -59,6 +59,7 @@ cobertura_nota: >-
   contra la BD.
 
 supuestos:
+  - "[§11.1] La consulta de aurum toca `account_yield` (tasa, dias_anio), pero este caso NO calcula nada: es un set-diff de existencia por llave. Esos campos viajan como atributo descriptivo, no como parametro del oraculo, asi que no hay dependencia de independencia que declarar mas alla de esto."
   - "La llave id_inversion se DERIVA: en OpenFin como idsucaux-idproducto-idauxiliar, en AurumCore como account_number tal cual. Se asume que ambas producen el mismo formato sucursal-producto-auxiliar (NORTE §2). Verificar contra K-DAT-003 en la primera corrida: si el set-diff sale masivo en ambos sentidos, el problema es la llave, no los datos."
   - "El universo de OpenFin se filtra a estatus 3 y 4 (activa, cerrada) y productos 2301/2302/2307/2308; el de AurumCore a account_type INVESTMENT_ACCOUNT. Si los filtros no cubren el mismo universo, las diferencias son de alcance y no de completitud."
 solicitudes: [SOL-005]

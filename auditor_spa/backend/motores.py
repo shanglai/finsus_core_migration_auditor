@@ -118,6 +118,25 @@ class Motor:
     def tolerancia_propia(self) -> tuple[str, str] | None:
         return TOLERANCIA_PROPIA.get(self.id)
 
+    @property
+    def evidencia_config(self) -> str:
+        """Las citas de las fuentes tipo `config`, que son la validacion mas fuerte."""
+        return " · ".join(f.cita for f in self.fuentes if f.tipo == "config")
+
+    def cobertura(self, hay_cruce: bool) -> str:
+        """De donde viene la cobertura de este motor: datos, config o nada.
+
+        Lo decide el backend y no el frontend, porque es una afirmacion sobre
+        la EVIDENCIA, no una decision de presentacion. Si el SPA lo dedujera
+        inspeccionando chips, dos vistas del mismo motor podrian contarlo
+        distinto (§3.2 del brief).
+        """
+        if hay_cruce:
+            return "datos"
+        if any(f.tipo == "config" for f in self.fuentes):
+            return "config"
+        return "sin_cruce"
+
     def como_dict(self) -> dict:
         tp = self.tolerancia_propia
         return {
@@ -135,6 +154,7 @@ class Motor:
             "caso_validador": self.caso_validador, "insumos": self.insumos,
             "bloqueo": self.bloqueo, "solicitudes": list(self.solicitudes),
             "depende_de_logs": self.depende_de_logs, "autopruebas": self.autopruebas,
+            "evidencia_config": self.evidencia_config,
         }
 
 

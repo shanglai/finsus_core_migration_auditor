@@ -44,6 +44,7 @@ INCLUYE = [
     "40_validaciones/comparadores/log_extractor.py",
     "40_validaciones/comparadores/barrido_average_balance.py",
     "40_validaciones/comparadores/tolerancias.py",
+    "40_validaciones/comparadores/oraculo_vista_finsus_history.py",
     # --- SQL (extraccion + validaciones) ---
     "40_validaciones/entrega_finsus/V1_isr_al_pago_aurum.sql",
     "40_validaciones/entrega_finsus/V2_isr_devengo_openfin.sql",

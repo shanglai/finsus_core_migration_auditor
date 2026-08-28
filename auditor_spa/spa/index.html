@@ -264,22 +264,27 @@ const conf=(p,tol)=>Math.abs(num(p.delta)||0)<=(num(tol)||0);
 function respaldo(m, largo){
   const de = t => (m.valida_contra||[]).filter(f=>f.tipo===t);
   const citas = a => a.map(f=>esc(f.cita)).join(' · ');
-  const cfg=de('config'), nor=de('norma'), doc=de('doc'), inf=de('inferencia');
   let cabeza, cuerpo='';
-  if(cfg.length){
-    cabeza='Validado contra la <em>configuración real de AurumCore</em>'; cuerpo=citas(cfg);
-    if(largo) cuerpo+=`<br><span class="cita">Es una prueba más fuerte que un % sobre una muestra:
-      no depende de qué cohorte se elija. Un porcentaje aparecería si además se cruzara evento
-      por evento contra datos.</span>`;
-  } else if(nor.length){
-    cabeza='Contrastado contra la <em>norma</em>'; cuerpo=citas(nor);
-  } else if(doc.length){
-    cabeza='Contrastado contra el <em>documento oficial</em>'; cuerpo=citas(doc);
-  } else if(inf.length){
-    cabeza='Mecánica <em>deducida de los datos</em> — por confirmar'; cuerpo=citas(inf);
+
+  // Se decide por `cobertura`, que calcula el BACKEND, no por si hay % ni por
+  // inspeccionar los chips: es una afirmación sobre la evidencia, no una
+  // decisión de presentación (§3.2).
+  if(m.cobertura==='config'){
+    cabeza='Validado contra la <em>configuración real de AurumCore</em>';
+    cuerpo=esc(m.evidencia_config||'')||citas(de('config'));
+    if(largo) cuerpo+=`<br><span class="cita">Una configuración no es una cohorte, por eso no hay
+      porcentaje — y eso <strong>no es falta de validación</strong>. De hecho es más fuerte que un %:
+      un porcentaje depende de qué cohorte elegiste, y la configuración no.</span>`;
+  } else if(m.cobertura==='sin_cruce'){
+    const nor=de('norma'), doc=de('doc'), inf=de('inferencia');
+    if(nor.length){ cabeza='Contrastado contra la <em>norma</em>'; cuerpo=citas(nor); }
+    else if(doc.length){ cabeza='Contrastado contra el <em>documento oficial</em>'; cuerpo=citas(doc); }
+    else if(inf.length){ cabeza='Mecánica <em>deducida de los datos</em> — por confirmar'; cuerpo=citas(inf); }
+    else { cabeza='Sin cobertura'; cuerpo=''; }
+    cuerpo += `<br><span class="cita">No hay cruce contra datos desde este tablero.
+      <strong>Eso no es un pase.</strong></span>`;
   } else {
-    cabeza='Sin porcentaje y sin cruce';
-    cuerpo='La fórmula está autoprobada contra el ejemplo de su documento. <strong>Eso no es un pase.</strong>';
+    cabeza='Con cobertura de datos'; cuerpo=citas(de('config'))||citas(de('doc'));
   }
   let extra='';
   if(m.tolerancia_propia) extra+=`<br><span class="cita">Tolerancia propia:
@@ -378,10 +383,11 @@ function detalle(id){
   // prometer una corrida que no puede pasar.
   const it=(IDX.motores.find(x=>x.id===m.id)||{});
   const puede = API && it.ejecutable===true;
-  const razonBoton = !API ? 'Abre el tablero con el servidor (python backend/servidor.py) para ejecutar.'
-    : (!m.caso_validador ? 'Aún no le construimos un caso en el catálogo del validador; su validación vive en el dossier, no aquí.'
-    : (m.depende_de_logs ? 'Depende de un feed de logs que produce otro proceso.'
-    : (!it.ejecutable ? `El caso ${m.caso_validador} hoy no se puede correr — ver el bloqueo.` : '')));
+  // El motivo lo redacta el backend (§3.2): un botón muerto sin explicación
+  // hace pensar que el motor no se puede validar, cuando lo que falta es el caso.
+  const razonBoton = !API
+    ? 'Abre el tablero con el servidor (python backend/servidor.py) para ejecutar.'
+    : (m.motivo_no_ejecutable || '');
 
   return `<div class="det">
     <h2>${esc(m.nombre)}

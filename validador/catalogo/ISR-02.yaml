@@ -16,7 +16,8 @@ parametros:
   - {nombre: uma_anual, tipo: decimal, default: "42794.64"}
   - {nombre: tasa_anual, tipo: decimal, default: "0.9"}
   - {nombre: multiplicador_uma, tipo: decimal, default: "5"}
-  - {nombre: dias_anio, tipo: decimal, default: "365"}
+  - {nombre: dias_anio, tipo: decimal, default: "365",
+     nota: "365 para ISR: la tasa de la LIF es anual y se prorratea sobre el anio natural (S-FIS-001, `tax.days.year`). No es la base 360 de los productos de captacion — §11.2: la base es por producto y aqui viene de la norma, no de un supuesto."}
   - {nombre: modo_final, tipo: texto, default: "Round2"}
 
 extraccion:
@@ -58,5 +59,6 @@ cobertura_nota: >-
   (3,236/3,236). Este VALIDADOR aun no lo ha corrido.
 
 supuestos:
+  - "[§11.3 LECTURA DEL SESGO] Este caso corre prueba de signo. Si marca sesgo, el orden para leerlo es el del playbook: primero descartar que nuestro redondeo difiera del core (half-up por evento), despues que sea precision de la base (aqui el saldo de OpenFin viene redondeado en isr_diario), y solo si sobrevive a las dos y es material, tratarlo como defecto. Un sesgo sub-centavo de un solo signo es, por omision, del metodo."
   - "La base del devengo se toma de isr_diario.saldo (la que el propio OpenFin usa ese dia). Es un SALDO, no un calculo de ISR, pero reduce la independencia del contraste: si la base estuviera mal, el oraculo heredaria el error. Cerrarlo exige reconstruir el saldo desde las tablas de cuentas de OpenFin."
   - "La tolerancia es 0.02 y no 0.01 porque V2 compara contra un round() de PostgreSQL en la ventana de transicion de UMA (feb)."

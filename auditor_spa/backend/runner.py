@@ -392,6 +392,30 @@ def construir(motor, autopruebas: dict, con_bd: bool, params: dict,
     else:
         d["origen_resultado"] = "sin_cruce"
         d["pct_mostrado"] = None
+
+    # --- §3.2: de que tipo es la cobertura, y si el caso se puede correr -----
+    # `pct` puede ser null y aun asi haber cobertura FUERTE (config). La tarjeta
+    # elige su texto por `cobertura`, no por si hay porcentaje: un guion donde
+    # hay validacion real esconde evidencia buena, que es el problema-espejo del
+    # all-pass.
+    d["cobertura"] = motor.cobertura(hay_cruce=d["pct_mostrado"] is not None)
+    d["ejecutable"] = _caso_vigente(motor) and not motor.depende_de_logs
+    if d["ejecutable"]:
+        d["motivo_no_ejecutable"] = None
+    elif not motor.caso_validador:
+        cual = ("config" if d["cobertura"] == "config"
+                else ("doc" if any(f["tipo"] == "doc" for f in d["valida_contra"]) else "inferencia"))
+        d["motivo_no_ejecutable"] = (
+            f"Sin caso ejecutable todavia — motor validado por {cual}; ver detalle.")
+    elif motor.depende_de_logs:
+        d["motivo_no_ejecutable"] = (
+            "Depende de un feed de logs que produce otro proceso; sin el feed no se corre.")
+    else:
+        from engine import catalogo as _cat
+        caso = _cat.cargar_todos().get(motor.caso_validador)
+        d["motivo_no_ejecutable"] = (
+            f"El caso {motor.caso_validador} hoy no se puede correr: "
+            f"{caso.motivo_no_ejecutable() if caso else 'no existe en el catalogo'}.")
     return d
 
 
@@ -473,7 +497,10 @@ def main(argv=None) -> int:
                        "origen_resultado": d["origen_resultado"],
                        "depende_de_logs": motor.depende_de_logs,
                        "ejecutado": (d.get("cruce") or {}).get("ejecutado"),
-                       "ejecutable": _caso_vigente(motor) and not motor.depende_de_logs,
+                       "ejecutable": d["ejecutable"],
+                       "cobertura": d["cobertura"],
+                       "evidencia_config": d.get("evidencia_config", ""),
+                       "motivo_no_ejecutable": d.get("motivo_no_ejecutable"),
                        "solicitudes": list(motor.solicitudes)})
 
     import dossier as mod_dossier

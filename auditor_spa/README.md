@@ -82,6 +82,21 @@ un caso puede existir y aun así no ser ejecutable — `ISR-01` tiene su consult
 retirada, `DIARIO-B` espera el catálogo de normalización. Ofrecer un botón que
 el backend va a rechazar sería prometer una corrida que no puede pasar.
 
+### Cuando no hay porcentaje (§3.2)
+
+Un `%` ausente **no es cobertura ausente**. El backend calcula un campo
+`cobertura` — `datos` · `config` · `sin_cruce` — y la tarjeta elige su texto por
+ese campo, **no** por si hay porcentaje ni inspeccionando los chips: es una
+afirmación sobre la evidencia, no una decisión de presentación.
+
+- **`config`** — el oráculo reproduce la tabla de configuración del propio core.
+  La tarjeta muestra la evidencia (`lc_reserve_ifrs 37/37 · lc_risk_stage`), no
+  un guion, y explica que una configuración no es una cohorte: por eso no hay %,
+  y por eso es **más fuerte** que uno.
+- **`sin_cruce`** — lo dice sin adornos: *"Eso no es un pase."*
+- El botón apagado trae `motivo_no_ejecutable`, redactado por el backend. Nunca
+  un botón muerto sin explicación.
+
 ### Las tres granularidades
 
 Cada motor de cálculo muestra su cuadre a **1e-8** (exactitud aritmética
@@ -208,6 +223,24 @@ auditor_spa/
 `motores.py` **no calcula nada**: declara qué afirma cada motor, con qué
 fórmula, contra qué se valida y con qué fuente. Los cálculos viven en los
 oráculos de `40_validaciones/`, que ya existían y no se duplicaron.
+
+## Antes de construir un caso nuevo
+
+Lee **[`validador/guia/CONSTRUIR_UN_CASO.md`](../validador/guia/CONSTRUIR_UN_CASO.md)**
+(§11 del brief). Resume lo que ya costó redescubrir:
+
+1. **Independencia** — los parámetros de C salen de la fuente, no de la config
+   del core que estás probando. Si tienes que leer un parámetro del core,
+   detente o decláralo.
+2. **Convenciones confirmadas** — half-up por evento; base de días por producto,
+   confirmada del esquema y no asumida; `Decimal` con modo explícito.
+3. **Playbook del sesgo** — antes de gritar severidad 1: ¿redondeaste como el
+   core? ¿es precisión de la base? Sólo si sobrevive a ambas es candidato a
+   defecto. Ha pasado tres veces y las tres el sesgo era del método.
+4. **Alcance declarado** — escribe lo que dejas fuera y por qué.
+
+No es sólo documentación: `validador/tests/test_guia_casos.py` falla si un caso
+nuevo ignora cualquiera de las cuatro.
 
 ## Seguridad
 

@@ -91,7 +91,15 @@ python 40_validaciones/comparadores/motor_b_diario.py                     # comp
 python 40_validaciones/comparadores/contable_bc.py                        # doble partida / amarre
 python 40_validaciones/comparadores/cuentahabientes_wso2.py               # identidad ↔ padrón
 python 40_validaciones/comparadores/isr_live_nativo.py                    # ISR-vivo (parcial; ver Definiciones)
+python 40_validaciones/comparadores/oraculo_vista_finsus_history.py \
+       --cierre 2026-07-31 --pago 2026-08-01                              # VISTA vivo: rendimiento del ciclo mensual
 ```
+**Nota (VISTA vivo):** cruza `aurumcore.yield_dto` (interés posteado, B) contra el oráculo calculado desde
+`aurumcore.finsus_account_history` (SPM + tasa al cierre), y **prueba las convenciones** (base 360/365 · DíasPeriodo
+30/31) reportando cuál ajusta. Salida esperada del ciclo de julio: **base 360 · dt 31 = 94.76% exacto (1e-8) /
+95.03% al centavo** sobre 83,094 cuentas; el residual ~5% son cuentas con **devengo intra-mes** (`dt` real < mes) —
+refinamiento del `dt`, **no defecto de Aurum**. Requiere lectura de `aurumcore.finsus_account_history` (77.7 M filas):
+acota con `--limite N` o corre el universo con `--limite 0`.
 Los cruces de **crédito** (ordinario/moratorio/IVA) e **IFRS 9** se corren con los oráculos anteriores sobre el feed
 de provisiones del core (extraído de logs a CSV con `log_extractor.py`) y las tablas `lc_finantial_data`/
 `lc_loan_amortization` — el detalle metodológico está en `COMPARACION_C_vs_DOC.md` y `DOSSIER_MOTORES_ORACULO_C.md`.
@@ -114,6 +122,7 @@ Corre cualquiera con `-h`/`--help` para ver sus opciones. Los principales:
 | `fase1_isr_desviacion.py` | `--sample N` · `--band OF\|AC\|ALL` | **tamaño de muestra** (`0` = todo el universo) y banda | 400 · ALL |
 | `fase1_isr_runner.py` | `--query <nombre>` · `--cohorte <nombre>` | qué consulta y qué **cohorte/universo** corre | — · SEMILLA |
 | `barrido_average_balance.py` | `--servicio` · `--glob` · `--max-archivos N` | **fuente de logs** y cuántos archivos barrer (`0` = todos) | core-rendimientos · trace-node-*.gz · 0 |
+| `oraculo_vista_finsus_history.py` | `--cierre YYYY-MM-DD` · `--pago YYYY-MM-DD` · `--limite N` | **ciclo de vista** (cierre = record_date del SPM; pago = process_date de la B) y tamaño (`0` = universo) | 2026-07-31 · 2026-08-01 · 0 |
 
 **Ejemplos — ampliar/acotar el universo y mover la ventana:**
 ```bash

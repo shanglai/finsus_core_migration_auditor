@@ -50,9 +50,12 @@ Principio rector (NO negociable): cada validación **devuelve las filas que viol
 ```
 - **Backend `runner.py`**: por cada motor, corre la validación (reusando los oráculos existentes), y **escribe un
   JSON** con: `id`, `nombre`, `categoria`, `formula`, `valida_contra` (doc/config/…+fuente), `estado`, `n_comparadas`,
-  `n_ok`, **`match`** (las tres granularidades, ver abajo), **`sesgo`**, `tolerancia`, `puntos` (para el scatter:
-  `[{x, y_c, y_b, delta, ok, id_muestra}]`, **muestreado** si son muchos), `no_conformes` (top-N con su delta y
-  motivo), `explicacion_no_conformes` (texto), y `ejecutado` (timestamp mtime de la corrida).
+  `n_ok`, **`match`** (las tres granularidades, ver abajo; `pct` puede ser `null`), **`sesgo`**, `tolerancia`,
+  **`cobertura`** (`"config" | "datos" | "sin_cruce"`), **`evidencia_config`** (texto, p.ej. "lc_reserve_ifrs 37/37"),
+  **`ejecutable`** (bool) + **`motivo_no_ejecutable`**, `puntos` (para el scatter: `[{x, y_c, y_b, delta, ok,
+  id_muestra}]`, **muestreado** si son muchos), `no_conformes` (top-N con su delta y motivo),
+  `explicacion_no_conformes` (texto), y `ejecutado` (timestamp mtime de la corrida). Ver §3.2 para el despliegue
+  cuando no hay `pct`.
   - **`match`** se produce con `comparadores/tolerancias.py` (`resumen_tolerancias(pares)`): devuelve las tres
     escalas `1e-8` / `1e-5` / `centavo` con `pct` y `n_ok`, más `sesgo` (prueba de signo). El SPA las muestra como
     en §3.1. Ver `MATRIZ_TOLERANCIAS.md` para la lectura del escalón entre granularidades.
@@ -95,6 +98,30 @@ Cada motor de cálculo muestra **tres barras** de % de match, del bloque `match`
 - Un **tooltip "¿qué significan?"** que explique las tres granularidades (texto en `MATRIZ_TOLERANCIAS.md`).
 - Los motores de identidad/completitud (Contable, Motor B) muestran su tolerancia propia (`0.00` exacto / `A ≥ B`),
   no las tres barras — indícalo en la card.
+
+### 3.2 Cuando NO hay porcentaje — no escondas cobertura buena (problema-espejo)
+Este es el error que el tablero existe para evitar, pero **en la otra dirección**: así como nunca pinta de verde lo
+que no corrió, **tampoco puede esconder validación real detrás de un guion**. Ocultar evidencia buena es tan
+deshonesto como inventar la que no existe. Las etiquetas miden ejes distintos y **juntas** se leen como "aquí no hay
+nada" — hay que separarlas:
+- `parcial` = estado del **conocimiento** (mecánica confirmada, falta cerrar alcance) · `sin cruce` = **de dónde
+  salió el número** (este tablero no lo corrió) · `—` = no hay % que mostrar · **botón apagado** = aún no se mapeó
+  un caso ejecutable. **Ninguna dice "no validado"**, pero el conjunto lo sugería.
+
+**Regla de despliegue cuando `pct` es nulo:**
+1. Si `valida_contra = config` (el oráculo reproduce la **tabla de configuración del propio core**), la galería y la
+   card **NO** muestran `—`: muestran la **evidencia de config**. Ej. IFRS 9:
+   **"Validado contra la configuración real del core — `lc_reserve_ifrs` 37/37 · `lc_risk_stage` etapas exactas"**.
+   El detalle explica **por qué no hay %** (una config no es una cohorte) y **por qué eso NO es falta de validación**
+   — de hecho es **más fuerte que un %**, porque un % depende de qué cohorte elegiste y la config no.
+2. Si de verdad **no hay cruce** (ni datos ni config), la card lo dice sin adornos: **"Eso no es un pase."**
+3. **El botón apagado dice la verdad completa:** no es que el motor "no se pueda validar", es que **aún no se le
+   construyó un caso ejecutable**. Texto sugerido: *"Sin caso ejecutable todavía — motor validado por {config/doc};
+   ver detalle."* (nunca un botón muerto sin explicación).
+
+**Campos de apoyo en el JSON** para esto: `pct` puede ser `null`; añade `cobertura` (`"config" | "datos" | "sin_cruce"`),
+`evidencia_config` (texto, p.ej. "lc_reserve_ifrs 37/37"), y `ejecutable` (bool + `motivo_no_ejecutable`). La card
+elige el texto según `cobertura`, no según si hay `pct`.
 
 ### Motores a incluir (del DOSSIER)
 Plazo · Vista* · Saldo promedio* · ISR · ISR-vivo* · Crédito ordinario · Crédito moratorio · Crédito días ·
@@ -172,6 +199,63 @@ por-confirmar (no como hecho). 6. No PII al front. 7. Verde ≠ aprobado; el dic
 6. Agente conversacional sobre el DOSSIER.
 7. Marca los 🔒 (vista/saldo promedio/ISR-vivo) con su razón y la fecha de desbloqueo (31-ago); su botón "Ejecutar"
    queda inactivo hasta que exista el feed / la corrida viva.
+
+Antes de construir cualquier **caso ejecutable nuevo**, lee la §11.
+
+---
+
+## 11. Guía para construir casos ejecutables (convenciones, sesgo y alcance)
+Esta guía existe porque las mismas tres cosas se redescubren caso tras caso. Aplícalas **desde el inicio**; no son
+opcionales, están confirmadas en el proyecto (ver punteros al final).
+
+### 11.1 Independencia — de dónde salen los parámetros (lo más importante)
+El oráculo (C) es **árbitro independiente**. Sus parámetros —%, tasa, base de días, tramos— salen de la **fuente
+independiente** (norma / GTM / contrato / doc oficial), **NO de la tabla de configuración del core que estás
+probando**.
+- Ejemplo IFRS 9 E3: el `pct(días_mora)` (75/90/100) de C sale de las **Tablas del GTM**, no de `lc_reserve_ifrs`.
+  Leer el % de la config del core y compararlo contra el mismo core probaría que **es consistente consigo mismo**, no
+  que **aplica la norma**. Que además `lc_reserve_ifrs` coincida (37/37) es un **resultado** (fuerte, ver §3.2), **no
+  el método.**
+- Regla: si para construir el caso necesitas leer un parámetro del core, **detente** — ese parámetro debe venir de la
+  fuente. Si la fuente no lo tiene, es `[PENDIENTE]`, no lo tomes del core.
+
+### 11.2 Convenciones de cálculo confirmadas (heredarlas, no redescubrirlas)
+- **Redondeo half-up por evento.** Finsus confirmó (24-ago) que el core redondea **half-up en cada evento**. Todo
+  oráculo debe redondear igual (`ROUND_HALF_UP`) **antes** de comparar contra B. Los módulos existentes ya lo hacen;
+  un caso nuevo **también** — es la causa #1 de sesgo espurio.
+- **Base de días por producto.** 360 o 365 **según el esquema** — no asumir. Confírmala de los datos/esquema
+  (p.ej. VISTA = 360·dt-mes; inversión plazo = 360; ISR = 365). Probar las convenciones y reportar cuál ajusta es
+  válido (no-circular).
+- **`decimal.Decimal` en todo cálculo monetario. Cero `float`.** El modo de redondeo es explícito, nunca default.
+
+### 11.3 Playbook del sesgo — antes de gritar "severidad 1"
+`tolerancias.py` corre una prueba de signo. Cuando marca **sesgo** (diferencias del mismo signo, sub-centavo),
+**no lo reportes como defecto todavía** — pártelo en este orden (es lo que ya pasó 3 veces, y las 3 el sesgo era
+del método, no de AurumCore):
+1. **¿Aplicaste half-up por evento como el core?** Si tu C no redondea igual, ese es el sesgo. (En IFRS 9 E3 explicó
+   la mitad: 5,133 → 2,381.)
+2. **¿Es precisión de la base?** Si lees el insumo (`capital_venc`, `SPM`, capital) a N decimales y el core calculó
+   con más, el residual sub-centavo es **granularidad del snapshot** — **patrón P-019** (mismo en moratorio y en
+   VISTA-`dt`). Verifícalo: el % / la tasa **implícita** en las filas que fallan sale correcta (p.ej. 75.0000 /
+   90.0001 / 100.0000) ⇒ la fórmula está bien, la diferencia es la base. **No es defecto de Aurum.**
+3. **Solo si sobrevive a (1) y (2) y es material** → entonces sí es candidato a defecto del core; escálalo.
+
+**Regla:** *un sesgo sub-centavo de un solo signo es, por defecto, tu redondeo o la precisión de la base — no un
+defecto de Aurum — hasta descartar ambos.* La bandera roja **se muestra igual** (ocultarla sería peor, §3.2); lo que
+cambia es la **lectura escrita** junto a ella: "sesgo del método (redondeo/base), no del core".
+
+### 11.4 Declaración de alcance — escribe lo que dejas fuera
+Cubre solo lo que la fuente sustenta. Lo que quede fuera **se escribe en el caso**, con el motivo:
+- Ej. IFRS 9: solo **E3 consumo zona no marginada**; E1/E2 amortizando y la composición de `reserva_int` dependen de
+  fórmulas **aún en el documento pendiente**; comercio/reestructurado necesitan las 9 tablas. Cubrirlos hoy exigiría
+  **inventar la base** → no se hace (CLAUDE.md §3).
+- El caso muestra el alcance cubierto **y** el declarado-fuera; el botón/badge no insinúan más cobertura de la real.
+
+### 11.5 Punteros (dónde vive cada regla confirmada)
+- Half-up y parámetros: `S-FIS-001`, `COMPARACION_C_vs_DOC.md`, los `oraculo_*.py`, `ESTADO_RESUMEN.md`.
+- Precisión de base / snapshot / P-019: `COMPARACION_C_vs_DOC.md`, `DOSSIER_MOTORES_ORACULO_C.md`,
+  `MATRIZ_TOLERANCIAS.md`, `tolerancias.py`, `K-DAT-002`.
+- Tres granularidades y prueba de sesgo: `MATRIZ_TOLERANCIAS.md`, `comparadores/tolerancias.py`.
 
 **Recuerda:** el valor del tablero está en los **no-conformes bien explicados**, no en los verdes. Ese es el
 diferenciador del tercero independiente.
