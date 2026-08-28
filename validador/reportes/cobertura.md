@@ -1,6 +1,6 @@
 # Cobertura del VALIDADOR — que se corrio, que no y que esta bloqueado
 
-> Generado: 2026-08-28T11:15:00+00:00 · `python cli.py --cobertura`
+> Generado: 2026-08-28T11:43:53+00:00 · `python cli.py --cobertura`
 >
 > **NO-CORRIDO NO ES PASO.** Un caso que no se ejecuto no aporta cobertura y no
 > puede pintarse verde en ningun tablero. Esta tabla existe para que la ausencia
@@ -24,7 +24,7 @@
 | **ISR-02** | FIS | 2 | VALIDADO | NO-CORRIDO · nunca ejecutado | — | — | — |
 | **ISR-03** | FIS | 1 | VALIDADO | corrido · CON VIOLACIONES | 2026-08-21 | 1 | ISR-03_2026-08-21_a61c52894d7e |
 | **REND-PLAZO** | DEV | 1 | VALIDADO | corrido · cero violaciones | 2026-08-28 | 0 | REND-PLAZO_2026-08-28_62b2d08afb0a |
-| **REND-VISTA** | DEV | 1 | PARCIAL | corrido · SESGO DETECTADO (severidad 1) | 2026-08-28 | 424 | REND-VISTA_2026-08-28_4f276056500d |
+| **REND-VISTA** | DEV | 1 | PARCIAL | corrido · SESGO DETECTADO (severidad 1) | 2026-08-28 | 675 | REND-VISTA_2026-08-28_b33874ab6f8b |
 | **SALDO-PROM** | DEV | 1 | PARCIAL | NO-CORRIDO · nunca ejecutado | — | — | — |
 | **WRITEOFFS** | CTB | 2 | PENDIENTE | NO-CORRIDO · nunca ejecutado | — | — | — |
 
@@ -85,11 +85,11 @@ Reconcilio al centavo en el caso limpio (cuenta 6de5351e: 10,165.70 x 31 x 4% / 
 
 ### REND-VISTA — Interes y capitalizacion de cuenta vista/ahorro
 
-- veredicto: **SESGO** · violaciones: **424** de 5000 filas
+- veredicto: **SESGO** · violaciones: **675** de 20000 filas
 - celda dominante de la matriz A/B/C: `B=C (sin A)`
-- matriz: {'B=C (sin A)': 4576, 'B!=C (sin A)': 424}
-- **sesgo detectado** (p=9.81241e-82): Sesgo positivo (C > B): 411 de 447 diferencias no nulas caen del mismo lado. Severidad 1 (charter §1.7): el agregado esta mal aunque cada evento respete la tolerancia.
-- evidencia: `REND-VISTA_2026-08-28_4f276056500d`
+- matriz: {'B=C (sin A)': 19325, 'B!=C (sin A)': 675}
+- **sesgo detectado** (p=1.17224e-202): Sesgo positivo (C > B): 719 de 726 diferencias no nulas caen del mismo lado. Severidad 1 (charter §1.7): el agregado esta mal aunque cada evento respete la tolerancia.
+- evidencia: `REND-VISTA_2026-08-28_b33874ab6f8b`
 
 > Recordatorio (§7.3): **cada hallazgo confirmado se convierte en un invariante**
 > permanente en `tests/`. La red de regresion solo crece.

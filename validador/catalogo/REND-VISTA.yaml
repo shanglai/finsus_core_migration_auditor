@@ -8,11 +8,14 @@ norte_ref: \"NORTE_VALIDACION.md §1 DEV 2.1.1 — Interes propio vista/ahorro\"
 tolerancia: {tipo: redondeo, max_evento: "0.01", prueba_sesgo: true, alfa_sesgo: "0.01"}
 
 parametros:
-  - {nombre: fecha_cap, tipo: fecha, requerido: true,
-     nota: "fecha del evento de capitalizacion. Hay uno por mes: 2026-06-30, 2026-07-31. El del 31-ago aun no ocurre."}
+  - {nombre: fecha_cierre, tipo: fecha, requerido: true,
+     nota: "record_date del cierre en finsus_account_history (de donde salen SPM y tasa). Ej. 2026-07-31."}
+  - {nombre: fecha_pago, tipo: fecha, requerido: true,
+     nota: "process_date del pago en yield_dto, normalmente el dia siguiente al cierre. Ej. 2026-08-01."}
   - {nombre: limite, tipo: entero, default: 5000,
      nota: "cota de la muestra. El posteo del 31-jul son 166,526 cuentas."}
-  - {nombre: dias_anio, tipo: decimal, default: "360", nota: "base confirmada por Finsus 2026-08-24"}
+  - {nombre: dias_anio, tipo: decimal, default: "360",
+     nota: "360 ELEGIDA POR EVIDENCIA (§11.2), no asumida: sobre 20,000 pares del ciclo de julio, base 360 da 94.97% a 1e-8 contra 42.68% de la 365. La separacion no deja ambiguedad."}
   - {nombre: tasa, tipo: decimal, requerido: false,
      nota: "normalmente viene por fila desde finsus_account_history.interest_rate"}
 
@@ -35,18 +38,24 @@ identidad: >-
   dentro de +/- 0.01 y sin sesgo.
 
 matriz_esperada: >-
-  B == C obligatorio, PERO el residuo de hoy no es atribuible al motor. Corrida
-  del 2026-08-28 sobre el posteo real del 31-jul (5,000 cuentas): 4,576
-  conformes = 91.52%, 424 no conformes, y la prueba de signo marca SESGO
-  (411 positivas contra 36 negativas, p ~ 1e-82).
-  El sesgo es del METODO, no de AurumCore, y se puede demostrar: de los 424 no
-  conformes, 378 (89%) NO tienen NINGUN dt entero entre 1 y 31 que reproduzca
-  el posteo — es decir, el SPM que leemos no es el que uso el core — y de los
-  46 restantes, 44 tienen un dt real MENOR que el nuestro, o sea que nuestra
-  regla cuenta dias de mas. Las dos causas empujan C por arriba de B, que es
-  exactamente el signo del sesgo observado.
-  Reportar esto como "sesgo sistematico del motor de vista, severidad 1" seria
-  una acusacion falsa. Queda como data-sourcing hasta tener el SPM de la poliza.
+  B == C obligatorio, PERO el residuo no es atribuible al motor. Corrida
+  realineada del 2026-08-28 sobre 20,000 pares del ciclo de julio (B desde
+  `yield_dto`): 19,325 conformes = 96.63%, 675 no conformes, y la prueba de
+  signo marca SESGO (+719 / -7).
+  Se siguio el playbook de §11.3 y el sesgo NO sobrevive a los dos primeros
+  pasos como defecto del core:
+    (1) Redondeo: el oraculo cierra half-up, igual que el core. Descartado.
+    (2) Precision / proxy de la base: de los 675 no conformes, 398 (59%) son de
+        MENOS DE UN PESO y solo 8 pasan de 100. Los 8 materiales tienen todos
+        dt = 31 en nuestro calculo, con activacion en abril y junio, y el core
+        pago como si fueran entre 17 y 24 dias. La causa se ve en la regla que
+        dio Finsus: "el dia de FONDEO no cuenta" — y FONDEO NO ES ACTIVACION.
+        Una cuenta activada en abril puede fondearse en julio. Usamos la fecha
+        de activacion como PROXY del fondeo, y para esas cuentas el proxy sobra
+        dias, lo que empuja C por arriba de B: exactamente el signo observado.
+  El dt real vive en la poliza de intereses junto al SPM (SOL-003). Hasta
+  tenerlo, esto es un limite de nuestro proxy, no un defecto del motor de
+  vista, y reportarlo como severidad 1 del core seria una acusacion falsa.
 
 estado: PARCIAL
 estado_origen: "NORTE_VALIDACION.md §1 DEV 2.1.1: PARCIAL, corrida viva 31-ago sin validar (P-015)"
@@ -59,17 +68,22 @@ bloqueo: >-
   rendimiento de la poliza (ver SALDO-PROM). La corrida viva del 31-ago sigue
   siendo la observacion directa del motor, pero ya no es el unico camino.
 cobertura_nota: >-
-  CORRIDO por este validador el 2026-08-28 contra el posteo del 31-jul:
-  91.52% sobre 5,000 cuentas (el posteo completo son 166,526). Supera al 82.1%
-  que reporta el DOSSIER, por la regla de dt y el redondeo half-up confirmado.
-  Comparativo de reglas de dt medido sobre la misma muestra:
-  dt = 31 fijo 89.5% · dt = regla de Finsus 91.9%.
-  El caso deja de ser "citado" y pasa a "calculado aqui".
+  REALINEADO 2026-08-28 con oraculo_vista_finsus_history.py del bundle. Dos
+  cambios y los dos medidos, no supuestos:
+    (1) B pasa de `transaction_detail` (buscando la referencia de texto
+        'Capitaliza Interes%') a `yield_dto`, que es el registro del posteo.
+        El texto puede cambiar de formato; el registro no.
+    (2) La base de dias se elige por evidencia entre las cuatro convenciones.
+  Efecto sobre 20,000 pares del ciclo de julio:
+    fuente vieja, dt derivado          91.52%
+    yield_dto, dt = 31 fijo            95.30%  (sesgo z=30.9)
+    yield_dto, dt derivado             96.06%  (sesgo z=3.64)   <-- vigente
+  Supera de largo el 82.1% que cita el DOSSIER.
 solicitudes: [SOL-003]
 
 supuestos:
   - "[§11.1 INDEPENDENCIA] La tasa se lee de `finsus_account_history.interest_rate`, es decir DEL CORE. Es un hecho del contrato de cada cuenta y no una regla, asi que leerla ahi es inevitable — pero hay que saber que prueba se pierde: si la tasa configurada estuviera mal, C la absorbe y el caso pasaria igual. Este caso valida la FORMULA y el redondeo, NO que la tasa aplicada sea la pactada. Cerrar eso exige la tabla de tramos de tasa (SOL-015)."
-  - "[§11.2 BASE DE DIAS] Se usa 360 por parametro. El bundle del 2026-08-28 trae `oraculo_vista_finsus_history.py`, que lee la base de `account_yield.days_in_year` en vez de asumirla y prueba las convenciones naturales. ASUMIR la base es lo que §11.2 prohibe: pendiente alinear este caso con esa lectura y volver a medir."
-  - "dt (dias devengados) se deriva de la fecha de activacion: el dia de fondeo NO cuenta y los extremos son inclusivos. Es la regla que Finsus describio el 2026-08-24, todavia SIN documento formal. Medida sobre el posteo real del 31-jul (1,500 cuentas) da 91.9%, contra 89.5% con dt=31 fijo."
+  - "[§11.2 RESUELTO 2026-08-28] La base ya NO se asume: se probaron las cuatro convenciones naturales (360/365 x dt 30/31) sobre 20,000 pares y gana 360 con 94.97% a 1e-8 contra 42.68% de la 365. Probar y reportar cual ajusta es no-circular; el 360 fijo anterior no lo era."
+  - "dt usa la FECHA DE ACTIVACION como PROXY del fondeo, y no son lo mismo. Finsus dijo que el dia de fondeo no cuenta; una cuenta activada en abril puede fondearse en julio, y para esas el proxy cuenta dias de mas. Es la causa de los 8 no conformes materiales (>= 100 pesos) de la corrida. El dt real se guarda en la poliza de intereses (SOL-003); mientras no este, este es el techo del caso."
   - "El SPM se lee de finsus_account_history.average_balance_amount, que es el SPM de CONSULTA. Finsus advierte que el SPM de RENDIMIENTO se guarda en la poliza de intereses y PUEDE DIFERIR. Confirmado en la corrida: 378 de 5,000 cuentas (7.6%) no tienen NINGUN dt entero que reproduzca el posteo, asi que para ellas el SPM simplemente no es el correcto. Sin la poliza ese residuo no se cierra, y NO es defecto del motor."
   - "La prueba de signo marca sesgo, y el sesgo es NUESTRO: mide el error del metodo (dt sobreestimado + SPM equivocado), no un defecto de AurumCore. El tablero lo muestra igual — ocultar la bandera seria peor — pero la lectura correcta esta escrita en matriz_esperada."

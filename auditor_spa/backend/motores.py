@@ -168,22 +168,24 @@ MOTORES: tuple[Motor, ...] = (
         fuentes=(Fuente(D, "GTM-Pago de Rendimientos p.3"),),
         oraculo="oraculo_rendimientos.rendimiento_vista", estado="parcial",
         dossier_pct="82.1",
-        dossier_detalle=("DESTRABADO 2026-08-24: ya no hay que esperar al 31-ago. El SPM se "
-                         "reconstruye de `aurumcore.finsus_account_history` y reconcilia el 82.1% "
-                         "de los posteos reales del 31-jul (70.7% con dt=31 fijo)."),
+        dossier_detalle=("DESTRABADO 2026-08-24 y REALINEADO el 28-ago: B se toma de `yield_dto` "
+                         "(el registro del posteo) en vez de la referencia de texto de "
+                         "transaction_detail, y la base de dias se elige por evidencia entre las "
+                         "cuatro convenciones. El cuadre pasa de 91.52% a 96.63%."),
         insumos="finsus_account_history (average_balance_amount, interest_rate, iv_term_days) + esquema de rendimientos",
         bloqueo=("Ya NO es bloqueo de tiempo. El 18% residual depende de dos cosas: la convencion "
                  "exacta de `dt` (inclusivo en ambos extremos, el dia de fondeo no cuenta) y el "
                  "SPM-de-RENDIMIENTO, que Finsus dice se guarda en la poliza de intereses y PUEDE "
                  "DIFERIR del average de consulta. En transaction_detail no esta."),
-        no_conformes=("Corrida del 2026-08-28 sobre el posteo del 31-jul (5,000 cuentas): 91.52% "
-                      "conforme, 424 no conformes, y la prueba de signo marca SESGO. El sesgo es "
-                      "del METODO, no de AurumCore, y se puede demostrar: de esos 424, "
-                      "378 (89%) no tienen NINGUN dt entero que reproduzca el posteo — el SPM que "
-                      "leemos no es el que uso el core — y de los 46 restantes, 44 tienen un dt "
-                      "real MENOR que el nuestro. Las dos causas empujan C por arriba de B, que es "
-                      "el signo observado. Leerlo como defecto del motor de vista seria una "
-                      "acusacion falsa; se cierra con el SPM de la poliza (SOL-003)."),
+        no_conformes=("Corrida realineada sobre 20,000 pares: 96.63% conforme, 675 no conformes, "
+                      "con SESGO (+719/-7). Siguiendo el playbook: el redondeo esta descartado "
+                      "(cerramos half-up igual que el core) y la magnitud lo ubica — 398 de los 675 "
+                      "son de MENOS DE UN PESO y solo 8 pasan de 100. Esos 8 materiales tienen "
+                      "dt=31 con activacion en abril y junio, y el core pago como si fueran 17 a 24 "
+                      "dias: usamos la fecha de ACTIVACION como proxy del FONDEO, y Finsus dijo que "
+                      "lo que no cuenta es el dia de fondeo. Una cuenta activada en abril puede "
+                      "fondearse en julio. Es el techo de nuestro proxy, no un defecto del motor; "
+                      "el dt real vive en la poliza (SOL-003)."),
         clase_no_conforme="data-sourcing", solicitudes=("SOL-003",), depende_de_logs=False,
         caso_validador="REND-VISTA", autopruebas="reproduce el 30.14 del doc",
     ),

@@ -21,6 +21,68 @@
   --norma:#c0a6f0; --norma-bg:#251c38; --infer:#9aa3ad; --infer-bg:#252b31;
   --acento:#7db3ea;
 }}
+
+/* ===== Tema LINKO ==========================================================
+   Tokens tomados de _ds/linko-design-system-.../tokens/*.css y mapeados a las
+   variables que ya usa el tablero, para no reescribir ni un componente.
+
+   La fuente NO se importa: `tokens/fonts.css` trae un @import de Google Fonts
+   y este SPA no carga nada por CDN (hay una prueba que lo verifica). Se usa la
+   pila de respaldo que el propio token declara — Helvetica Neue / Arial —, que
+   es la que Linko lista despues de Archivo.
+
+   El verde de marca (#02b101) se reserva para el acento y la identidad. NO se
+   usa para "conforme": el verde semantico del tablero tiene que seguir
+   significando "cuadra", y teñirlo de marca haria que la marca parezca un
+   veredicto. */
+:root[data-tema="linko"]{
+  --green-500:#02b101; --green-600:#019701; --green-400:#3bb75e;
+  --ink-900:#09353b;   --ink-700:#1c4a50;   --ink-300:#828385;
+
+  --bg:#f8faf8;              /* neutral-50, surface-page */
+  --panel:#ffffff;           /* neutral-0,  surface-card */
+  --linea:#e6e7e6;           /* neutral-200, border-subtle */
+  --texto:#09353b;           /* ink-900, text-heading */
+  --suave:#828385;           /* ink-300, text-muted */
+  --acento:#02b101;          /* brand */
+
+  --ok:#0f7a3d;   --ok-bg:#d2edd7;       /* green-100 */
+  --mal:#b3261e;  --mal-bg:#fdeceb;
+  --alerta:#8a6100; --alerta-bg:#fdf3d9;
+  --neutro:#1c4a50; --neutro-bg:#f2f2f2; /* neutral-100, surface-chrome */
+  --doc:#1c4a50;    --doc-bg:#f2f2f2;
+  --config:#0f7a3d; --config-bg:#d2edd7;
+  --norma:#6b3fa0;  --norma-bg:#f0eaf9;
+  --infer:#828385;  --infer-bg:#f2f2f2;
+
+  --radio:12px;              /* radius-s */
+  --radio-pill:999px;        /* radius-pill */
+  --sombra:0 2px 24px rgba(9,53,59,.05);   /* shadow-card */
+}
+:root[data-tema="linko"] body{
+  font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+:root[data-tema="linko"] .mini,
+:root[data-tema="linko"] .det{ box-shadow:var(--sombra); border-radius:20px; }
+:root[data-tema="linko"] .top{ box-shadow:0 4px 30px rgba(9,53,59,.06); }
+:root[data-tema="linko"] button,
+:root[data-tema="linko"] select,
+:root[data-tema="linko"] input{ border-radius:999px; padding-left:14px; padding-right:14px; }
+:root[data-tema="linko"] .badge,
+:root[data-tema="linko"] .chip,
+:root[data-tema="linko"] .flag{ border-radius:999px; }
+:root[data-tema="linko"] .marca{ color:#09353b; }
+:root[data-tema="linko"] .aviso{ background:#fdf3d9; }
+
+/* ===== Tema OSCURO forzado (independiente del sistema) ===================== */
+:root[data-tema="oscuro"]{
+  --bg:#14171a; --panel:#1c2024; --linea:#2e343b; --texto:#e8eaed; --suave:#9aa3ad;
+  --ok:#5bd18f; --ok-bg:#12301f; --mal:#ff8a80; --mal-bg:#3a1614;
+  --alerta:#ffd166; --alerta-bg:#3a2f10; --neutro:#b0b8c1; --neutro-bg:#252b31;
+  --doc:#7db3ea; --doc-bg:#16283d; --config:#5bd18f; --config-bg:#12301f;
+  --norma:#c0a6f0; --norma-bg:#251c38; --infer:#9aa3ad; --infer-bg:#252b31;
+  --acento:#7db3ea;
+}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--texto);
   font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
@@ -162,6 +224,11 @@ table.nc td.d{color:var(--mal);font-weight:700;text-align:right}
   <span class="marca" onclick="ir('#/')">Auditor independiente — motor C</span>
   <span class="migas" id="migas"></span>
   <span class="der">
+    <select id="tema" title="apariencia del tablero">
+      <option value="auto">Auto (sistema)</option>
+      <option value="linko">Linko</option>
+      <option value="oscuro">Oscuro</option>
+    </select>
     <button id="b-todo">Ejecutar todo</button>
     <button id="b-chat">Agente</button>
   </span>
@@ -554,6 +621,24 @@ function preguntar(q){if(!q.trim())return;pon(q,'yo');pon(responder(q),'bot');do
 function abrirChat(q){document.getElementById('chat').classList.add('on');if(q)preguntar(q);}
 
 /* ---------- arranque ---------- */
+/* El tema se guarda por navegador. El scatter lee los colores del CSS en cada
+   dibujo, asi que al cambiar de tema hay que re-pintar: si no, los puntos
+   quedan con la paleta anterior sobre el fondo nuevo. */
+function aplicarTema(v){
+  if(v==='auto') document.documentElement.removeAttribute('data-tema');
+  else document.documentElement.setAttribute('data-tema',v);
+  try{ localStorage.setItem('tema-auditor',v); }catch(e){}
+  pintar();
+}
+(function(){
+  let v='auto';
+  try{ v=localStorage.getItem('tema-auditor')||'auto'; }catch(e){}
+  const sel=document.getElementById('tema');
+  sel.value=v;
+  if(v!=='auto') document.documentElement.setAttribute('data-tema',v);
+  sel.addEventListener('change',e=>aplicarTema(e.target.value));
+})();
+
 addEventListener('hashchange',pintar);
 document.getElementById('b-menu').onclick=()=>{document.getElementById('menu').classList.toggle('on');
   document.getElementById('velo').classList.toggle('on');};

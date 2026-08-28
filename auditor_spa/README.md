@@ -60,6 +60,32 @@ También abre `spa/index.html` desde el disco, sin servidor — los datos van en
 `spa/datos.js` porque el navegador bloquea `fetch()` sobre `file://`. En ese
 modo el botón "Ejecutar" queda inactivo y lo dice; todo lo demás funciona.
 
+### Apariencia
+
+Selector en la barra superior, con tres modos que se guardan por navegador:
+
+- **Auto** — sigue el `prefers-color-scheme` del sistema.
+- **Linko** — los tokens reales del design system en `_ds/`: verde de marca
+  `#02b101`, tinta `#09353b`, superficie `#f8faf8`, esquinas de 20 px y píldoras.
+  Hay una prueba que compara los valores contra `tokens/colors.css`, así que si
+  el design system cambia, obliga a re-sincronizar en vez de dejar una paleta
+  parecida pero distinta.
+- **Oscuro** — forzado, independiente del sistema.
+
+Dos decisiones que vale la pena señalar:
+
+**El verde de marca no se usa como veredicto.** `#02b101` es identidad; el verde
+semántico de "conforme" es otro. Si fueran el mismo, la marca parecería un
+dictamen — y hay una prueba que lo impide.
+
+**La fuente no se importa.** `tokens/fonts.css` trae un `@import` de Google
+Fonts y este SPA no carga nada remoto; se usa la pila de respaldo que el propio
+token declara (Helvetica Neue / Arial).
+
+Al cambiar de tema el scatter se re-dibuja: lee los colores del CSS en cada
+pintado, así que sin re-pintar quedaría con la paleta anterior sobre el fondo
+nuevo.
+
 ### Navegación
 
 - **Home** — galería con las 16 tarjetas: estado, % y categoría.

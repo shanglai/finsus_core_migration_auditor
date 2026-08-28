@@ -281,3 +281,71 @@ def test_el_spa_explica_las_granularidades():
     assert "AYUDA_GRAN" in html
     for t in ("1e-8", "1e-5", "sesgo"):
         assert t in html
+
+
+# --- Temas del tablero ------------------------------------------------------
+
+DS = RAIZ.parent / "_ds"
+
+
+def _html():
+    return (RAIZ / "spa" / "index.html").read_text(encoding="utf-8")
+
+
+def test_hay_tres_temas():
+    h = _html()
+    for v in ('value="auto"', 'value="linko"', 'value="oscuro"'):
+        assert v in h, f"falta la opcion de tema {v}"
+    assert 'data-tema="linko"' in h and 'data-tema="oscuro"' in h
+
+
+def test_el_tema_linko_usa_los_tokens_reales_del_design_system():
+    """Los colores salen de _ds/, no de un ojimetro.
+
+    Si el design system cambia sus tokens, esta prueba obliga a re-sincronizar
+    en vez de dejar el tablero con una paleta parecida pero distinta.
+    """
+    colores = list(DS.glob("*/tokens/colors.css"))
+    if not colores:
+        pytest.skip("no esta el design system en _ds/")
+    css = colores[0].read_text(encoding="utf-8")
+    h = _html()
+    for token in ("#02b101", "#09353b", "#f8faf8", "#ffffff", "#e6e7e6", "#828385"):
+        assert token in css, f"{token} ya no esta en el design system"
+        assert token in h, f"el tema linko no usa {token} del design system"
+
+
+def test_el_tema_linko_no_importa_la_fuente_por_cdn():
+    """`tokens/fonts.css` trae un @import de Google Fonts; el SPA no carga nada
+    remoto. Se usa la pila de respaldo que el propio token declara."""
+    h = _html()
+    # Se busca la DIRECTIVA, no la palabra: el propio comentario del tema
+    # menciona el @import de los tokens para explicar por que no se usa, y una
+    # prueba que castigue mencionarlo empuja a borrar la explicacion.
+    import re as _re
+    assert not _re.search(r"@import\s+url", h), "el SPA no debe importar CSS remoto"
+    assert not _re.search(r"(?:src|href)\s*=\s*[\"'](?:https?:)?//", h),         "el SPA no debe cargar recursos remotos"
+    assert "Helvetica Neue" in h
+
+
+def test_el_verde_de_marca_no_se_usa_como_veredicto():
+    """#02b101 es identidad, no "conforme".
+
+    Si el verde de marca fuera tambien el verde semantico, la marca pareceria
+    un dictamen. El --ok del tema linko tiene que ser otro verde.
+    """
+    h = _html()
+    bloque = h[h.index(':root[data-tema="linko"]{'):]
+    bloque = bloque[:bloque.index("}")]
+    linea_ok = [l for l in bloque.splitlines() if "--ok:" in l]
+    assert linea_ok, "el tema linko no define --ok"
+    assert "#02b101" not in linea_ok[0], "el verde de marca no debe significar 'conforme'"
+
+
+def test_el_tema_persiste_y_repinta():
+    h = _html()
+    assert "localStorage" in h and "tema-auditor" in h
+    # cambiar de tema debe re-pintar: el scatter lee los colores del CSS
+    fn = h[h.index("function aplicarTema"):]
+    assert "pintar()" in fn[:fn.index("\n}")], \
+        "al cambiar de tema hay que re-pintar o el scatter queda con la paleta vieja"
