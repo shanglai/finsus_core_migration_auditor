@@ -388,7 +388,10 @@ def construir(motor, autopruebas: dict, con_bd: bool, params: dict,
         d["pct_mostrado"] = d["cruce"]["pct_match"]
     elif motor.dossier_pct:
         d["origen_resultado"] = "dossier"
-        d["pct_mostrado"] = motor.dossier_pct
+        # Se muestra el % del CENTAVO cuando la matriz lo tiene, con su escala
+        # visible: un numero sin escala desinforma (ver Motor.pct_citado).
+        citado = motor.pct_citado
+        d["pct_mostrado"] = citado[0] if citado else motor.dossier_pct
     else:
         d["origen_resultado"] = "sin_cruce"
         d["pct_mostrado"] = None

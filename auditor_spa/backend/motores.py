@@ -109,6 +109,12 @@ class Motor:
     solicitudes: tuple[str, ...] = ()
     depende_de_logs: bool = False
     autopruebas: str = ""             # que autoprueba respalda la formula
+    # Las tres granularidades TAL COMO LAS CITA `MATRIZ_TOLERANCIAS.md`, para
+    # los motores que este tablero no ha corrido. Un porcentaje sin su escala
+    # desinforma: el moratorio "81.1%" es a 1e-8 y al centavo es 95.7%, que es
+    # justo el ejemplo canonico del escalon diagnostico. Mostrar el 81 pelon
+    # hace pensar que el motor falla 1 de cada 5 veces.
+    dossier_match: dict | None = None   # {"1e-8": "...", "1e-5": "...", "centavo": "...", "n": "...", "sesgo": "no"}
 
     @property
     def categoria(self) -> str:
@@ -122,6 +128,25 @@ class Motor:
     def evidencia_config(self) -> str:
         """Las citas de las fuentes tipo `config`, que son la validacion mas fuerte."""
         return " · ".join(f.cita for f in self.fuentes if f.tipo == "config")
+
+    @property
+    def pct_citado(self) -> tuple[str, str] | None:
+        """(porcentaje, escala) del numero citado. NUNCA un numero sin escala.
+
+        Se prefiere el CENTAVO cuando existe, porque es la tolerancia de
+        negocio — "lo que le importa al cliente y a la contabilidad". Mostrar
+        el de 1e-8 como titular desinforma: el moratorio a 1e-8 es 81.10% y al
+        centavo 95.70%, y el 81 pelon hace pensar que el motor falla una de
+        cada cinco veces. Las tres barras van igual debajo, asi que el numero
+        estricto no se esconde: se contextualiza.
+        """
+        m = self.dossier_match or {}
+        for esc in ("centavo", "1e-5", "1e-8"):
+            if m.get(esc):
+                return (m[esc], esc)
+        if self.dossier_pct:
+            return (self.dossier_pct, "1e-8")
+        return None
 
     def cobertura(self, hay_cruce: bool) -> str:
         """De donde viene la cobertura de este motor: datos, config o nada.
@@ -155,6 +180,8 @@ class Motor:
             "bloqueo": self.bloqueo, "solicitudes": list(self.solicitudes),
             "depende_de_logs": self.depende_de_logs, "autopruebas": self.autopruebas,
             "evidencia_config": self.evidencia_config,
+            "dossier_match": self.dossier_match,
+            "pct_escala": (self.pct_citado or (None, None))[1],
         }
 
 
@@ -201,6 +228,7 @@ MOTORES: tuple[Motor, ...] = (
         caso_validador="REND-PLAZO",
         insumos="account.iv_initial_amount · iv_payment_plan (origin, interest_amount, interest_paid)",
         autopruebas="reproduce el 13.89 del doc",
+        dossier_match={"1e-8": "100.00", "1e-5": "100.00", "centavo": "100.00", "n": "530,195 periodos", "sesgo": "no"},
     ),
     Motor(
         id="SALDO-PROM", nombre="Saldo promedio (SPM)", dominio="DEV",
@@ -269,6 +297,8 @@ MOTORES: tuple[Motor, ...] = (
         clase_no_conforme="linaje", depende_de_logs=True,
         insumos="lc_loan_contract (loan_amount, ordinary_interest_rate, calendar_type) · lc_finantial_data.capital · feed credits-closing-trans",
         autopruebas="reproduce el 20.83 del doc",
+        dossier_match={"1e-8": "96.80", "1e-5": None, "centavo": None, "n": "4,091", "sesgo": "no",
+                        "nota": "el centavo esta [PEND] y sera >= 96.8; el residuo ~12% es data-sourcing de reserva (P-019), no sesgo de motor"},
     ),
     Motor(
         id="CRED-MOR", nombre="Credito — interes MORATORIO", dominio="COL",
@@ -285,6 +315,8 @@ MOTORES: tuple[Motor, ...] = (
         clase_no_conforme="redondeo", depende_de_logs=True,
         insumos="lc_finantial_data (capital_venc, mora_days) · lc_loan_contract.moratorium_interest_rate",
         autopruebas="reproduce el 0.50 del doc",
+        dossier_match={"1e-8": "81.10", "1e-5": None, "centavo": "95.70", "n": "1,274", "sesgo": "no",
+                        "nota": "escalon clasico 81 -> 96: el residuo sub-centavo es granularidad del snapshot, NO defecto. P-020 cerrada"},
     ),
     Motor(
         id="CRED-DIAS", nombre="Credito — conteo de DIAS de devengo", dominio="COL",
@@ -306,6 +338,8 @@ MOTORES: tuple[Motor, ...] = (
         dossier_detalle="54,716 filas con IVA.",
         no_conformes="Redondeo en montos chicos.", clase_no_conforme="redondeo",
         insumos="lc_loan_amortization (interest_amount, interest_tax_amount)",
+        dossier_match={"1e-8": "99.00", "1e-5": None, "centavo": None, "n": "54,716", "sesgo": "no",
+                        "nota": "el resto es redondeo en montos chicos; tasa implicita 16.0% en el 95%"},
     ),
     Motor(
         id="GAT", nombre="GAT — Ganancia Anual Total (inversion)", dominio="DEV",
@@ -374,6 +408,8 @@ MOTORES: tuple[Motor, ...] = (
         clase_no_conforme="data-sourcing", solicitudes=("SOL-015",),
         insumos="lc_loan_amortization (capital_amount, interest_amount, total_amount, fechas)",
         autopruebas="6/6",
+        dossier_match={"1e-8": None, "1e-5": None, "centavo": "99.90", "n": "794 contratos", "sesgo": None,
+                        "nota": "interes Actual/360 EXACTO; el 99.9% es identidad de fila. En contratos frescos 91.7%"},
     ),
     Motor(
         id="CAT", nombre="CAT — Costo Anual Total (credito)", dominio="COL",

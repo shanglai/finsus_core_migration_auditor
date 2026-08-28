@@ -381,7 +381,8 @@ function galeria(cat){
           <span class="badge b-${m.estado}" style="margin-left:auto">${m.estado.replace('_',' ')}</span></h3>
         <div class="cat-chip">${esc(m.categoria)}</div>
         ${p!==null?`<div class="pct"><span class="val">${p.toFixed(2)+'%'}</span>
-          <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span></div>`
+          <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span></div>
+          ${m.pct_escala?`<div class="cita">al <span class="mono">${esc(m.pct_escala)}</span></div>`:''}`
         : respaldo(m,false)}
         <div class="cita"><span class="badge b-${m.origen_resultado==='corrida_local'?'corrida_local':
           (m.origen_resultado==='dossier'?'dossier':'sin_cruce')}">${esc(et)}</span></div>
@@ -428,6 +429,32 @@ function detalle(id){
   } else if(cr){
     gran=`<div class="sec"><h3>Cuadre en tres granularidades</h3>
       <div class="escalon">${esc(cr.match_nota||'Sin pares comparables.')}</div></div>`;
+  } else if(m.dossier_match){
+    // Motor CITADO: las tres escalas salen de MATRIZ_TOLERANCIAS.md, no de una
+    // corrida propia. Se muestran igual, marcadas como citadas: un solo número
+    // sin su escala es lo que hacía ver al moratorio como si fallara 1 de cada 5.
+    const M=m.dossier_match;
+    const filas=['1e-8','1e-5','centavo'].map(k=>{
+      const v=M[k]?num(M[k]):null;
+      return `<div class="g"><span class="et">${k}</span>
+        ${v===null?`<span class="riel" style="opacity:.35"></span><span class="p">[PEND]</span>`
+                  :`<span class="riel ${clase(v)}"><i style="width:${v}%"></i></span><span class="p">${M[k]}%</span>`}
+        <span class="n">${k===m.pct_escala?'← titular':''}</span></div>`;}).join('');
+    const p8=M['1e-8']?num(M['1e-8']):null, pc=M['centavo']?num(M['centavo']):null;
+    let lectura='';
+    if(p8!==null && pc!==null && pc-p8>=5)
+      lectura=`<strong>El escalón ${M['1e-8']}% → ${M['centavo']}% es diagnóstico:</strong> el residuo
+        es sub-centavo, o sea granularidad del snapshot, <em>no defecto del motor</em>.`;
+    else if(p8!==null && p8>=99.5) lectura='<strong>Cuadre exacto</strong> a 8 decimales.';
+    else lectura='Las escalas marcadas <span class="mono">[PEND]</span> no se han computado todavía.';
+    gran=`<div class="sec"><h3>Cuadre en tres granularidades
+        <span class="ayuda" title="${esc(AYUDA_GRAN)}">?</span></h3>
+      <div class="gran">${filas}</div>
+      <div class="escalon" style="margin-top:10px">${lectura}
+        ${M.nota?`<br><span class="cita">${esc(M.nota)}</span>`:''}
+        <br><span class="cita"><strong>Citado</strong> de MATRIZ_TOLERANCIAS.md
+        (n = ${esc(M.n||'—')}${M.sesgo?` · sesgo: ${esc(M.sesgo)}`:''}). Este tablero NO lo recalculó.</span>
+      </div></div>`;
   }
 
   const conteo=cr?`<div class="conteo">
@@ -464,7 +491,8 @@ function detalle(id){
       <span class="cita" style="margin-left:auto">${esc(m.categoria)}</span></h2>
 
     ${p!==null?`<div class="pct"><span class="val">${p.toFixed(2)+'%'}</span>
-      <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span></div>`
+      <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span>
+      ${m.pct_escala?`<span class="cita">al <span class="mono">${esc(m.pct_escala)}</span></span>`:''}</div>`
     : respaldo(m,true)}
 
     <div class="exec">

@@ -140,6 +140,18 @@ signo**. Si las diferencias se cargan a un lado es **sesgo sistemático,
 severidad 1** aunque cada una sea de un centavo. Verde al centavo *con* sesgo
 no es aprobado.
 
+**Ningún porcentaje se muestra sin su escala.** El moratorio a `1e-8` es 81.10%
+y al centavo 95.70% — es el ejemplo canónico del escalón en
+`MATRIZ_TOLERANCIAS.md`. Mostrar "81.1%" pelón hace pensar que el motor falla
+una de cada cinco veces, cuando en la tolerancia de negocio cuadra el 95.7%.
+Por eso el titular es el del **centavo** cuando existe, con la escala escrita
+al lado, y las tres barras van debajo: el número estricto no se esconde, se
+contextualiza.
+
+Los motores **citados** también muestran sus tres barras, tomadas de
+`MATRIZ_TOLERANCIAS.md` y rotuladas como citadas, con las escalas `[PEND]`
+marcadas como tales.
+
 Los motores de identidad (**Contable**, **Motor B**) no muestran las tres
 barras: declaran su tolerancia propia (`0.00 exacto`, `A ≥ B`) y por qué. No
 comparan dos importes calculados, así que un escalón de precisión ahí no

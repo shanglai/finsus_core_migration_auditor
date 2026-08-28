@@ -72,10 +72,40 @@ def test_un_numero_del_dossier_nunca_se_marca_como_calculado_aqui():
             f"{m.id} se marco como calculado localmente sin haber corrido"
         if m.dossier_pct:
             assert d["origen_resultado"] == "dossier"
-            assert d["pct_mostrado"] == m.dossier_pct
+            # El titular puede ser el del CENTAVO en vez del estricto, pero
+            # tiene que salir de la matriz CITADA — nunca calculado aqui — y
+            # siempre acompanado de su escala.
+            citado = m.pct_citado
+            assert citado is not None, f"{m.id}: cita un % sin matriz de respaldo"
+            assert d["pct_mostrado"] == citado[0]
+            assert d["pct_escala"] == citado[1]
         else:
             assert d["origen_resultado"] == "sin_cruce"
             assert d["pct_mostrado"] is None
+
+
+def test_ningun_porcentaje_se_muestra_sin_su_escala():
+    """Un numero sin escala desinforma.
+
+    El moratorio a 1e-8 es 81.10% y al centavo 95.70%. Mostrar "81.1%" pelon
+    hace pensar que el motor falla una de cada cinco veces, cuando en la
+    tolerancia de negocio cuadra el 95.7%. `MATRIZ_TOLERANCIAS.md` usa ese
+    motor como el ejemplo canonico del escalon diagnostico.
+    """
+    autos = {m.id: {"ok": True, "detalle": "x"} for m in M.MOTORES}
+    for m in M.MOTORES:
+        d = R.construir(m, autos, con_bd=False, params={})
+        if d["origen_resultado"] == "dossier":
+            assert d["pct_escala"], f"{m.id}: muestra un % citado sin decir a que escala"
+
+
+def test_el_titular_citado_prefiere_la_tolerancia_de_negocio():
+    """Cuando la matriz trae el centavo, ese es el titular: es lo que le importa
+    al cliente y a la contabilidad. Las tres barras siguen debajo, asi que el
+    numero estricto no se esconde — se contextualiza."""
+    mor = M.POR_ID["CRED-MOR"]
+    assert mor.pct_citado == ("95.70", "centavo")
+    assert (mor.dossier_match or {}).get("1e-8") == "81.10",         "el numero estricto debe seguir disponible para las barras"
 
 
 def test_sin_cruce_no_muestra_porcentaje():
