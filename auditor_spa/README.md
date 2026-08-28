@@ -150,7 +150,20 @@ contextualiza.
 
 Los motores **citados** también muestran sus tres barras, tomadas de
 `MATRIZ_TOLERANCIAS.md` y rotuladas como citadas, con las escalas `[PEND]`
-marcadas como tales.
+marcadas como tales y la procedencia escrita: *"Citado de
+`MATRIZ_TOLERANCIAS.md` (n = … · sesgo: …). Este tablero NO lo recalculó."*
+
+**Y la escala nunca se inventa.** `CAT` mostraba `11.60%` etiquetado "al 1e-8",
+y ese número no es una granularidad: es el **cruce a volumen**. Ponerle una
+escala falsa es peor que omitirla, porque el lector confía en la etiqueta. Ahora
+declara `del cruce a volumen — no es una granularidad`, con sus tres
+granularidades en `[PEND]` y la lectura de por qué sale bajo: `lc_loan_contract.cat`
+guarda el CAT nominal del producto en muchos contratos, no el per-contrato — es
+semántica del campo, no error de cálculo. La fórmula reproduce 3/3 los ejemplos
+del doc.
+
+Si un motor citado no tiene fila en la matriz, la etiqueta lo dice: `sin escala
+declarada`. Hay una prueba que impide suponerla.
 
 Los motores de identidad (**Contable**, **Motor B**) no muestran las tres
 barras: declaran su tolerancia propia (`0.00 exacto`, `A ≥ B`) y por qué. No

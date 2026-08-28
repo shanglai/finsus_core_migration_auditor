@@ -276,6 +276,16 @@ Y al centavo no basta: sobre el residuo fuera de 1e-8 se corre una prueba de
 signo. Si las diferencias se cargan a un lado es sesgo sistemático, severidad 1
 aunque cada una sea de un centavo. Verde al centavo CON sesgo no es aprobado.`;
 
+/* Como se lee la escala del titular. `volumen` NO es una granularidad: es el
+   porcentaje de un cruce 1-a-1 masivo, y decir "al 1e-8" seria inventarle una
+   precision que no tiene. */
+const ETIQUETA_ESCALA=e=>({
+  'centavo':'al <span class="mono">centavo</span> — tolerancia de negocio',
+  '1e-5':'a <span class="mono">1e-5</span> — precisión intermedia',
+  '1e-8':'a <span class="mono">1e-8</span> — exactitud aritmética estricta',
+  'volumen':'del <strong>cruce a volumen</strong> — no es una granularidad',
+  'sin escala declarada':'<strong>sin escala declarada</strong> — falta su fila en la matriz'
+}[e]||esc(e));
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const num=s=>{const v=parseFloat(s);return isFinite(v)?v:null;};
 const clase=p=>p===null?"":(p>=99.5?"":(p>=90?"medio":"malo"));
@@ -382,7 +392,7 @@ function galeria(cat){
         <div class="cat-chip">${esc(m.categoria)}</div>
         ${p!==null?`<div class="pct"><span class="val">${p.toFixed(2)+'%'}</span>
           <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span></div>
-          ${m.pct_escala?`<div class="cita">al <span class="mono">${esc(m.pct_escala)}</span></div>`:''}`
+          ${m.pct_escala?`<div class="cita">${ETIQUETA_ESCALA(m.pct_escala)}</div>`:''}`
         : respaldo(m,false)}
         <div class="cita"><span class="badge b-${m.origen_resultado==='corrida_local'?'corrida_local':
           (m.origen_resultado==='dossier'?'dossier':'sin_cruce')}">${esc(et)}</span></div>
@@ -434,7 +444,8 @@ function detalle(id){
     // corrida propia. Se muestran igual, marcadas como citadas: un solo número
     // sin su escala es lo que hacía ver al moratorio como si fallara 1 de cada 5.
     const M=m.dossier_match;
-    const filas=['1e-8','1e-5','centavo'].map(k=>{
+    const escalas=['1e-8','1e-5','centavo'].concat(M.volumen?['volumen']:[]);
+    const filas=escalas.map(k=>{
       const v=M[k]?num(M[k]):null;
       return `<div class="g"><span class="et">${k}</span>
         ${v===null?`<span class="riel" style="opacity:.35"></span><span class="p">[PEND]</span>`
@@ -492,7 +503,7 @@ function detalle(id){
 
     ${p!==null?`<div class="pct"><span class="val">${p.toFixed(2)+'%'}</span>
       <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span>
-      ${m.pct_escala?`<span class="cita">al <span class="mono">${esc(m.pct_escala)}</span></span>`:''}</div>`
+      ${m.pct_escala?`<span class="cita">${ETIQUETA_ESCALA(m.pct_escala)}</span>`:''}</div>`
     : respaldo(m,true)}
 
     <div class="exec">

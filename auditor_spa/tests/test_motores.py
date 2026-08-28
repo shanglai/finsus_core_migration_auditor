@@ -379,3 +379,45 @@ def test_el_tema_persiste_y_repinta():
     fn = h[h.index("function aplicarTema"):]
     assert "pintar()" in fn[:fn.index("\n}")], \
         "al cambiar de tema hay que re-pintar o el scatter queda con la paleta vieja"
+
+
+def test_la_escala_nunca_se_inventa():
+    """§3.3: ningun % sin escala — pero la salida NO puede ser suponerla.
+
+    CAT mostraba 11.60% etiquetado "al 1e-8", y ese numero no es una
+    granularidad: es el cruce a volumen. Ponerle una escala falsa es peor que
+    omitirla, porque el lector confia en la etiqueta.
+    """
+    for m in M.MOTORES:
+        cit = m.pct_citado
+        if not cit:
+            continue
+        pct, escala = cit
+        if escala == "sin escala declarada":
+            continue                      # honesto: dice que no la sabe
+        assert m.dossier_match, f"{m.id}: declara escala '{escala}' sin matriz que la respalde"
+        assert m.dossier_match.get(escala) == pct, \
+            f"{m.id}: la escala '{escala}' no corresponde al valor {pct} en la matriz"
+
+
+def test_volumen_no_se_presenta_como_granularidad():
+    """El cruce a volumen no es 1e-8/1e-5/centavo, y la tarjeta lo dice."""
+    cat = M.POR_ID["CAT"]
+    assert cat.pct_citado == ("11.60", "volumen")
+    dm = cat.dossier_match
+    assert dm["1e-8"] is None and dm["centavo"] is None, \
+        "CAT no tiene granularidades computadas; inventarlas seria falsear"
+    assert "NO es una granularidad" in dm["nota"]
+    html = _html()
+    assert "no es una granularidad" in html, \
+        "el SPA debe explicar que 'volumen' no es una escala de precision"
+
+
+def test_toda_cita_declara_su_procedencia():
+    """§3.3: 'Citado de MATRIZ_TOLERANCIAS.md (n = ... · sesgo: ...)'."""
+    html = _html()
+    assert "MATRIZ_TOLERANCIAS.md" in html
+    assert "NO lo recalcul" in html
+    for m in M.MOTORES:
+        if m.dossier_match:
+            assert m.dossier_match.get("n"), f"{m.id}: cita sin declarar su n"

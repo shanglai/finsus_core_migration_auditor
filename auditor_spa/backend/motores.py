@@ -141,11 +141,15 @@ class Motor:
         estricto no se esconde: se contextualiza.
         """
         m = self.dossier_match or {}
-        for esc in ("centavo", "1e-5", "1e-8"):
+        for esc in ("centavo", "1e-5", "1e-8", "volumen"):
             if m.get(esc):
                 return (m[esc], esc)
         if self.dossier_pct:
-            return (self.dossier_pct, "1e-8")
+            # Sin entrada en la matriz NO se inventa una escala: etiquetar un
+            # numero "al 1e-8" cuando no lo es seria peor que no etiquetarlo.
+            # §3.3 pide que ningun % se muestre sin escala; la salida correcta
+            # es declarar cual es, no suponerla.
+            return (self.dossier_pct, "sin escala declarada")
         return None
 
     def cobertura(self, hay_cruce: bool) -> str:
@@ -428,6 +432,14 @@ MOTORES: tuple[Motor, ...] = (
         clase_no_conforme="data-sourcing", solicitudes=("SOL-015",),
         insumos="lc_loan_contract.cat · lc_loan_amortization · lc_account_commission",
         autopruebas="3/3 contra el doc",
+        dossier_match={"1e-8": None, "1e-5": None, "centavo": None, "volumen": "11.60",
+                       "n": "3 ejemplos del doc + caso real", "sesgo": None,
+                       "nota": ("El 11.60% NO es una granularidad: es el cruce a VOLUMEN. La formula "
+                                "reproduce 3/3 los ejemplos del doc y un caso real exacto (35.1%), "
+                                "asi que NO esta en duda. El cruce sale bajo porque "
+                                "`lc_loan_contract.cat` guarda en muchos contratos el CAT NOMINAL "
+                                "DEL PRODUCTO (miles con cat=27.1), no el per-contrato: es semantica "
+                                "del campo, no error de calculo.")},
     ),
     Motor(
         id="MOTOR-B", nombre="Motor B — transaccional diaria (completitud A vs B)", dominio="MOV",
