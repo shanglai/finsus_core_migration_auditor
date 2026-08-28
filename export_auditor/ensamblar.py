@@ -43,6 +43,7 @@ INCLUYE = [
     # --- Extractores de logs (SOL-003; read-only SSH) ---
     "40_validaciones/comparadores/log_extractor.py",
     "40_validaciones/comparadores/barrido_average_balance.py",
+    "40_validaciones/comparadores/tolerancias.py",
     # --- SQL (extraccion + validaciones) ---
     "40_validaciones/entrega_finsus/V1_isr_al_pago_aurum.sql",
     "40_validaciones/entrega_finsus/V2_isr_devengo_openfin.sql",
@@ -56,6 +57,12 @@ INCLUYE = [
     "40_validaciones/COMPARACION_C_vs_DOC.md",
     "40_validaciones/DOSSIER_MOTORES_ORACULO_C.md",
     "40_validaciones/PROMPT_AUDITOR_SPA.md",
+    "40_validaciones/MATRIZ_TOLERANCIAS.md",
+    # --- Paquete de datos para auditoria (universo, fechas, detalle desde DuckDB) ---
+    "40_validaciones/PAQUETE_AUDITOR_DATOS/00_INDICE.md",
+    "40_validaciones/PAQUETE_AUDITOR_DATOS/01_TABLA_MAESTRA_VALIDACIONES.md",
+    "40_validaciones/PAQUETE_AUDITOR_DATOS/02_FICHAS_POR_VALIDACION.md",
+    "40_validaciones/PAQUETE_AUDITOR_DATOS/03_INVENTARIO_DUCKDB.md",
     # --- Para auditoria: manuales + guia + estado + respuesta Finsus ---
     "40_validaciones/GUIA_AUDITORIA.md",
     "40_validaciones/MANUAL_DEFINICIONES.md",

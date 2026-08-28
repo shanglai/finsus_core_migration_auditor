@@ -18,12 +18,18 @@ Principio rector (NO negociable): cada validación **devuelve las filas que viol
 ---
 
 ## 1. Qué construir (dos entregables)
-1. **SPA (Single-Page App)** — un tablero que, por cada motor:
-   - Ejecuta la validación (C vs B, con datos de la BD read-only) y muestra **progreso en vivo**.
-   - Muestra: **% de match**, la **fórmula** (renderizada), **contra qué se valida** (doc/config/norma/inferencia,
-     con la fuente), el **conteo** (comparadas / no-conformes / sin dato).
-   - Un **scatterplot de la distribución** de diferencias (C − B) resaltando los **no-conformes** (lo más importante).
-   - La **explicación de los no-conformes** (por qué no cuadran; defecto vs linaje vs data-sourcing vs bloqueo).
+1. **SPA (Single-Page App)** con **navegación de dos niveles**:
+   - **Hoja inicial (home) = galería de cards**, una por cada caso/motor de validación. Cada card muestra el estado
+     (✅/◐/🔒/⚪), el nombre, el % de match resumido y su categoría. **Click en una card → su pantalla individual.**
+   - **Menú de hamburguesa (☰)** que lista los casos **agrupados por categoría** (Captación · Fiscal · Crédito ·
+     Transaccional/Contable · Padrón); seleccionar uno navega directo a su pantalla. El menú permite filtrar la
+     galería por categoría y saltar entre casos sin volver al home.
+   - **Pantalla individual por caso** (la "card" a detalle, §3): fórmula, contra qué se valida, conteo, las **tres
+     granularidades de cuadre** (§3.1), el scatterplot con foco en no-conformes, y la explicación.
+   - **Botón "Ejecutar" (invoca nuestro backend)**: en cada pantalla (y opcionalmente uno global "ejecutar todo"),
+     un botón dispara el motor del backend (los oráculos/comparadores). Estados visibles: **inactivo → "en
+     ejecución" (spinner + progreso) → "terminé" (✔, con timestamp de la corrida)**. Mientras corre, deshabilita el
+     botón y muestra el avance; al terminar, refresca la card con el resultado y habilita de nuevo. Ver §2 (contrato).
 2. **Agente conversacional** — un chat que explica todo (fórmulas, procesos, por qué un no-conforme, qué desbloquea
    cada SOL), alimentado por `DOSSIER_MOTORES_ORACULO_C.md` + NORTE + INDICE + COMPARACION.
 
@@ -43,28 +49,52 @@ Principio rector (NO negociable): cada validación **devuelve las filas que viol
      agente conversacional (lee DOSSIER + NORTE + INDICE)
 ```
 - **Backend `runner.py`**: por cada motor, corre la validación (reusando los oráculos existentes), y **escribe un
-  JSON** con: `id`, `nombre`, `formula`, `valida_contra` (doc/config/…+fuente), `estado`, `n_comparadas`,
-  `n_ok`, `pct_match`, `tolerancia`, `puntos` (para el scatter: `[{x, y_c, y_b, delta, ok, id_muestra}]`, **muestreado**
-  si son muchos), `no_conformes` (top-N con su delta y motivo), `explicacion_no_conformes` (texto).
+  JSON** con: `id`, `nombre`, `categoria`, `formula`, `valida_contra` (doc/config/…+fuente), `estado`, `n_comparadas`,
+  `n_ok`, **`match`** (las tres granularidades, ver abajo), **`sesgo`**, `tolerancia`, `puntos` (para el scatter:
+  `[{x, y_c, y_b, delta, ok, id_muestra}]`, **muestreado** si son muchos), `no_conformes` (top-N con su delta y
+  motivo), `explicacion_no_conformes` (texto), y `ejecutado` (timestamp mtime de la corrida).
+  - **`match`** se produce con `comparadores/tolerancias.py` (`resumen_tolerancias(pares)`): devuelve las tres
+    escalas `1e-8` / `1e-5` / `centavo` con `pct` y `n_ok`, más `sesgo` (prueba de signo). El SPA las muestra como
+    en §3.1. Ver `MATRIZ_TOLERANCIAS.md` para la lectura del escalón entre granularidades.
+- **Contrato de ejecución (botón "Ejecutar")**: el frontend llama un endpoint del backend (p.ej. `POST /run/<motor>`
+  o `POST /run/all`). El backend responde **de inmediato** con `{job_id, estado:"en_ejecucion"}` y corre el
+  comparador en segundo plano; el frontend hace **poll** (`GET /run/<job_id>`) o escucha SSE hasta
+  `estado:"terminado"` (o `"error"`), y entonces recarga el `resultados/<motor>.json`. Estados del botón:
+  `inactivo → en_ejecucion (spinner + % avance si el comparador lo emite) → terminado (✔ + timestamp)`. **Nunca**
+  bloquear la UI; deshabilitar el botón mientras corre. El backend fuerza **read-only** en la BD.
 - **Los logs los trae otro proceso**: el runner NO hace SSH en vivo. Lee los **feeds ya extraídos a CSV** por
   `log_extractor.py` / `barrido_average_balance.py` (en `_resultados/`, p.ej. `credito_provision_feed_*.csv`,
-  `yield_feed_*.csv`). El SPA marca los motores que dependen de logs y su fecha de feed.
+  `yield_feed_*.csv`). El SPA marca los motores que dependen de logs y su fecha de feed (los `🔒` no traen botón
+  "Ejecutar" activo hasta que exista el feed / la corrida viva del 31-ago).
 - **Frontend SPA**: lee los `resultados/<motor>.json` y renderiza. No necesita conexión directa a la BD.
 
 ---
 
 ## 3. Especificación de la "card" por motor
-Cada motor es una tarjeta con:
-- **Encabezado**: nombre + badge de estado (✅ validado / ◐ parcial / 🔒 bloqueado / ⚪ sin cruce) + **barra de % match**.
+Cada motor es una tarjeta (resumida en el home; completa en su pantalla individual) con:
+- **Encabezado**: nombre + badge de estado (✅ validado / ◐ parcial / 🔒 bloqueado / ⚪ sin cruce) + **categoría**.
 - **Fórmula**: en bloque monoespaciado o KaTeX si está disponible (sin dependencias externas → inline). Ej. ordinario:
   `Interés = Capital × (tasa/100) × (días/360)`.
 - **Valida contra**: chip con color por tipo — `doc` (azul, + página), `config` (verde, = config real de Aurum),
   `norma` (morado), `inferencia` (gris, ojo: por confirmar). Ejemplo IFRS 9: chip `config` "= lc_reserve_ifrs 37/37".
 - **Conteo**: comparadas · match · no-conformes · sin dato.
+- **Cuadre en tres granularidades** (§3.1).
 - **Scatterplot** (ver §4).
 - **No-conformes**: lista corta (top por |delta|) con `id_muestra`, C, B, delta, y **motivo** (etiquetado:
   `linaje` / `data-sourcing` / `bloqueo` / `defecto` / `redondeo`).
-- **Botón "explicar"** → abre el agente con el contexto de ese motor.
+- **Botón "Ejecutar"** → invoca el backend (§2, estados en ejecución/terminé) · **Botón "explicar"** → abre el agente
+  con el contexto de ese motor.
+
+### 3.1 Cuadre en tres granularidades (obligatorio mostrarlas y explicarlas)
+Cada motor de cálculo muestra **tres barras** de % de match, del bloque `match` del JSON (`tolerancias.py`):
+- **1e-8** (8 decimales) — exactitud aritmética estricta · **1e-5** (5 decimales) — precisión intermedia ·
+  **centavo** ($0.01) — tolerancia de negocio.
+- Junto a las barras, un micro-texto con la **lectura del escalón**: p.ej. moratorio `81.1% → 95.7%` = "residuo
+  sub-centavo = granularidad del snapshot, no defecto". Y una **bandera de sesgo** (verde "sin sesgo" / rojo "sesgo
+  sistemático — severidad 1") del campo `sesgo`.
+- Un **tooltip "¿qué significan?"** que explique las tres granularidades (texto en `MATRIZ_TOLERANCIAS.md`).
+- Los motores de identidad/completitud (Contable, Motor B) muestran su tolerancia propia (`0.00` exacto / `A ≥ B`),
+  no las tres barras — indícalo en la card.
 
 ### Motores a incluir (del DOSSIER)
 Plazo · Vista* · Saldo promedio* · ISR · ISR-vivo* · Crédito ordinario · Crédito moratorio · Crédito días ·
@@ -133,11 +163,15 @@ por-confirmar (no como hecho). 6. No PII al front. 7. Verde ≠ aprobado; el dic
 5. El agente conversacional cableado al DOSSIER.
 
 ## 10. Orden sugerido de construcción
-1. `runner.py` para **1 motor sólido** (plazo o crédito ordinario) → JSON → card con scatter. Prueba end-to-end.
-2. Generaliza a los demás motores (tabla de config de motores → loop).
-3. Scatterplot con foco en no-conformes + controles.
-4. Agente conversacional sobre el DOSSIER.
-5. Marca los 🔒 (vista/saldo promedio/ISR-vivo) con su razón y la fecha de desbloqueo (31-ago).
+1. `runner.py` para **1 motor sólido** (plazo o crédito ordinario) → JSON (con `match` de las 3 granularidades vía
+   `tolerancias.py`) → card. Prueba end-to-end.
+2. **Shell de navegación:** home = galería de cards + menú hamburguesa por categoría + ruteo a la pantalla individual.
+3. **Botón "Ejecutar"** cableado al backend con los estados `en ejecución → terminé` (§2), primero en 1 motor.
+4. Generaliza a los demás motores (tabla de config de motores → loop); cada card con sus 3 barras + bandera de sesgo.
+5. Scatterplot con foco en no-conformes + controles (umbral de tolerancia recolorea en vivo).
+6. Agente conversacional sobre el DOSSIER.
+7. Marca los 🔒 (vista/saldo promedio/ISR-vivo) con su razón y la fecha de desbloqueo (31-ago); su botón "Ejecutar"
+   queda inactivo hasta que exista el feed / la corrida viva.
 
 **Recuerda:** el valor del tablero está en los **no-conformes bien explicados**, no en los verdes. Ese es el
 diferenciador del tercero independiente.

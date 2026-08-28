@@ -4,7 +4,7 @@
     {
       "name": "spa-auditor",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8777", "--directory", "auditor_spa/spa"],
+      "runtimeArgs": ["auditor_spa/backend/servidor.py", "--puerto", "8777"],
       "port": 8777
     }
   ]

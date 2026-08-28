@@ -42,6 +42,32 @@ CLASES_NO_CONFORME = {
     "redondeo": "Diferencia sub-centavo por modo de redondeo no desambiguado.",
 }
 
+# Agrupacion para el menu del tablero. Es una vista de NEGOCIO, distinta del
+# `dominio` tecnico (DEV/FIS/COL/CTB/MOV/MIG) que usa el catalogo del validador:
+# el auditor de Finsus piensa en productos, no en codigos de dominio.
+CATEGORIAS = ("Captacion", "Fiscal", "Credito", "Transaccional/Contable", "Padron")
+
+CATEGORIA_POR_MOTOR = {
+    "VISTA": "Captacion", "PLAZO": "Captacion", "SALDO-PROM": "Captacion", "GAT": "Captacion",
+    "ISR": "Fiscal", "ISR-VIVO": "Fiscal",
+    "CRED-ORD": "Credito", "CRED-MOR": "Credito", "CRED-DIAS": "Credito",
+    "CRED-IVA": "Credito", "IFRS9": "Credito", "AMORT": "Credito", "CAT": "Credito",
+    "MOTOR-B": "Transaccional/Contable", "CONTABLE": "Transaccional/Contable",
+    "WSO2": "Padron",
+}
+
+# Motores de IDENTIDAD / COMPLETITUD: su cuadre NO son las tres granularidades,
+# porque no comparan dos importes calculados sino que afirman una identidad.
+# Mostrarles tres barras sugeriria una precision que su regla no tiene.
+TOLERANCIA_PROPIA = {
+    "CONTABLE": ("0.00 exacto",
+                 "Identidad contable: la suma de cargos y abonos del dia se cancela. "
+                 "No admite holgura, asi que no hay escalon de granularidad que leer."),
+    "MOTOR-B": ("A >= B",
+                "Completitud, no calculo: se afirma que OpenFin nunca tiene menos "
+                "transacciones que AurumCore. Lo que se mide es faltante, no diferencia de importe."),
+}
+
 ESTADOS = {
     "validado": "regla + oraculo + cruce corrido, resultado documentado",
     "parcial": "mecanica confirmada, falta cerrar alcance",
@@ -84,9 +110,20 @@ class Motor:
     depende_de_logs: bool = False
     autopruebas: str = ""             # que autoprueba respalda la formula
 
+    @property
+    def categoria(self) -> str:
+        return CATEGORIA_POR_MOTOR.get(self.id, "Otros")
+
+    @property
+    def tolerancia_propia(self) -> tuple[str, str] | None:
+        return TOLERANCIA_PROPIA.get(self.id)
+
     def como_dict(self) -> dict:
+        tp = self.tolerancia_propia
         return {
             "id": self.id, "nombre": self.nombre, "dominio": self.dominio,
+            "categoria": self.categoria,
+            "tolerancia_propia": ({"regla": tp[0], "porque": tp[1]} if tp else None),
             "formula": self.formula, "ejemplo": self.ejemplo,
             "valida_contra": [f.como_dict() for f in self.fuentes],
             "oraculo": self.oraculo, "estado": self.estado,
@@ -362,6 +399,14 @@ MOTORES: tuple[Motor, ...] = (
 POR_ID = {m.id: m for m in MOTORES}
 
 
+def por_categoria() -> dict[str, list[str]]:
+    """Motores agrupados para el menu, en el orden declarado de CATEGORIAS."""
+    out: dict[str, list[str]] = {c: [] for c in CATEGORIAS}
+    for m in MOTORES:
+        out.setdefault(m.categoria, []).append(m.id)
+    return {k: v for k, v in out.items() if v}
+
+
 def resumen_cobertura() -> dict[str, Any]:
     """Conteo por estado. Se muestra en el encabezado del tablero."""
     conteo: dict[str, int] = {}
@@ -370,6 +415,8 @@ def resumen_cobertura() -> dict[str, Any]:
     return {
         "total": len(MOTORES),
         "por_estado": conteo,
+        "por_categoria": por_categoria(),
+        "categorias": list(CATEGORIAS),
         "bloqueados_por_logs": [m.id for m in MOTORES if m.depende_de_logs],
         "solicitudes_abiertas": sorted({s for m in MOTORES for s in m.solicitudes}),
     }

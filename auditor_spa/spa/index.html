@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Auditor independiente — motor C</title>
 <style>
-/* Sin dependencias externas: ni fuentes, ni CSS, ni JS por CDN. */
 :root{
   --bg:#f6f7f9; --panel:#fff; --linea:#dfe3e8; --texto:#1a1d21; --suave:#5b636d;
   --ok:#137a4a; --ok-bg:#e6f4ec; --mal:#b3261e; --mal-bg:#fdeceb;
@@ -14,54 +13,76 @@
   --norma:#6b3fa0; --norma-bg:#f0eaf9; --infer:#5b636d; --infer-bg:#eef1f4;
   --acento:#1b5fa8;
 }
-@media (prefers-color-scheme: dark){
-  :root:not([data-tema="claro"]){
-    --bg:#14171a; --panel:#1c2024; --linea:#2e343b; --texto:#e8eaed; --suave:#9aa3ad;
-    --ok:#5bd18f; --ok-bg:#12301f; --mal:#ff8a80; --mal-bg:#3a1614;
-    --alerta:#ffd166; --alerta-bg:#3a2f10; --neutro:#b0b8c1; --neutro-bg:#252b31;
-    --doc:#7db3ea; --doc-bg:#16283d; --config:#5bd18f; --config-bg:#12301f;
-    --norma:#c0a6f0; --norma-bg:#251c38; --infer:#9aa3ad; --infer-bg:#252b31;
-    --acento:#7db3ea;
-  }
-}
+@media (prefers-color-scheme: dark){:root:not([data-tema="claro"]){
+  --bg:#14171a; --panel:#1c2024; --linea:#2e343b; --texto:#e8eaed; --suave:#9aa3ad;
+  --ok:#5bd18f; --ok-bg:#12301f; --mal:#ff8a80; --mal-bg:#3a1614;
+  --alerta:#ffd166; --alerta-bg:#3a2f10; --neutro:#b0b8c1; --neutro-bg:#252b31;
+  --doc:#7db3ea; --doc-bg:#16283d; --config:#5bd18f; --config-bg:#12301f;
+  --norma:#c0a6f0; --norma-bg:#251c38; --infer:#9aa3ad; --infer-bg:#252b31;
+  --acento:#7db3ea;
+}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--texto);
   font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 code,pre,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
-header{padding:20px 24px;border-bottom:1px solid var(--linea);background:var(--panel)}
-h1{margin:0 0 4px;font-size:20px;letter-spacing:-.01em}
-.sub{color:var(--suave);font-size:13px}
-.aviso{margin:14px 0 0;padding:10px 14px;border-left:3px solid var(--alerta);
-  background:var(--alerta-bg);color:var(--texto);font-size:13px;border-radius:0 6px 6px 0}
-.barra-sup{display:flex;gap:20px;flex-wrap:wrap;margin-top:14px;font-size:13px}
-.kpi b{font-size:20px;display:block;line-height:1.2}
-.kpi span{color:var(--suave)}
-main{padding:20px 24px;max-width:1500px;margin:0 auto}
-.filtros{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;font-size:13px}
-select,button,input{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--linea);
-  border-radius:6px;background:var(--panel);color:var(--texto)}
+a{color:var(--acento)}
+/* barra superior */
+.top{position:sticky;top:0;z-index:15;background:var(--panel);border-bottom:1px solid var(--linea);
+  padding:12px 20px;display:flex;align-items:center;gap:14px}
+.ham{font-size:20px;line-height:1;background:none;border:1px solid var(--linea);border-radius:8px;
+  padding:5px 11px;cursor:pointer;color:var(--texto)}
+.ham:hover{border-color:var(--acento)}
+.marca{font-weight:700;font-size:15px;cursor:pointer}
+.migas{color:var(--suave);font-size:13px}
+.top .der{margin-left:auto;display:flex;gap:8px;align-items:center}
+button,select,input{font:inherit;font-size:13px;padding:6px 11px;border:1px solid var(--linea);
+  border-radius:7px;background:var(--panel);color:var(--texto)}
 button{cursor:pointer}
-button:hover{border-color:var(--acento)}
-.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(440px,1fr))}
-.card{background:var(--panel);border:1px solid var(--linea);border-radius:10px;padding:16px;
-  display:flex;flex-direction:column;gap:11px}
-.card h2{margin:0;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.badge{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;white-space:nowrap}
+button:hover:not(:disabled){border-color:var(--acento)}
+button:disabled{opacity:.55;cursor:not-allowed}
+.aviso{margin:0;padding:9px 20px;border-bottom:1px solid var(--linea);
+  background:var(--alerta-bg);font-size:12.5px}
+/* menu lateral */
+#menu{position:fixed;left:0;top:0;bottom:0;width:min(300px,84%);background:var(--panel);
+  border-right:1px solid var(--linea);z-index:30;transform:translateX(-102%);
+  transition:transform .18s ease;overflow-y:auto;box-shadow:6px 0 26px rgba(0,0,0,.16)}
+#menu.on{transform:none}
+#velo{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:25;display:none}
+#velo.on{display:block}
+#menu h3{margin:0;padding:14px 16px;font-size:12px;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--suave);border-bottom:1px solid var(--linea)}
+.cat{padding:11px 16px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--suave);font-weight:700}
+.mi{display:flex;align-items:center;gap:8px;padding:7px 16px;cursor:pointer;font-size:13.5px}
+.mi:hover{background:var(--neutro-bg)}
+.mi.sel{background:var(--doc-bg);color:var(--doc);font-weight:600}
+.mi .pt{margin-left:auto;font-size:11.5px;color:var(--suave);font-variant-numeric:tabular-nums}
+main{padding:20px;max-width:1500px;margin:0 auto}
+/* galeria */
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+.mini{background:var(--panel);border:1px solid var(--linea);border-radius:10px;padding:14px;
+  cursor:pointer;display:flex;flex-direction:column;gap:9px}
+.mini:hover{border-color:var(--acento)}
+.mini h3{margin:0;font-size:14px;display:flex;gap:7px;align-items:flex-start}
+.mini .cat-chip{font-size:10.5px;color:var(--suave);text-transform:uppercase;letter-spacing:.04em}
+.badge{font-size:10.5px;padding:2px 7px;border-radius:99px;font-weight:700;white-space:nowrap}
 .b-validado{background:var(--ok-bg);color:var(--ok)}
 .b-parcial{background:var(--alerta-bg);color:var(--alerta)}
 .b-bloqueado{background:var(--mal-bg);color:var(--mal)}
 .b-sin_cruce{background:var(--neutro-bg);color:var(--neutro)}
 .b-corrida_local{background:var(--ok-bg);color:var(--ok)}
 .b-dossier{background:var(--doc-bg);color:var(--doc)}
-.origen{font-size:11px;padding:2px 8px;border-radius:99px;border:1px dashed var(--linea);color:var(--suave)}
 .pct{display:flex;align-items:center;gap:10px}
-.pct .val{font-size:22px;font-weight:700;min-width:88px}
-.riel{flex:1;height:8px;background:var(--neutro-bg);border-radius:99px;overflow:hidden}
+.pct .val{font-size:21px;font-weight:700;min-width:82px;font-variant-numeric:tabular-nums}
+.riel{flex:1;height:7px;background:var(--neutro-bg);border-radius:99px;overflow:hidden}
 .riel i{display:block;height:100%;background:var(--ok)}
-.riel.malo i{background:var(--mal)}
-.riel.medio i{background:var(--alerta)}
-pre.formula{margin:0;padding:10px 12px;background:var(--neutro-bg);border-radius:6px;
-  font-size:12.5px;overflow-x:auto;white-space:pre;line-height:1.45}
+.riel.medio i{background:var(--alerta)} .riel.malo i{background:var(--mal)}
+/* detalle */
+.det{background:var(--panel);border:1px solid var(--linea);border-radius:12px;padding:20px;
+  display:flex;flex-direction:column;gap:15px;max-width:1050px;margin:0 auto}
+.det h2{margin:0;font-size:19px;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+pre.formula{margin:0;padding:12px 14px;background:var(--neutro-bg);border-radius:7px;
+  font-size:12.5px;overflow-x:auto;white-space:pre;line-height:1.5}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{font-size:11px;padding:3px 9px;border-radius:6px;font-weight:600}
 .chip small{font-weight:400;opacity:.85}
@@ -69,384 +90,455 @@ pre.formula{margin:0;padding:10px 12px;background:var(--neutro-bg);border-radius
 .c-config{background:var(--config-bg);color:var(--config)}
 .c-norma{background:var(--norma-bg);color:var(--norma)}
 .c-inferencia{background:var(--infer-bg);color:var(--infer);border:1px dashed currentColor}
-.conteo{display:flex;gap:16px;font-size:12px;color:var(--suave);flex-wrap:wrap}
-.conteo b{color:var(--texto);font-size:14px;display:block}
+.conteo{display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--suave)}
+.conteo b{color:var(--texto);font-size:16px;display:block;font-variant-numeric:tabular-nums}
 .conteo .malo b{color:var(--mal)}
+.sec{border-top:1px solid var(--linea);padding-top:13px}
+.sec h3{margin:0 0 9px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--suave);display:flex;align-items:center;gap:7px}
+/* tres granularidades */
+.gran{display:flex;flex-direction:column;gap:7px}
+.g{display:flex;align-items:center;gap:11px;font-size:12.5px}
+.g .et{width:66px;font-weight:600;font-family:ui-monospace,monospace}
+.g .n{width:112px;text-align:right;color:var(--suave);font-variant-numeric:tabular-nums}
+.g .p{width:64px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.escalon{font-size:12.5px;background:var(--neutro-bg);padding:9px 12px;border-radius:7px;line-height:1.5}
+.flag{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700}
+.flag.ok{background:var(--ok-bg);color:var(--ok)}
+.flag.mal{background:var(--mal-bg);color:var(--mal)}
+.ayuda{border:1px solid var(--linea);border-radius:50%;width:17px;height:17px;font-size:11px;
+  line-height:15px;text-align:center;cursor:help;color:var(--suave)}
+/* scatter */
 .wrap-sc{position:relative}
-canvas{width:100%;height:190px;display:block;border:1px solid var(--linea);border-radius:6px;
+canvas{width:100%;height:250px;display:block;border:1px solid var(--linea);border-radius:7px;
   background:var(--panel);cursor:crosshair}
 .tip{position:absolute;pointer-events:none;background:var(--texto);color:var(--panel);
-  padding:6px 9px;border-radius:6px;font-size:11.5px;white-space:pre;z-index:9;display:none;
-  box-shadow:0 4px 14px rgba(0,0,0,.25)}
-.ctrl{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--suave)}
+  padding:6px 9px;border-radius:6px;font-size:11.5px;white-space:pre;z-index:9;display:none}
+.ctrl{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--suave)}
 .ctrl label{display:flex;gap:5px;align-items:center;cursor:pointer}
-.nc{font-size:12.5px;border-top:1px solid var(--linea);padding-top:10px}
-.nc h3{margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--suave)}
-.nc table{width:100%;border-collapse:collapse;font-size:11.5px}
-.nc td{padding:3px 6px 3px 0;border-bottom:1px solid var(--linea)}
-.nc td.d{color:var(--mal);font-weight:600;text-align:right}
-.exp{font-size:12.5px;color:var(--suave);line-height:1.5}
+table.nc{width:100%;border-collapse:collapse;font-size:11.5px}
+table.nc td{padding:4px 7px 4px 0;border-bottom:1px solid var(--linea)}
+table.nc td.d{color:var(--mal);font-weight:700;text-align:right}
+.exp{font-size:13px;color:var(--suave);line-height:1.55}
 .exp strong{color:var(--texto)}
-.bloqueo{background:var(--mal-bg);border-left:3px solid var(--mal);padding:9px 12px;
-  border-radius:0 6px 6px 0;font-size:12.5px}
+.bloq{background:var(--mal-bg);border-left:3px solid var(--mal);padding:10px 13px;
+  border-radius:0 7px 7px 0;font-size:12.5px}
 .sol{display:inline-block;background:var(--neutro-bg);color:var(--neutro);padding:1px 7px;
-  border-radius:4px;font-size:11px;font-weight:600;margin-right:4px}
-.acciones{display:flex;gap:8px;margin-top:auto;padding-top:4px}
-/* Chat */
-#chat{position:fixed;right:0;top:0;bottom:0;width:min(460px,100%);background:var(--panel);
-  border-left:1px solid var(--linea);display:none;flex-direction:column;z-index:20;
-  box-shadow:-8px 0 30px rgba(0,0,0,.15)}
+  border-radius:4px;font-size:11px;font-weight:700;margin-right:4px}
+.cita{font-size:11.5px;color:var(--suave)}
+/* ejecutar */
+.exec{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spin{width:14px;height:14px;border:2px solid var(--linea);border-top-color:var(--acento);
+  border-radius:50%;display:inline-block;animation:gira .8s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+.prog{flex:1;min-width:130px;height:6px;background:var(--neutro-bg);border-radius:99px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--acento);transition:width .3s}
+/* chat */
+#chat{position:fixed;right:0;top:0;bottom:0;width:min(440px,100%);background:var(--panel);
+  border-left:1px solid var(--linea);display:none;flex-direction:column;z-index:40}
 #chat.on{display:flex}
-#chat header{padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+#chat .ch{padding:13px 16px;display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid var(--linea)}
 #log{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
 .msg{font-size:13.5px;line-height:1.55}
 .msg.yo{align-self:flex-end;background:var(--acento);color:#fff;padding:8px 12px;
   border-radius:12px 12px 2px 12px;max-width:85%}
 .msg.bot{background:var(--neutro-bg);padding:10px 13px;border-radius:12px 12px 12px 2px}
-.msg.bot pre{white-space:pre-wrap;font-size:12px;margin:6px 0;background:var(--panel);
+.msg.bot pre{white-space:pre-wrap;font-size:11.5px;margin:6px 0;background:var(--panel);
   padding:8px;border-radius:5px;overflow-x:auto}
-.cita{font-size:11px;color:var(--suave);margin-top:7px;border-top:1px solid var(--linea);padding-top:5px}
 #entrada{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--linea)}
 #entrada input{flex:1}
 .sug{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 10px}
 .sug button{font-size:11.5px;padding:4px 9px;color:var(--suave)}
-footer{padding:24px;text-align:center;color:var(--suave);font-size:12px}
 </style>
 </head>
 <body>
 
-<header>
-  <h1>Auditor independiente — motor C</h1>
-  <div class="sub" id="sub"></div>
-  <div class="aviso">
-    <strong>Verde no es aprobado.</strong> Cada porcentaje sale de una validación que devuelve
-    <em>las filas que violan la regla</em>. Los no conformes se explican, nunca se ocultan.
-    El dictamen lo emite el humano, no este tablero.
-  </div>
-  <div class="barra-sup" id="kpis"></div>
-</header>
+<div class="top">
+  <button class="ham" id="b-menu" title="casos por categoría">☰</button>
+  <span class="marca" onclick="ir('#/')">Auditor independiente — motor C</span>
+  <span class="migas" id="migas"></span>
+  <span class="der">
+    <button id="b-todo">Ejecutar todo</button>
+    <button id="b-chat">Agente</button>
+  </span>
+</div>
+<div class="aviso"><strong>Verde no es aprobado.</strong> Cada porcentaje sale de una validación que
+devuelve <em>las filas que violan la regla</em>. El dictamen lo emite el humano.</div>
 
-<main>
-  <div class="filtros">
-    <select id="f-dominio"><option value="">Todos los dominios</option></select>
-    <select id="f-estado"><option value="">Todos los estados</option></select>
-    <select id="f-origen">
-      <option value="">Cualquier origen del resultado</option>
-      <option value="corrida_local">Calculado aquí</option>
-      <option value="dossier">Citado del dossier</option>
-      <option value="sin_cruce">Sin cruce</option>
-    </select>
-    <label style="display:flex;gap:5px;align-items:center">
-      <input type="checkbox" id="f-nc"> solo motores con no conformes
-    </label>
-    <button id="abrir-chat">Preguntar al agente</button>
-  </div>
-  <div class="grid" id="grid"></div>
-</main>
+<div id="velo"></div>
+<nav id="menu"><h3>Casos por categoría</h3><div id="menu-cuerpo"></div></nav>
+
+<main id="vista"></main>
 
 <div id="chat">
-  <header>
-    <strong>Agente — explica los motores</strong>
-    <button onclick="document.getElementById('chat').classList.remove('on')">cerrar</button>
-  </header>
+  <div class="ch"><strong>Agente — explica los motores</strong>
+    <button onclick="document.getElementById('chat').classList.remove('on')">cerrar</button></div>
   <div id="log"></div>
   <div class="sug" id="sug"></div>
-  <div id="entrada">
-    <input id="q" placeholder="¿cómo se calcula el moratorio?" autocomplete="off">
-    <button id="enviar">Enviar</button>
-  </div>
+  <div id="entrada"><input id="q" placeholder="¿cómo se calcula el moratorio?" autocomplete="off">
+    <button id="enviar">Enviar</button></div>
 </div>
-
-<footer>
-  Los datos se regeneran con <code class="mono">python backend/runner.py --con-bd</code>.
-  Sin PII: sólo agregados y muestras con identificadores truncados.
-</footer>
 
 <script src="datos.js"></script>
 <script>
-const D = window.DATOS;
-const MOT = D.motores, IDX = D.indice, CONO = D.conocimiento;
+const D=window.DATOS, MOT=D.motores, IDX=D.indice, CONO=D.conocimiento;
+const API = location.protocol.startsWith('http');   // sin servidor, "Ejecutar" no aplica
 
-const ETIQUETA_ORIGEN = {
-  corrida_local: ["Calculado aquí", "El porcentaje lo computó esta máquina contra la base, en la corrida indicada."],
-  dossier:       ["Citado del dossier", "El porcentaje lo reporta el DOSSIER de una corrida previa. Este tablero NO lo recalculó."],
-  sin_cruce:     ["Sin cruce", "Hay fórmula y autoprueba, pero no hay cruce contra datos. No es un pase."]
-};
+const ORIGEN={corrida_local:["Calculado aquí","El % lo computó esta máquina contra la base."],
+  dossier:["Citado del dossier","Lo reporta el DOSSIER de una corrida previa. Este tablero NO lo recalculó."],
+  sin_cruce:["Sin cruce","Hay fórmula y autoprueba, pero no hay cruce contra datos. No es un pase."]};
+const AYUDA_GRAN=`Las tres granularidades y cómo leer el escalón:
 
-/* ---------- utilidades ---------- */
-const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const num = s => { const v = parseFloat(s); return isFinite(v) ? v : null; };
+1e-8  exactitud aritmética estricta. Si cuadra aquí es el MISMO cálculo que
+      el core, sin diferencia perceptible. Es la prueba más dura.
+1e-5  precisión intermedia. Absorbe ruido de acumulación y orden de
+      operaciones, pero NO tolera un centavo.
+0.01  tolerancia de negocio. Lo que le importa al cliente y a la contabilidad.
 
-function claseRiel(p){ if(p===null) return ""; return p>=99.5?"":(p>=90?"medio":"malo"); }
+El escalón dice más que cualquier número solo:
+· 100/100/100          cuadre exacto, mismo motor bit a bit.
+· bajo a 1e-8, alto al centavo  residuo sub-centavo = granularidad del
+  snapshot, NO defecto.
+· bajo también al centavo       diferencia material que investigar.
 
-/* ---------- scatter en canvas propio ---------- */
-function dibujar(cv, pts, opt){
-  const dpr = window.devicePixelRatio || 1;
-  const w = cv.clientWidth, h = cv.clientHeight;
-  cv.width = w*dpr; cv.height = h*dpr;
-  const g = cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
-  const css = getComputedStyle(document.body);
-  const cLinea = css.getPropertyValue('--linea'), cSuave = css.getPropertyValue('--suave');
-  const cOk = css.getPropertyValue('--ok'), cMal = css.getPropertyValue('--mal');
+Y al centavo no basta: sobre el residuo fuera de 1e-8 se corre una prueba de
+signo. Si las diferencias se cargan a un lado es sesgo sistemático, severidad 1
+aunque cada una sea de un centavo. Verde al centavo CON sesgo no es aprobado.`;
 
-  let vis = pts.filter(p => p.delta !== null);
-  if(opt.soloNC) vis = vis.filter(p => !esConforme(p, opt.tol));
-  const M = {l:56, r:10, t:12, b:24};
-  const W = w-M.l-M.r, H = h-M.t-M.b;
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num=s=>{const v=parseFloat(s);return isFinite(v)?v:null;};
+const clase=p=>p===null?"":(p>=99.5?"":(p>=90?"medio":"malo"));
+const fmt=n=>n==null?"—":Number(n).toLocaleString('es-MX');
 
-  if(!vis.length){
-    g.fillStyle = cSuave; g.font = "12px sans-serif"; g.textAlign="center";
-    g.fillText(opt.soloNC ? "Sin no conformes en esta corrida" : "Sin puntos comparables", w/2, h/2);
-    return {pos:[], M, W, H};
-  }
-
-  const xs = vis.map(p=>p.x), ys = vis.map(p=>Math.abs(num(p.delta)||0));
-  let x0 = Math.min(...xs), x1 = Math.max(...xs); if(x1===x0){x1=x0+1;}
-  const yMax = Math.max(...ys, num(opt.tol)*2 || 0.02);
-  const escX = v => { if(opt.log){ const a=Math.log10(Math.max(x0,1e-9)), b=Math.log10(Math.max(x1,1e-9));
-                        return M.l + (Math.log10(Math.max(v,1e-9))-a)/((b-a)||1)*W; }
-                      return M.l + (v-x0)/((x1-x0)||1)*W; };
-  const escY = v => M.t + H/2 - (v/(yMax||1))*(H/2);
-
-  // eje cero y banda de tolerancia
-  const tol = num(opt.tol)||0;
-  if(tol>0){
-    g.fillStyle = cOk; g.globalAlpha=.10;
-    g.fillRect(M.l, escY(tol), W, escY(-tol)-escY(tol)); g.globalAlpha=1;
-  }
-  g.strokeStyle = cLinea; g.lineWidth=1;
-  g.beginPath(); g.moveTo(M.l, escY(0)); g.lineTo(M.l+W, escY(0)); g.stroke();
-  g.fillStyle = cSuave; g.font="10px sans-serif"; g.textAlign="right";
-  g.fillText("0", M.l-6, escY(0)+3);
-  g.fillText(yMax.toPrecision(2), M.l-6, M.t+8);
-  g.fillText("-"+yMax.toPrecision(2), M.l-6, M.t+H-2);
-  g.textAlign="center";
-  g.fillText(opt.ejes.eje_x||"", M.l+W/2, h-6);
-
+/* ---------- scatter ---------- */
+function dibujar(cv,pts,opt){
+  const dpr=devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+  cv.width=w*dpr;cv.height=h*dpr;
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  const cs=getComputedStyle(document.body),cL=cs.getPropertyValue('--linea'),
+    cS=cs.getPropertyValue('--suave'),cO=cs.getPropertyValue('--ok'),cM=cs.getPropertyValue('--mal');
+  let vis=pts.filter(p=>p.delta!==null);
+  if(opt.soloNC) vis=vis.filter(p=>!conf(p,opt.tol));
+  const M={l:62,r:12,t:14,b:26},W=w-M.l-M.r,H=h-M.t-M.b;
+  if(!vis.length){g.fillStyle=cS;g.font="12px sans-serif";g.textAlign="center";
+    g.fillText(opt.soloNC?"Sin no conformes con esta tolerancia":"Sin puntos comparables",w/2,h/2);
+    return {pos:[]};}
+  const xs=vis.map(p=>p.x),ys=vis.map(p=>Math.abs(num(p.delta)||0));
+  let x0=Math.min(...xs),x1=Math.max(...xs); if(x1===x0)x1=x0+1;
+  const yM=Math.max(...ys,(num(opt.tol)||0)*2,1e-9);
+  const eX=v=>opt.log?(M.l+(Math.log10(Math.max(v,1e-9))-Math.log10(Math.max(x0,1e-9)))/
+      ((Math.log10(Math.max(x1,1e-9))-Math.log10(Math.max(x0,1e-9)))||1)*W)
+    :(M.l+(v-x0)/((x1-x0)||1)*W);
+  const eY=v=>M.t+H/2-(v/yM)*(H/2);
+  const tol=num(opt.tol)||0;
+  if(tol>0){g.fillStyle=cO;g.globalAlpha=.11;g.fillRect(M.l,eY(tol),W,eY(-tol)-eY(tol));g.globalAlpha=1;}
+  g.strokeStyle=cL;g.beginPath();g.moveTo(M.l,eY(0));g.lineTo(M.l+W,eY(0));g.stroke();
+  g.fillStyle=cS;g.font="10px sans-serif";g.textAlign="right";
+  g.fillText("0",M.l-6,eY(0)+3);g.fillText(yM.toPrecision(2),M.l-6,M.t+8);
+  g.fillText("-"+yM.toPrecision(2),M.l-6,M.t+H-2);
+  g.textAlign="center";g.fillText(opt.ejes.eje_x||"",M.l+W/2,h-7);
   const pos=[];
-  // conformes primero (tenues), no conformes encima (rojos) para que nunca queden tapados
-  const orden = vis.slice().sort((a,b)=> (esConforme(a,opt.tol)?0:1)-(esConforme(b,opt.tol)?0:1));
-  for(const p of orden){
-    const d = num(p.delta)||0, ok = esConforme(p, opt.tol);
-    const X = escX(p.x), Y = escY(d);
-    g.beginPath(); g.arc(X, Y, ok?2.2:4, 0, 7);
-    g.fillStyle = ok?cOk:cMal; g.globalAlpha = ok?.34:.95; g.fill();
-    if(!ok){ g.globalAlpha=1; g.lineWidth=1; g.strokeStyle=cMal; g.stroke(); }
-    g.globalAlpha=1;
-    pos.push({x:X,y:Y,p,ok});
+  for(const p of vis.slice().sort((a,b)=>(conf(a,opt.tol)?0:1)-(conf(b,opt.tol)?0:1))){
+    const ok=conf(p,opt.tol),X=eX(p.x),Y=eY(num(p.delta)||0);
+    g.beginPath();g.arc(X,Y,ok?2.3:4.5,0,7);
+    g.fillStyle=ok?cO:cM;g.globalAlpha=ok?.32:.95;g.fill();
+    if(!ok){g.globalAlpha=1;g.strokeStyle=cM;g.stroke();}
+    g.globalAlpha=1;pos.push({x:X,y:Y,p,ok});
   }
-  return {pos, M, W, H};
+  return {pos};
 }
-function esConforme(p, tol){ const d = Math.abs(num(p.delta)||0); return d <= (num(tol)||0); }
+const conf=(p,tol)=>Math.abs(num(p.delta)||0)<=(num(tol)||0);
 
-/* ---------- tarjeta ---------- */
-function tarjeta(m){
-  const cr = m.cruce && m.cruce.origen_resultado==="corrida_local" ? m.cruce : null;
-  const pct = num(m.pct_mostrado);
-  const [etq, expl] = ETIQUETA_ORIGEN[m.origen_resultado];
-  const el = document.createElement('div'); el.className='card'; el.dataset.id=m.id;
+/* ---------- vista: galería ---------- */
+function galeria(cat){
+  const lista=IDX.motores.filter(m=>!cat||m.categoria===cat);
+  document.getElementById('migas').textContent=cat?`· ${cat}`:'· todos los motores';
+  const c=IDX.cobertura,e=c.por_estado||{};
+  const corridos=IDX.motores.filter(m=>m.origen_resultado==='corrida_local').length;
+  return `<div style="display:flex;gap:22px;flex-wrap:wrap;margin-bottom:18px;font-size:13px">
+      ${[[c.total,'motores'],[corridos,'calculados aquí'],[e.validado||0,'validados'],
+         [e.parcial||0,'parciales'],[e.bloqueado||0,'bloqueados'],
+         [(c.solicitudes_abiertas||[]).length,'solicitudes abiertas']]
+        .map(([n,t])=>`<div><b style="font-size:21px;display:block">${n}</b>
+          <span style="color:var(--suave)">${t}</span></div>`).join('')}
+    </div>
+    <div class="grid">${lista.map(it=>{
+      const m=MOT[it.id]; if(!m) return '';
+      const p=num(m.pct_mostrado),[et]=ORIGEN[m.origen_resultado];
+      return `<div class="mini" onclick="ir('#/${m.id}')">
+        <h3><span>${esc(m.nombre)}</span>
+          <span class="badge b-${m.estado}" style="margin-left:auto">${m.estado.replace('_',' ')}</span></h3>
+        <div class="cat-chip">${esc(m.categoria)}</div>
+        <div class="pct"><span class="val">${p===null?'—':p.toFixed(2)+'%'}</span>
+          <span class="riel ${clase(p)}"><i style="width:${p===null?0:Math.max(0,Math.min(100,p))}%"></i></span></div>
+        <div class="cita"><span class="badge b-${m.origen_resultado==='corrida_local'?'corrida_local':
+          (m.origen_resultado==='dossier'?'dossier':'sin_cruce')}">${esc(et)}</span></div>
+      </div>`;}).join('')}</div>`;
+}
 
-  const chips = m.valida_contra.map(f =>
-    `<span class="chip c-${f.tipo}" title="${esc(f.significado)}">${f.tipo}<small> · ${esc(f.cita)}</small></span>`).join('');
+/* ---------- vista: detalle ---------- */
+function detalle(id){
+  const m=MOT[id]; if(!m) return '<div class="exp">No existe ese motor.</div>';
+  const cr=(m.cruce&&m.cruce.origen_resultado==='corrida_local')?m.cruce:null;
+  const p=num(m.pct_mostrado),[et,ex]=ORIGEN[m.origen_resultado];
+  document.getElementById('migas').textContent=`· ${m.categoria} · ${m.nombre}`;
 
-  let conteo = '';
-  if(cr){
-    conteo = `<div class="conteo">
-      <div><b>${cr.n_comparadas.toLocaleString('es-MX')}</b>comparadas</div>
-      <div><b>${cr.n_ok.toLocaleString('es-MX')}</b>conformes</div>
-      <div class="${cr.n_no_conformes?'malo':''}"><b>${cr.n_no_conformes.toLocaleString('es-MX')}</b>no conformes</div>
-      <div><b>${cr.tolerancia}</b>tolerancia</div>
-      ${cr.conformes_omitidos?`<div><b>${cr.conformes_omitidos.toLocaleString('es-MX')}</b>conformes omitidos del gráfico</div>`:''}
-    </div>`;
-  } else if(m.dossier_detalle){
-    conteo = `<div class="exp">${esc(m.dossier_detalle)}</div>`;
+  const chips=m.valida_contra.map(f=>`<span class="chip c-${f.tipo}" title="${esc(f.significado)}">${f.tipo}<small> · ${esc(f.cita)}</small></span>`).join('');
+
+  // --- tres granularidades, o tolerancia propia si es motor de identidad ---
+  let gran='';
+  if(m.tolerancia_propia){
+    gran=`<div class="sec"><h3>Cuadre</h3>
+      <div class="escalon"><strong>Tolerancia propia: <span class="mono">${esc(m.tolerancia_propia.regla)}</span></strong><br>
+      ${esc(m.tolerancia_propia.porque)}<br><br>
+      <em>No se muestran las tres granularidades: este motor no compara dos importes calculados,
+      así que un escalón de precisión no significaría nada aquí.</em></div></div>`;
+  } else if(cr&&cr.match){
+    const M=cr.match,e={};M.escalas.forEach(x=>e[x.nombre]=x);
+    const p8=num(e['1e-8'].pct),pc=num(e['centavo'].pct);
+    let lectura;
+    if(p8>=99.995) lectura=`<strong>Cuadre exacto.</strong> Coincide a 8 decimales: es el mismo cálculo que el core, bit a bit. Es la lectura más fuerte posible.`;
+    else if(pc-p8>=5) lectura=`<strong>El escalón ${e['1e-8'].pct}% → ${e['centavo'].pct}% es diagnóstico:</strong> el residuo es sub-centavo, o sea granularidad del snapshot, <em>no defecto del motor</em>.`;
+    else if(pc<95) lectura=`<strong>Baja también al centavo (${e['centavo'].pct}%):</strong> hay diferencia <em>material</em> que investigar — defecto, linaje o dato faltante.`;
+    else lectura=`El escalón entre granularidades es pequeño: el residuo no es sólo de redondeo.`;
+    const sg=M.sesgo;
+    gran=`<div class="sec"><h3>Cuadre en tres granularidades
+        <span class="ayuda" title="${esc(AYUDA_GRAN)}">?</span></h3>
+      <div class="gran">${M.escalas.map(x=>{const v=num(x.pct);return `<div class="g">
+        <span class="et">${x.nombre}</span>
+        <span class="riel ${clase(v)}"><i style="width:${v}%"></i></span>
+        <span class="p">${x.pct}%</span>
+        <span class="n">${fmt(x.n_ok)}/${fmt(x.n)}</span></div>`;}).join('')}</div>
+      <div class="escalon" style="margin-top:10px">${lectura}<br><br>
+        <span class="flag ${sg.sesgo_detectado?'mal':'ok'}">${sg.sesgo_detectado?'SESGO SISTEMÁTICO — severidad 1':'sin sesgo'}</span>
+        <span class="cita"> ${esc(sg.lectura)} · fuera de 1e-8: ${fmt(sg.n_fuera_1e8)} (+${fmt(sg.n_pos)}/−${fmt(sg.n_neg)}), z=${sg.z} · |Δ| máx ${esc(M.max_abs_delta)}</span>
+      </div></div>`;
+  } else if(cr){
+    gran=`<div class="sec"><h3>Cuadre en tres granularidades</h3>
+      <div class="escalon">${esc(cr.match_nota||'Sin pares comparables.')}</div></div>`;
   }
 
-  const bloqueo = m.bloqueo ? `<div class="bloqueo"><strong>Bloqueado:</strong> ${esc(m.bloqueo)}</div>` : '';
-  const sols = m.solicitudes.map(s=>`<span class="sol">${esc(s)}</span>`).join('');
-  const nc = m.no_conformes ? `<div class="nc"><h3>No conformes${m.clase_no_conforme?` · ${esc(m.clase_no_conforme)}`:''}</h3>
-      <div class="exp">${esc(m.no_conformes)}</div>
-      ${m.clase_significado?`<div class="cita">${esc(m.clase_significado)}</div>`:''}</div>` : '';
+  const conteo=cr?`<div class="conteo">
+      <div><b>${fmt(cr.n_comparadas)}</b>comparadas</div>
+      <div><b>${fmt(cr.n_ok)}</b>conformes</div>
+      <div class="${cr.n_no_conformes?'malo':''}"><b>${fmt(cr.n_no_conformes)}</b>no conformes</div>
+      <div><b>${esc(cr.tolerancia)}</b>tolerancia</div>
+      ${cr.conformes_omitidos?`<div><b>${fmt(cr.conformes_omitidos)}</b>conformes omitidos del gráfico</div>`:''}
+    </div>`:(m.dossier_detalle?`<div class="exp">${esc(m.dossier_detalle)}</div>`:'');
 
-  let tabla='';
-  if(cr && cr.no_conformes_detalle && cr.no_conformes_detalle.length){
-    tabla = `<div class="nc"><h3>Peores diferencias de esta corrida</h3><table>` +
-      cr.no_conformes_detalle.slice(0,8).map(p=>`<tr>
-        <td class="mono">${esc(p.id)}</td><td class="mono">B ${esc(p.b??'—')}</td>
-        <td class="mono">C ${esc(p.c??'—')}</td><td class="d mono">${esc(p.delta??'sin C')}</td></tr>`).join('') +
-      `</table></div>`;
-  }
+  const tabla=(cr&&cr.no_conformes_detalle&&cr.no_conformes_detalle.length)?
+    `<div class="sec"><h3>Peores diferencias de esta corrida</h3><table class="nc">`+
+    cr.no_conformes_detalle.slice(0,12).map(q=>`<tr><td class="mono">${esc(q.id)}</td>
+      <td class="mono">B ${esc(q.b??'—')}</td><td class="mono">C ${esc(q.c??'—')}</td>
+      <td class="d mono">${esc(q.delta??'sin C')}</td></tr>`).join('')+`</table></div>`:'';
 
-  el.innerHTML = `
+  // La bandera viene del indice y la calcula el backend consultando el catalogo:
+  // un caso puede existir y aun asi no ser ejecutable hoy (consulta retirada,
+  // insumo faltante). Ofrecer un boton que el backend va a rechazar seria
+  // prometer una corrida que no puede pasar.
+  const it=(IDX.motores.find(x=>x.id===m.id)||{});
+  const puede = API && it.ejecutable===true;
+  const razonBoton = !API ? 'Abre el tablero con el servidor (python backend/servidor.py) para ejecutar.'
+    : (!m.caso_validador ? 'Este motor no tiene un caso ejecutable asociado.'
+    : (m.depende_de_logs ? 'Depende de un feed de logs que produce otro proceso.'
+    : (!it.ejecutable ? `El caso ${m.caso_validador} hoy no se puede correr — ver el bloqueo.` : '')));
+
+  return `<div class="det">
     <h2>${esc(m.nombre)}
       <span class="badge b-${m.estado}" title="${esc(m.estado_significado)}">${m.estado.replace('_',' ')}</span>
       <span class="badge b-${m.origen_resultado==='corrida_local'?'corrida_local':(m.origen_resultado==='dossier'?'dossier':'sin_cruce')}"
-            title="${esc(expl)}">${esc(etq)}</span></h2>
-    <div class="pct">
-      <span class="val">${pct===null?'—':pct.toFixed(2)+'%'}</span>
-      <span class="riel ${claseRiel(pct)}"><i style="width:${pct===null?0:Math.max(0,Math.min(100,pct))}%"></i></span>
+        title="${esc(ex)}">${esc(et)}</span>
+      <span class="cita" style="margin-left:auto">${esc(m.categoria)}</span></h2>
+
+    <div class="pct"><span class="val">${p===null?'—':p.toFixed(2)+'%'}</span>
+      <span class="riel ${clase(p)}"><i style="width:${p===null?0:Math.max(0,Math.min(100,p))}%"></i></span></div>
+
+    <div class="exec">
+      <button id="b-run" ${puede?'':'disabled'} data-motor="${m.id}">Ejecutar</button>
+      <span id="run-estado" class="cita">${cr&&cr.ejecutado?`última corrida ${esc(cr.ejecutado)}`:(razonBoton?esc(razonBoton):'sin corridas')}</span>
+      <button onclick="abrirChat('explícame ${esc(m.nombre)}')">Explicar</button>
     </div>
-    <pre class="formula">${esc(m.formula)}</pre>
-    ${m.ejemplo?`<div class="cita">ejemplo: ${esc(m.ejemplo)}</div>`:''}
-    <div class="chips">${chips}</div>
-    ${conteo}
-    ${cr?`<div class="wrap-sc"><canvas></canvas><div class="tip"></div></div>
-    <div class="ctrl">
-      <label><input type="checkbox" class="c-nc"> solo no conformes</label>
-      <label><input type="checkbox" class="c-log"> escala log en X</label>
-      <label>tolerancia <input class="c-tol mono" style="width:88px" value="${esc(cr.tolerancia)}"></label>
-    </div>`:''}
-    ${bloqueo}
-    ${nc}
+
+    <div class="sec"><h3>Fórmula</h3><pre class="formula">${esc(m.formula)}</pre>
+      ${m.ejemplo?`<div class="cita" style="margin-top:7px">ejemplo: ${esc(m.ejemplo)}</div>`:''}</div>
+
+    <div class="sec"><h3>Valida contra</h3><div class="chips">${chips}</div>
+      ${m.insumos?`<div class="cita" style="margin-top:8px">insumos: ${esc(m.insumos)}</div>`:''}</div>
+
+    ${conteo?`<div class="sec"><h3>Conteo</h3>${conteo}</div>`:''}
+    ${gran}
+
+    ${cr?`<div class="sec"><h3>Distribución de diferencias</h3>
+      <div class="wrap-sc"><canvas id="sc"></canvas><div class="tip" id="tip"></div></div>
+      <div class="ctrl" style="margin-top:9px">
+        <label><input type="checkbox" id="c-nc"> solo no conformes</label>
+        <label><input type="checkbox" id="c-log"> escala log en X</label>
+        <label>tolerancia <input id="c-tol" class="mono" style="width:110px" value="${esc(cr.tolerancia)}"></label>
+        <span class="cita">verde = conforme · rojo = no conforme, dibujado encima</span>
+      </div></div>`:''}
+
+    ${m.no_conformes?`<div class="sec"><h3>No conformes${m.clase_no_conforme?` · ${esc(m.clase_no_conforme)}`:''}</h3>
+      <div class="exp">${esc(m.no_conformes)}</div>
+      ${m.clase_significado?`<div class="cita" style="margin-top:6px">${esc(m.clase_significado)}</div>`:''}</div>`:''}
     ${tabla}
+    ${m.bloqueo?`<div class="sec"><h3>Bloqueo</h3><div class="bloq">${esc(m.bloqueo)}</div></div>`:''}
+    ${m.solicitudes.length?`<div class="cita">desbloquea: ${m.solicitudes.map(s=>`<span class="sol">${esc(s)}</span>`).join('')}</div>`:''}
     ${m.autoprueba?`<div class="cita">autoprueba de la fórmula: <strong>${m.autoprueba.ok?'pasa':'NO pasa'}</strong> — ${esc(m.autoprueba.detalle)}</div>`:''}
-    ${sols?`<div class="cita">desbloquea: ${sols}</div>`:''}
-    <div class="acciones"><button class="explicar">Explicar este motor</button>
-      ${cr && cr.evidencia?`<span class="cita mono" style="border:0;padding-top:6px">${esc(cr.evidencia)}</span>`:''}</div>`;
+    ${cr&&cr.evidencia?`<div class="cita mono">evidencia: ${esc(cr.evidencia)}${cr.reconstruido_de_evidencia?' (reconstruido, sin volver a consultar la base)':''}</div>`:''}
+  </div>`;
+}
 
+/* ---------- ruteo ---------- */
+function ir(h){location.hash=h;}
+function pintar(){
+  const h=location.hash.replace(/^#\/?/,'');
+  const v=document.getElementById('vista');
+  if(h.startsWith('cat/')){v.innerHTML=galeria(decodeURIComponent(h.slice(4)));}
+  else if(h&&MOT[h]){v.innerHTML=detalle(h);cablearDetalle(h);}
+  else{v.innerHTML=galeria(null);}
+  menu();window.scrollTo(0,0);
+}
+function menu(){
+  const h=location.hash.replace(/^#\/?/,'');
+  const cats=IDX.cobertura.por_categoria||{};
+  document.getElementById('menu-cuerpo').innerHTML=
+    `<div class="mi ${!h?'sel':''}" onclick="ir('#/');cerrarMenu()">Todos los motores
+       <span class="pt">${IDX.motores.length}</span></div>`+
+    Object.entries(cats).map(([c,ids])=>`<div class="cat">${esc(c)}
+        <span style="float:right;font-weight:400;cursor:pointer;text-decoration:underline"
+          onclick="ir('#/cat/${encodeURIComponent(c)}');cerrarMenu()">ver todos</span></div>`+
+      ids.map(id=>{const m=MOT[id];if(!m)return '';
+        const p=num(m.pct_mostrado);
+        return `<div class="mi ${h===id?'sel':''}" onclick="ir('#/${id}');cerrarMenu()">
+          <span class="badge b-${m.estado}" style="min-width:8px;padding:2px 5px">&nbsp;</span>
+          <span>${esc(m.nombre.replace(/^[^—]*— ?/,''))}</span>
+          <span class="pt">${p===null?'—':p.toFixed(1)+'%'}</span></div>`;}).join('')).join('');
+}
+const cerrarMenu=()=>{document.getElementById('menu').classList.remove('on');
+  document.getElementById('velo').classList.remove('on');};
+
+/* ---------- detalle: scatter + ejecutar ---------- */
+function cablearDetalle(id){
+  const m=MOT[id],cr=(m.cruce&&m.cruce.origen_resultado==='corrida_local')?m.cruce:null;
   if(cr){
-    const cv = el.querySelector('canvas'), tip = el.querySelector('.tip');
-    const opt = {soloNC:false, log:false, tol:cr.tolerancia, ejes:cr.ejes||{}};
-    let estado = null;
-    const pinta = () => { estado = dibujar(cv, cr.puntos, opt); };
-    const refrescar = () => requestAnimationFrame(pinta);
-    el.querySelector('.c-nc').onchange = e => { opt.soloNC = e.target.checked; refrescar(); };
-    el.querySelector('.c-log').onchange = e => { opt.log = e.target.checked; refrescar(); };
-    el.querySelector('.c-tol').oninput = e => { opt.tol = e.target.value; refrescar(); };
-    cv.onmousemove = ev => {
-      if(!estado) return;
-      const r = cv.getBoundingClientRect(), mx = ev.clientX-r.left, my = ev.clientY-r.top;
-      let mejor=null, dm=14*14;
-      for(const q of estado.pos){ const dd=(q.x-mx)**2+(q.y-my)**2; if(dd<dm){dm=dd;mejor=q;} }
-      if(mejor){
-        const p = mejor.p;
-        tip.style.display='block';
-        tip.style.left = Math.min(mx+12, cv.clientWidth-190)+'px';
-        tip.style.top = Math.max(my-58,0)+'px';
-        tip.textContent = `${p.id}\nB ${p.b??'—'}\nC ${p.c??'—'}\nΔ ${p.delta??'sin C'}` +
-          (p.motivo?`\n${String(p.motivo).slice(0,60)}`:'') + (mejor.ok?'':'\n▲ NO CONFORME');
-        cv.dataset.sel = p.id;
-      } else { tip.style.display='none'; }
-    };
-    cv.onmouseleave = ()=> tip.style.display='none';
-    cv.onclick = () => { abrirChat(`explícame el punto ${cv.dataset.sel||''} de ${m.nombre}`); };
-    new ResizeObserver(refrescar).observe(cv);
-    setTimeout(pinta, 0);
+    const cv=document.getElementById('sc'),tip=document.getElementById('tip');
+    const opt={soloNC:false,log:false,tol:cr.tolerancia,ejes:cr.ejes||{}};
+    let st=null; const pinta=()=>{st=dibujar(cv,cr.puntos,opt);};
+    document.getElementById('c-nc').onchange=e=>{opt.soloNC=e.target.checked;pinta();};
+    document.getElementById('c-log').onchange=e=>{opt.log=e.target.checked;pinta();};
+    document.getElementById('c-tol').oninput=e=>{opt.tol=e.target.value;pinta();};
+    cv.onmousemove=ev=>{if(!st)return;const r=cv.getBoundingClientRect(),
+      mx=ev.clientX-r.left,my=ev.clientY-r.top;let b=null,dm=225;
+      for(const q of st.pos){const d=(q.x-mx)**2+(q.y-my)**2;if(d<dm){dm=d;b=q;}}
+      if(b){tip.style.display='block';tip.style.left=Math.min(mx+12,cv.clientWidth-200)+'px';
+        tip.style.top=Math.max(my-60,0)+'px';
+        tip.textContent=`${b.p.id}\nB ${b.p.b??'—'}\nC ${b.p.c??'—'}\nΔ ${b.p.delta??'sin C'}`+
+          (b.p.motivo?`\n${String(b.p.motivo).slice(0,58)}`:'')+(b.ok?'':'\n▲ NO CONFORME');
+        cv.dataset.sel=b.p.id;}else tip.style.display='none';};
+    cv.onmouseleave=()=>tip.style.display='none';
+    cv.onclick=()=>abrirChat(`explícame el punto ${cv.dataset.sel||''} de ${m.nombre}`);
+    new ResizeObserver(pinta).observe(cv); setTimeout(pinta,0);
   }
-  el.querySelector('.explicar').onclick = () => abrirChat(`explícame ${m.nombre}`);
-  return el;
+  const b=document.getElementById('b-run');
+  if(b&&!b.disabled) b.onclick=()=>ejecutar(id,b);
 }
 
-/* ---------- render + filtros ---------- */
-function render(){
-  const fd = f('f-dominio'), fe = f('f-estado'), fo = f('f-origen'),
-        fn = document.getElementById('f-nc').checked;
-  const grid = document.getElementById('grid'); grid.innerHTML='';
-  let n=0;
-  for(const it of IDX.motores){
-    const m = MOT[it.id]; if(!m) continue;
-    if(fd && m.dominio!==fd) continue;
-    if(fe && m.estado!==fe) continue;
-    if(fo && m.origen_resultado!==fo) continue;
-    const tieneNC = (m.cruce && m.cruce.n_no_conformes>0) || !!m.no_conformes;
-    if(fn && !tieneNC) continue;
-    grid.appendChild(tarjeta(m)); n++;
-  }
-  if(!n) grid.innerHTML = '<div class="exp">Ningún motor cumple ese filtro.</div>';
-}
-const f = id => document.getElementById(id).value;
-
-function kpis(){
-  const c = IDX.cobertura, e = c.por_estado||{};
-  const corridos = IDX.motores.filter(m=>m.origen_resultado==='corrida_local').length;
-  document.getElementById('kpis').innerHTML = `
-    <div class="kpi"><b>${c.total}</b><span>motores</span></div>
-    <div class="kpi"><b>${corridos}</b><span>calculados aquí</span></div>
-    <div class="kpi"><b>${e.validado||0}</b><span>validados</span></div>
-    <div class="kpi"><b>${e.parcial||0}</b><span>parciales</span></div>
-    <div class="kpi"><b>${e.bloqueado||0}</b><span>bloqueados</span></div>
-    <div class="kpi"><b>${(c.solicitudes_abiertas||[]).length}</b><span>solicitudes abiertas</span></div>`;
-  const feeds = (IDX.feeds&&IDX.feeds.disponibles)||[];
-  document.getElementById('sub').textContent =
-    `Generado ${IDX.generado} · ${IDX.con_bd?'con cruce contra la base':'sin cruce contra la base'} · ` +
-    `feeds de log disponibles: ${feeds.length}`;
-  const doms=[...new Set(IDX.motores.map(m=>m.dominio))].sort();
-  const ests=[...new Set(IDX.motores.map(m=>m.estado))].sort();
-  doms.forEach(d=>document.getElementById('f-dominio').add(new Option(d,d)));
-  ests.forEach(s=>document.getElementById('f-estado').add(new Option(s.replace('_',' '),s)));
-}
-
-/* ---------- agente: recuperación sobre el corpus real ---------- */
-const NORM = s => s.toLowerCase()
-  .replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i')
-  .replace(/[óò]/g,'o').replace(/[úù]/g,'u').replace(/ñ/g,'n');
-const VACIAS = new Set(['el','la','los','las','de','del','que','como','se','un','una','y','o','a','en','para','por','con','es','al','lo','me','mi','este','esta','cual','cuales','por que','porque','explicame','explica','dime']);
-const PESO_DOC = {DOSSIER:3, NORTE:2, COMPARACION:2, INDICE:1.5, SOLICITUDES:2, TABLAS:1.5, 'PIEZA-K':1.5};
-
-function buscar(q, k=3){
-  const toks = NORM(q).split(/[^a-z0-9.\-]+/).filter(t=>t.length>2 && !VACIAS.has(t));
-  if(!toks.length) return [];
-  return CONO.secciones.map(s=>{
-    let p=0;
-    for(const t of toks){
-      const enTit = NORM(s.titulo).includes(t);
-      const n = s.busqueda.split(t).length-1;
-      p += n*1 + (enTit?12:0);
+/* ---------- ejecutar (contrato §2) ---------- */
+async function ejecutar(id,boton){
+  const est=document.getElementById('run-estado');
+  boton.disabled=true;
+  const prog=document.createElement('span');prog.className='prog';prog.innerHTML='<i style="width:0%"></i>';
+  boton.after(prog);
+  est.innerHTML='<span class="spin"></span> iniciando…';
+  try{
+    const r=await fetch(`/api/run/${id}`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({})});
+    const j=await r.json();
+    if(!r.ok){est.textContent=`no se puede ejecutar: ${j.mensaje||j.error}`;
+      boton.disabled=false;prog.remove();return;}
+    while(true){
+      await new Promise(s=>setTimeout(s,900));
+      const s=await (await fetch(`/api/job/${j.job_id}`)).json();
+      prog.firstChild.style.width=(s.avance||0)+'%';
+      est.innerHTML=`<span class="spin"></span> ${esc(s.mensaje||s.estado)}`;
+      if(s.estado==='terminado'){
+        est.innerHTML=`✔ terminó ${esc(s.terminado)} — ${esc(s.mensaje||'')}`;
+        const nuevo=await (await fetch(`/api/resultado/${id}`)).json();
+        MOT[id]=nuevo;
+        const it=IDX.motores.find(x=>x.id===id);
+        if(it){it.pct_mostrado=nuevo.pct_mostrado;it.origen_resultado=nuevo.origen_resultado;}
+        setTimeout(()=>{pintar();},700);
+        break;
+      }
+      if(s.estado==='error'){est.textContent=`✖ error: ${s.mensaje}`;break;}
     }
-    return {s, p: p*(PESO_DOC[s.doc]||1)};
-  }).filter(r=>r.p>0).sort((a,b)=>b.p-a.p).slice(0,k);
+  }catch(e){est.textContent='✖ no se pudo hablar con el backend: '+e.message;}
+  boton.disabled=false;prog.remove();
 }
 
+/* ---------- agente ---------- */
+const NORM=s=>s.toLowerCase().replace(/[áà]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i')
+  .replace(/[óò]/g,'o').replace(/[úù]/g,'u').replace(/ñ/g,'n');
+const VACIAS=new Set(['el','la','los','las','de','del','que','como','se','un','una','y','o','a','en',
+  'para','por','con','es','al','lo','me','mi','este','esta','cual','cuales','porque','explicame','explica','dime']);
+const PESO={DOSSIER:3,NORTE:2,COMPARACION:2,SOLICITUDES:2,INDICE:1.5,TABLAS:1.5,'PIEZA-K':1.5};
+function buscar(q,k=3){
+  const t=NORM(q).split(/[^a-z0-9.\-]+/).filter(x=>x.length>2&&!VACIAS.has(x));
+  if(!t.length)return[];
+  return CONO.secciones.map(s=>{let p=0;
+    for(const x of t){p+=(s.busqueda.split(x).length-1)+(NORM(s.titulo).includes(x)?12:0);}
+    return{s,p:p*(PESO[s.doc]||1)};}).filter(r=>r.p>0).sort((a,b)=>b.p-a.p).slice(0,k);
+}
 function responder(q){
-  const hits = buscar(q);
-  if(!hits.length){
-    return `<strong>No tengo respaldo para eso en el corpus.</strong><br>
-      Sólo respondo con lo que está en el dossier, el NORTE, el índice, la comparación,
-      las solicitudes y las piezas K. Prefiero decirlo a improvisar una explicación.
-      <div class="cita">Si es una regla que debería existir y no está, va como solicitud a Finsus
-      (${esc((IDX.cobertura.solicitudes_abiertas||[]).join(', ')||'ver SOLICITUDES_FINSUS.md')}).</div>`;
-  }
-  return hits.map(h=>{
-    const s = h.s, cuerpo = s.cuerpo.length>1400 ? s.cuerpo.slice(0,1400)+'\n…' : s.cuerpo;
-    return `<div><strong>${esc(s.titulo)}</strong><pre>${esc(cuerpo)}</pre>
+  const h=buscar(q);
+  if(!h.length) return `<strong>No tengo respaldo para eso en el corpus.</strong><br>
+    Sólo respondo con el dossier, el NORTE, el índice, la comparación, las solicitudes y las piezas K.
+    Prefiero decirlo a improvisar una explicación.
+    <div class="cita" style="margin-top:6px">Si es una regla que debería existir y no está, va como
+    solicitud a Finsus (${esc((IDX.cobertura.solicitudes_abiertas||[]).join(', ')||'ver SOLICITUDES_FINSUS.md')}).</div>`;
+  return h.map(x=>{const s=x.s,c=s.cuerpo.length>1400?s.cuerpo.slice(0,1400)+'\n…':s.cuerpo;
+    return `<div><strong>${esc(s.titulo)}</strong><pre>${esc(c)}</pre>
       <div class="cita">fuente: ${esc(s.titulo_doc)} — <span class="mono">${esc(s.doc)}</span>, línea ${s.linea}</div></div>`;
   }).join('<hr style="border:0;border-top:1px solid var(--linea);margin:10px 0">');
 }
-
-function pon(txt, quien){
-  const d=document.createElement('div'); d.className='msg '+quien;
-  d.innerHTML = quien==='yo' ? esc(txt) : txt;
-  document.getElementById('log').appendChild(d);
-  d.scrollIntoView({block:'end'});
-}
-function preguntar(q){
-  if(!q.trim()) return;
-  pon(q,'yo'); pon(responder(q),'bot');
-  document.getElementById('q').value='';
-}
-function abrirChat(q){
-  document.getElementById('chat').classList.add('on');
-  if(q) preguntar(q);
-}
+function pon(t,q){const d=document.createElement('div');d.className='msg '+q;
+  d.innerHTML=q==='yo'?esc(t):t;document.getElementById('log').appendChild(d);d.scrollIntoView({block:'end'});}
+function preguntar(q){if(!q.trim())return;pon(q,'yo');pon(responder(q),'bot');document.getElementById('q').value='';}
+function abrirChat(q){document.getElementById('chat').classList.add('on');if(q)preguntar(q);}
 
 /* ---------- arranque ---------- */
-kpis(); render();
-['f-dominio','f-estado','f-origen','f-nc'].forEach(id =>
-  document.getElementById(id).addEventListener('change', render));
-document.getElementById('abrir-chat').onclick = ()=>abrirChat();
-document.getElementById('enviar').onclick = ()=>preguntar(document.getElementById('q').value);
-document.getElementById('q').addEventListener('keydown', e=>{ if(e.key==='Enter') preguntar(e.target.value); });
-['¿cómo se calcula el moratorio?','¿por qué el CAT no cuadra a volumen?',
- '¿contra qué se validó el IFRS 9?','¿qué desbloquea el manual SOL-015?',
- '¿por qué está bloqueado el saldo promedio?'].forEach(s=>{
-  const b=document.createElement('button'); b.textContent=s;
-  b.onclick=()=>preguntar(s); document.getElementById('sug').appendChild(b);
-});
+addEventListener('hashchange',pintar);
+document.getElementById('b-menu').onclick=()=>{document.getElementById('menu').classList.toggle('on');
+  document.getElementById('velo').classList.toggle('on');};
+document.getElementById('velo').onclick=cerrarMenu;
+document.getElementById('b-chat').onclick=()=>abrirChat();
+document.getElementById('enviar').onclick=()=>preguntar(document.getElementById('q').value);
+document.getElementById('q').addEventListener('keydown',e=>{if(e.key==='Enter')preguntar(e.target.value);});
+document.getElementById('b-todo').onclick=async()=>{
+  if(!API){alert('Abre el tablero con el servidor para poder ejecutar:\n  python backend/servidor.py');return;}
+  const ids=IDX.motores.filter(m=>m.ejecutable).map(m=>m.id);
+  if(!ids.length){alert('Ningún motor tiene hoy un cruce ejecutable.');return;}
+  if(!confirm(`Ejecutar ${ids.length} motor(es) contra la base, en solo lectura?\n\n${ids.join(', ')}`))return;
+  for(const id of ids){
+    try{const r=await fetch(`/api/run/${id}`,{method:'POST'});const j=await r.json();
+      if(!r.ok){console.warn(id,j);continue;}
+      while(true){await new Promise(s=>setTimeout(s,900));
+        const s=await (await fetch(`/api/job/${j.job_id}`)).json();
+        if(s.estado!=='en_ejecucion')break;}
+      MOT[id]=await (await fetch(`/api/resultado/${id}`)).json();
+    }catch(e){console.warn(id,e);}
+  }
+  pintar();
+};
+['¿cómo se calcula el moratorio?','¿por qué el CAT no cuadra a volumen?','¿contra qué se validó el IFRS 9?',
+ '¿qué desbloquea el manual SOL-015?','¿por qué está bloqueado el saldo promedio?'].forEach(s=>{
+  const b=document.createElement('button');b.textContent=s;b.onclick=()=>preguntar(s);
+  document.getElementById('sug').appendChild(b);});
 pon(`<strong>Explico los motores con las fuentes reales del proyecto.</strong><br>
   Fórmula, contra qué se validó, resultado y por qué no cuadran los no conformes.
-  Respondo con secciones del dossier y siempre digo de cuál salen.
-  <div class="cita">${esc(CONO.nota)}</div>`, 'bot');
-window.addEventListener('resize', ()=>render());
+  Cito documento y línea, siempre.<div class="cita" style="margin-top:6px">${esc(CONO.nota)}</div>`,'bot');
+pintar();
 </script>
 </body>
 </html>

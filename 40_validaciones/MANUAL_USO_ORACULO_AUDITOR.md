@@ -102,6 +102,48 @@ python 40_validaciones/comparadores/log_extractor.py --patron dias --servicio co
 python 40_validaciones/comparadores/barrido_average_balance.py                                     # saldo base
 ```
 
+### 5.4 Cambiar los parámetros de consulta y el universo (el auditor los controla)
+Cada comparador acepta **flags** para mover la **ventana de fechas**, el **tamaño del universo** y los **filtros**.
+Corre cualquiera con `-h`/`--help` para ver sus opciones. Los principales:
+
+| Comparador | Flag | Qué cambia | Default |
+|---|---|---|---|
+| `validate_plazo_origin.py` | `--limite N` | cuentas por cohorte (**`0` = TODAS**, escala completa) | 300 |
+| `motor_b_diario.py` | `--fecha YYYY-MM-DD` | día a validar | 2026-08-14 |
+| `contable_bc.py` | `--desde YYYY-MM-DD` · `--dias N` | inicio y **ancho de la ventana** (N días) | 2026-08-10 · 7 |
+| `fase1_isr_desviacion.py` | `--sample N` · `--band OF\|AC\|ALL` | **tamaño de muestra** (`0` = todo el universo) y banda | 400 · ALL |
+| `fase1_isr_runner.py` | `--query <nombre>` · `--cohorte <nombre>` | qué consulta y qué **cohorte/universo** corre | — · SEMILLA |
+| `barrido_average_balance.py` | `--servicio` · `--glob` · `--max-archivos N` | **fuente de logs** y cuántos archivos barrer (`0` = todos) | core-rendimientos · trace-node-*.gz · 0 |
+
+**Ejemplos — ampliar/acotar el universo y mover la ventana:**
+```bash
+# Plazo: del muestreo (300) al UNIVERSO COMPLETO (todas las cuentas)
+python 40_validaciones/comparadores/validate_plazo_origin.py --limite 0
+
+# Contable: otra ventana (14 días desde el 1-sep)
+python 40_validaciones/comparadores/contable_bc.py --desde 2026-09-01 --dias 14
+
+# Motor B: otro día
+python 40_validaciones/comparadores/motor_b_diario.py --fecha 2026-08-31
+
+# ISR desviación: todo el universo (sin muestreo), solo banda OF
+python 40_validaciones/comparadores/fase1_isr_desviacion.py --sample 0 --band OF --confirm
+```
+
+**Cambiar las tolerancias (granularidad del cuadre):** el reporte de las tres granularidades lo produce
+`comparadores/tolerancias.py`. Para usar otros umbrales, pásale otra escalera a `resumen_tolerancias(pares,
+escalas=...)` (por defecto `1e-8`, `1e-5`, `0.01`). No cambies los umbrales de las **identidades contables**
+(tolerancia **0.00**, sin excepción).
+
+**Modo seguro (regla del proyecto):** los comparadores de ISR corren en **`--dry-run`/`--plan`** por defecto —
+imprimen la cohorte, la ventana y el SQL que correrían, **sin conectarse**. Solo con **`--confirm`** ejecutan
+(siempre read-only, con `statement_timeout`). Revisa el plan antes de `--confirm`.
+
+**Universos más amplios (nuevas cohortes / otras tablas):** las cohortes y las ventanas "de fábrica" se definen en
+`fase1_isr_runner.py` y en los `.sql` de `entrega_finsus/` / `extraccion/`. Para un universo nuevo (otra cartera,
+otro rango, otro producto) se ajusta ahí la cohorte/consulta; el detalle está en `REFERENCIA_TABLAS_POR_CASO.md` y
+`REFERENCIA_queries_diario_finsus.md`.
+
 ---
 
 ## 6. Qué se recibe (la salida) y cómo leerla
