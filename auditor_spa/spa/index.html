@@ -73,6 +73,9 @@ main{padding:20px;max-width:1500px;margin:0 auto}
 .b-corrida_local{background:var(--ok-bg);color:var(--ok)}
 .b-dossier{background:var(--doc-bg);color:var(--doc)}
 .pct{display:flex;align-items:center;gap:10px}
+.sinpct{background:var(--config-bg);color:var(--texto);border-left:3px solid var(--config);
+  padding:10px 13px;border-radius:0 7px 7px 0;font-size:12.5px;line-height:1.5}
+.mini .sinpct{font-size:11.5px;padding:8px 10px}
 .pct .val{font-size:21px;font-weight:700;min-width:82px;font-variant-numeric:tabular-nums}
 .riel{flex:1;height:7px;background:var(--neutro-bg);border-radius:99px;overflow:hidden}
 .riel i{display:block;height:100%;background:var(--ok)}
@@ -270,8 +273,14 @@ function galeria(cat){
         <h3><span>${esc(m.nombre)}</span>
           <span class="badge b-${m.estado}" style="margin-left:auto">${m.estado.replace('_',' ')}</span></h3>
         <div class="cat-chip">${esc(m.categoria)}</div>
-        <div class="pct"><span class="val">${p===null?'—':p.toFixed(2)+'%'}</span>
-          <span class="riel ${clase(p)}"><i style="width:${p===null?0:Math.max(0,Math.min(100,p))}%"></i></span></div>
+        ${p!==null?`<div class="pct"><span class="val">${p.toFixed(2)+'%'}</span>
+          <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span></div>`
+        : `<div class="sinpct">${(m.valida_contra||[]).filter(f=>f.tipo==='config').length
+             ? `<strong>Validado contra la configuración real del core</strong><br>
+                ${m.valida_contra.filter(f=>f.tipo==='config').map(f=>esc(f.cita)).join(' · ')}`
+             : `Sin porcentaje: ${(m.valida_contra||[]).length
+                  ? 'la fórmula se contrasta contra '+m.valida_contra.map(f=>f.tipo).join(', ')
+                  : 'sin cruce contra datos'}`}</div>`}
         <div class="cita"><span class="badge b-${m.origen_resultado==='corrida_local'?'corrida_local':
           (m.origen_resultado==='dossier'?'dossier':'sin_cruce')}">${esc(et)}</span></div>
       </div>`;}).join('')}</div>`;
@@ -340,7 +349,7 @@ function detalle(id){
   const it=(IDX.motores.find(x=>x.id===m.id)||{});
   const puede = API && it.ejecutable===true;
   const razonBoton = !API ? 'Abre el tablero con el servidor (python backend/servidor.py) para ejecutar.'
-    : (!m.caso_validador ? 'Este motor no tiene un caso ejecutable asociado.'
+    : (!m.caso_validador ? 'Aún no le construimos un caso en el catálogo del validador; su validación vive en el dossier, no aquí.'
     : (m.depende_de_logs ? 'Depende de un feed de logs que produce otro proceso.'
     : (!it.ejecutable ? `El caso ${m.caso_validador} hoy no se puede correr — ver el bloqueo.` : '')));
 
@@ -351,8 +360,16 @@ function detalle(id){
         title="${esc(ex)}">${esc(et)}</span>
       <span class="cita" style="margin-left:auto">${esc(m.categoria)}</span></h2>
 
-    <div class="pct"><span class="val">${p===null?'—':p.toFixed(2)+'%'}</span>
-      <span class="riel ${clase(p)}"><i style="width:${p===null?0:Math.max(0,Math.min(100,p))}%"></i></span></div>
+    ${p!==null?`<div class="pct"><span class="val">${p.toFixed(2)+'%'}</span>
+      <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span></div>`
+    : `<div class="sinpct">${(m.valida_contra||[]).filter(f=>f.tipo==='config').length
+        ? `<strong>No hay porcentaje, y no por falta de validación.</strong>
+           Este motor se contrasta contra la <em>configuración real de AurumCore</em>
+           (${m.valida_contra.filter(f=>f.tipo==='config').map(f=>esc(f.cita)).join(' · ')}),
+           que es una prueba más fuerte que un % sobre una muestra: no depende de qué cohorte se
+           elija. Un porcentaje aparecería si además se cruzara evento por evento contra datos.`
+        : `<strong>Sin porcentaje.</strong> No hay cruce contra datos desde este tablero; la fórmula
+           está autoprobada contra el ejemplo de su documento. Eso no es un pase.`}</div>`}
 
     <div class="exec">
       <button id="b-run" ${puede?'':'disabled'} data-motor="${m.id}">Ejecutar</button>
