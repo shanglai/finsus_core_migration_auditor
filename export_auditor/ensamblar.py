@@ -45,6 +45,7 @@ INCLUYE = [
     "40_validaciones/comparadores/barrido_average_balance.py",
     "40_validaciones/comparadores/tolerancias.py",
     "40_validaciones/comparadores/oraculo_vista_finsus_history.py",
+    "40_validaciones/comparadores/sanity_check.py",
     # --- SQL (extraccion + validaciones) ---
     "40_validaciones/entrega_finsus/V1_isr_al_pago_aurum.sql",
     "40_validaciones/entrega_finsus/V2_isr_devengo_openfin.sql",
@@ -59,6 +60,7 @@ INCLUYE = [
     "40_validaciones/DOSSIER_MOTORES_ORACULO_C.md",
     "40_validaciones/PROMPT_AUDITOR_SPA.md",
     "40_validaciones/MATRIZ_TOLERANCIAS.md",
+    "40_validaciones/NORTE_SANIDAD.md",
     # --- Paquete de datos para auditoria (universo, fechas, detalle desde DuckDB) ---
     "40_validaciones/PAQUETE_AUDITOR_DATOS/00_INDICE.md",
     "40_validaciones/PAQUETE_AUDITOR_DATOS/01_TABLA_MAESTRA_VALIDACIONES.md",

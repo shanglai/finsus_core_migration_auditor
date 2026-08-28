@@ -169,6 +169,15 @@ pre.formula{margin:0;padding:12px 14px;background:var(--neutro-bg);border-radius
 .g .p{width:64px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
 .escalon{font-size:12.5px;background:var(--neutro-bg);padding:9px 12px;border-radius:7px;line-height:1.5}
 .flag{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700}
+.sanidad{border:1px solid var(--linea);border-radius:10px;padding:13px 15px;margin-bottom:18px}
+.sanidad.mal{border-color:var(--mal);background:var(--mal-bg)}
+.sanidad.bien{border-color:var(--ok)}
+.sanidad h4{margin:0 0 4px;font-size:14px;display:flex;align-items:center;gap:9px}
+.sanidad .inv{font-size:12px;margin-top:7px;line-height:1.55}
+.sanidad .inv code{font-weight:700}
+.sanidad .viol{color:var(--mal);margin-left:16px;display:block}
+.sanidad .abrir{margin-left:auto;font-size:11.5px;cursor:pointer;color:var(--suave);
+  text-decoration:underline;font-weight:400}
 .flag.ok{background:var(--ok-bg);color:var(--ok)}
 .flag.mal{background:var(--mal-bg);color:var(--mal)}
 .ayuda{border:1px solid var(--linea);border-radius:50%;width:17px;height:17px;font-size:11px;
@@ -284,6 +293,8 @@ const ETIQUETA_ESCALA=e=>({
   '1e-5':'a <span class="mono">1e-5</span> — precisión intermedia',
   '1e-8':'a <span class="mono">1e-8</span> — exactitud aritmética estricta',
   'volumen':'del <strong>cruce a volumen</strong> — no es una granularidad',
+  'completitud':'de <strong>completitud</strong> — identidad exacta, no admite holgura',
+  'config':'contra la <strong>configuración del core</strong> — no es una cohorte',
   'sin escala declarada':'<strong>sin escala declarada</strong> — falta su fila en la matriz'
 }[e]||esc(e));
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -360,6 +371,15 @@ function respaldo(m, largo){
     else { cabeza='Sin cobertura'; cuerpo=''; }
     cuerpo += `<br><span class="cita">No hay cruce contra datos desde este tablero.
       <strong>Eso no es un pase.</strong></span>`;
+  } else if(m.cobertura==='volumen'){
+    cabeza='Cruce <em>a volumen</em>';
+    cuerpo=citas(de('doc'))||citas(de('config'));
+    cuerpo+=`<br><span class="cita">Un cruce a volumen cuenta contratos que empatan,
+      no decimales que coinciden: <strong>no es una granularidad</strong> y no se lee
+      como precisión aritmética.</span>`;
+  } else if(m.cobertura==='completitud'){
+    cabeza='Identidad de <em>completitud</em>';
+    cuerpo=citas(de('config'))||citas(de('doc'));
   } else {
     cabeza='Con cobertura de datos'; cuerpo=citas(de('config'))||citas(de('doc'));
   }
@@ -370,13 +390,56 @@ function respaldo(m, largo){
   return `<div class="sinpct"><strong>${cabeza}</strong><br>${cuerpo}${extra}</div>`;
 }
 
+/* ---------- sanidad del propio tablero ----------
+   El tablero se audita con la misma vara que aplica al core: cada invariante
+   DEVUELVE las cards que lo violan, 0 = pasa. Va en el home y no en un rincón,
+   porque un status de sanidad escondido no es un status. Ver NORTE_SANIDAD.md. */
+let SAN_ABIERTO=false;
+function panelSanidad(){
+  const s=IDX.sanidad; if(!s) return '';
+  const sano=s.status==='SANO', fals=s.falsabilidad||{};
+  // Verde global = 0 violaciones en TODOS los invariantes. No hay "casi sano":
+  // si la auto-prueba de falsabilidad falla, los invariantes no prueban nada y
+  // el verde sería tan vacío como el all-pass que este tablero existe para evitar.
+  const ok=sano&&fals.ok;
+  const detalle=SAN_ABIERTO?`<div class="inv">
+      ${(s.invariantes||[]).map(i=>`<div>
+        <span class="badge b-${i.n?'bloqueado':'validado'}">${i.n?i.n+' ✗':'ok'}</span>
+        <code>${esc(i.id)}</code> ${esc(i.afirma)}
+        ${(i.violaciones||[]).map(v=>`<span class="viol">→ ${esc(v.motor)}: ${esc(v.detalle)}</span>`).join('')}
+      </div>`).join('')}
+      ${(s.avisos_upstream||[]).length?`<div style="margin-top:9px">
+        <strong>Aguas arriba</strong> — el tablero muestra lo más nuevo; la fuente va atrás:
+        ${s.avisos_upstream.map(a=>`<span class="viol" style="color:var(--suave)">→
+          ${esc(a.motor)}: ${esc(a.detalle)}</span>`).join('')}</div>`:''}
+      <div style="margin-top:9px">
+        <strong>Auto-prueba de falsabilidad</strong> — un invariante que no atrapa el engaño
+        que lo motivó no prueba nada:
+        ${(fals.casos||[]).map(c=>`<span class="viol" style="color:${c.atrapado?'var(--ok)':'var(--mal)'}">
+          ${c.atrapado?'✔ atrapado':'✗ NO atrapado'} — ${esc(c.bug)}
+          ${c.por?'['+esc(c.por.join(', '))+']':''}</span>`).join('')}
+      </div>
+      <div style="margin-top:9px;color:var(--suave)">${esc(s.regla||'')}</div>
+    </div>`:'';
+  return `<div class="sanidad ${ok?'bien':'mal'}">
+    <h4><span class="badge b-${ok?'validado':'bloqueado'}">${ok?'SANO':'NO SANO'}</span>
+      Sanidad del tablero — ${s.n_violaciones} violación(es) en ${(s.invariantes||[]).length}
+      invariantes sobre ${s.n_motores} motores
+      <span class="abrir" onclick="SAN_ABIERTO=!SAN_ABIERTO;pintar()">${SAN_ABIERTO?'ocultar':'ver detalle'}</span>
+    </h4>
+    ${!fals.ok?`<div class="inv" style="color:var(--mal)"><strong>La auto-prueba de
+      falsabilidad falla:</strong> los invariantes no atrapan los engaños que los
+      motivaron, así que este status no significa nada.</div>`:''}
+    ${detalle}</div>`;
+}
+
 /* ---------- vista: galería ---------- */
 function galeria(cat){
   const lista=IDX.motores.filter(m=>!cat||m.categoria===cat);
   document.getElementById('migas').textContent=cat?`· ${cat}`:'· todos los motores';
   const c=IDX.cobertura,e=c.por_estado||{};
   const corridos=IDX.motores.filter(m=>m.origen_resultado==='corrida_local').length;
-  return `<div style="display:flex;gap:22px;flex-wrap:wrap;margin-bottom:18px;font-size:13px">
+  return panelSanidad()+`<div style="display:flex;gap:22px;flex-wrap:wrap;margin-bottom:18px;font-size:13px">
       ${[[c.total,'motores'],[corridos,'calculados aquí'],[e.validado||0,'validados'],
          [e.parcial||0,'parciales'],[e.bloqueado||0,'bloqueados'],
          [(c.solicitudes_abiertas||[]).length,'solicitudes abiertas']]
@@ -619,7 +682,13 @@ async function ejecutar(id,boton){
         const nuevo=await (await fetch(`/api/resultado/${id}`)).json();
         MOT[id]=nuevo;
         const it=IDX.motores.find(x=>x.id===id);
-        if(it){it.pct_mostrado=nuevo.pct_mostrado;it.origen_resultado=nuevo.origen_resultado;}
+        if(it){it.pct_mostrado=nuevo.pct_mostrado;it.origen_resultado=nuevo.origen_resultado;
+               it.pct_escala=nuevo.pct_escala;it.cobertura=nuevo.cobertura;
+               it.ejecutable=nuevo.ejecutable;}
+        // Una corrida puede cambiar la escala o la cobertura de una tarjeta, así
+        // que el status de sanidad se vuelve a pedir: dejar el badge en el valor
+        // con que se cargó la página sería publicar un verde caducado (INV-C3).
+        try{IDX.sanidad=await (await fetch('/api/sanidad')).json();}catch(e){}
         setTimeout(()=>{pintar();},700);
         break;
       }

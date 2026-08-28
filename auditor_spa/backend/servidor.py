@@ -10,6 +10,7 @@ Contrato del boton "Ejecutar" (el frontend nunca se bloquea):
     GET  /api/job/<job_id>  -> {"estado": "en_ejecucion"|"terminado"|"error",
                                 "avance": 0..100, "mensaje": "...", "motor": "..."}
     GET  /api/motores       -> el indice
+    GET  /api/sanidad       -> invariantes del propio tablero + status global
     GET  /api/resultado/<m> -> el JSON de ese motor, ya refrescado
 
 El trabajo corre en un hilo aparte y el frontend hace poll. Solo se admite UN
@@ -40,6 +41,7 @@ sys.path.insert(0, str(RAIZ_SPA / "backend"))
 
 import runner  # noqa: E402
 from motores import POR_ID  # noqa: E402
+import sanidad  # noqa: E402
 
 # job_id -> estado. En memoria: si el servidor se reinicia, los trabajos se
 # pierden, y esta bien — el resultado real vive en resultados/<motor>.json.
@@ -121,6 +123,12 @@ class Handler(SimpleHTTPRequestHandler):
             return self._json(200 if f.exists() else 404,
                               json.loads(f.read_text(encoding="utf-8")) if f.exists()
                               else {"error": "corre runner.py primero"})
+        if ruta == "/api/sanidad":
+            # Se RECALCULA en cada consulta, no se sirve el bloque congelado en
+            # el indice: una corrida puede haber cambiado un JSON desde la
+            # ultima vez que se genero el indice, y un status de sanidad viejo
+            # es exactamente el "no stale" que INV-C3 prohibe.
+            return self._json(200, sanidad.reporte(RESULTADOS))
         if ruta.startswith("/api/resultado/"):
             f = RESULTADOS / f"{ruta.rsplit('/', 1)[-1]}.json"
             return self._json(200 if f.exists() else 404,

@@ -152,15 +152,25 @@ class Motor:
             return (self.dossier_pct, "sin escala declarada")
         return None
 
-    def cobertura(self, hay_cruce: bool) -> str:
-        """De donde viene la cobertura de este motor: datos, config o nada.
+    def cobertura(self, hay_cruce: bool, escala: str | None = None) -> str:
+        """De que CLASE es la evidencia: datos, volumen, completitud, config o nada.
 
         Lo decide el backend y no el frontend, porque es una afirmacion sobre
         la EVIDENCIA, no una decision de presentacion. Si el SPA lo dedujera
         inspeccionando chips, dos vistas del mismo motor podrian contarlo
         distinto (§3.2 del brief).
+
+        `datos` no es un cajon para todo lo que trae porcentaje. Un cruce a
+        VOLUMEN (CAT) y una identidad de COMPLETITUD (contable, motor B) tienen
+        porcentaje y no tienen granularidad: meterlos en `datos` invita a
+        leerlos como precision aritmetica, que es exactamente como CAT termino
+        etiquetado "al 1e-8" (NORTE_SANIDAD INV-H2).
         """
         if hay_cruce:
+            if escala == "volumen":
+                return "volumen"
+            if escala == "completitud" or self.tolerancia_propia:
+                return "completitud"
             return "datos"
         if any(f.tipo == "config" for f in self.fuentes):
             return "config"

@@ -40,6 +40,7 @@ for p in (str(RAIZ_SPA / "backend"), str(VALIDADOR), str(COMPARADORES), str(ENTR
         sys.path.insert(0, p)
 
 from motores import MOTORES, POR_ID, resumen_cobertura  # noqa: E402
+import sanidad  # noqa: E402  (los invariantes del propio tablero)
 from tolerancias import resumen_tolerancias  # noqa: E402  (comparadores/, del bundle)
 
 try:
@@ -367,6 +368,43 @@ def estado_feeds() -> dict:
 
 # ---------------------------------------------------------------------------
 
+def escala_de_corrida(motor, cruce: dict) -> str:
+    """A que escala esta el % de una corrida propia. Se DERIVA y se VERIFICA.
+
+    El `pct_match` de una corrida es `n_ok / n` a la tolerancia del caso, asi
+    que la escala es esa tolerancia. Pero no basta con nombrarla: se comprueba
+    que el nivel correspondiente del bloque `match` reporte ESE mismo
+    porcentaje. Si no coincide —o si el motor no compara dos importes y por
+    eso no hay `match`— la salida es el "no lo se" explicito, nunca una
+    etiqueta puesta para cumplir con "ningun % sin escala". Esa fue justo la
+    forma del defecto de CAT (NORTE_SANIDAD §0).
+    """
+    # Identidad / completitud: su regla no admite holgura, asi que no hay
+    # granularidad que declarar. La escala ES la completitud.
+    if motor.tolerancia_propia:
+        return "completitud"
+
+    pct = cruce.get("pct_match")
+    match = cruce.get("match") or {}
+    niveles = {e["nombre"]: e["pct"] for e in match.get("escalas", [])}
+    if pct is None or not niveles:
+        return "sin escala declarada"
+
+    try:
+        tol = Decimal(str(cruce.get("tolerancia")))
+    except (InvalidOperation, TypeError):
+        return "sin escala declarada"
+    nombre = {Decimal("0.01"): "centavo",
+              Decimal("0.00001"): "1e-5",
+              Decimal("1E-8"): "1e-8"}.get(tol)
+    if nombre is None or nombre not in niveles:
+        return "sin escala declarada"
+    # La verificacion: si el nivel no reporta el mismo numero, no es su escala.
+    if Decimal(niveles[nombre]) != Decimal(pct):
+        return "sin escala declarada"
+    return nombre
+
+
 def construir(motor, autopruebas: dict, con_bd: bool, params: dict,
               desde_evidencia: bool = False) -> dict:
     d = motor.como_dict()
@@ -386,6 +424,13 @@ def construir(motor, autopruebas: dict, con_bd: bool, params: dict,
     if d["cruce"] and d["cruce"].get("origen_resultado") == "corrida_local":
         d["origen_resultado"] = "corrida_local"
         d["pct_mostrado"] = d["cruce"]["pct_match"]
+        # La escala de un numero CALCULADO AQUI sale de la corrida, no de la
+        # cita. `como_dict()` la tomo de `dossier_match`, que para un motor que
+        # corrimos nosotros puede no existir: sin esto, IFRS9 publicaba
+        # "100.00%" pelon y VISTA decia "sin escala declarada" teniendo la
+        # escala a la mano. Decir "no lo se" de algo que si se sabe es el mismo
+        # subreporte que esconder cobertura buena tras un guion (§3.2).
+        d["pct_escala"] = escala_de_corrida(motor, d["cruce"])
     elif motor.dossier_pct:
         d["origen_resultado"] = "dossier"
         # Se muestra el % del CENTAVO cuando la matriz lo tiene, con su escala
@@ -401,7 +446,8 @@ def construir(motor, autopruebas: dict, con_bd: bool, params: dict,
     # elige su texto por `cobertura`, no por si hay porcentaje: un guion donde
     # hay validacion real esconde evidencia buena, que es el problema-espejo del
     # all-pass.
-    d["cobertura"] = motor.cobertura(hay_cruce=d["pct_mostrado"] is not None)
+    d["cobertura"] = motor.cobertura(hay_cruce=d["pct_mostrado"] is not None,
+                                     escala=d.get("pct_escala"))
     d["ejecutable"] = _caso_vigente(motor) and not motor.depende_de_logs
     if d["ejecutable"]:
         d["motivo_no_ejecutable"] = None
@@ -481,6 +527,13 @@ def main(argv=None) -> int:
                     d["cruce"] = ant
                     d["origen_resultado"] = "corrida_local"
                     d["pct_mostrado"] = ant.get("pct_match")
+                    # La corrida conservada publica igual que la recien hecha:
+                    # su escala y su clase de cobertura se recalculan aqui. Si
+                    # este camino se saltara ese paso, el mismo motor diria una
+                    # cosa con --con-bd y otra sin el.
+                    d["pct_escala"] = escala_de_corrida(motor, ant)
+                    d["cobertura"] = motor.cobertura(hay_cruce=True,
+                                                     escala=d["pct_escala"])
                     d["cruce"]["conservado_de_corrida_previa"] = True
                     if fallido:
                         d["cruce"]["ultimo_intento_fallido"] = {
@@ -490,6 +543,11 @@ def main(argv=None) -> int:
             except Exception:  # noqa: BLE001
                 pass
 
+        # El claim va DENTRO del JSON con el mismo esquema que consume
+        # `comparadores/sanity_check.py` del lado de Finsus: asi el tablero y
+        # el repo de validacion se auditan con la misma vara y los mismos
+        # invariantes (NORTE_SANIDAD §7).
+        d["claim"] = sanidad.claim_de(d)
         previo.write_text(json.dumps(d, indent=2, ensure_ascii=False), encoding="utf-8")
         marca = {"corrida_local": "corrida", "dossier": "citado ", "sin_cruce": "sin cruce"}[d["origen_resultado"]]
         pct = d["pct_mostrado"] or "—"
@@ -525,6 +583,10 @@ def main(argv=None) -> int:
         "motores": indice,
         "cobertura": resumen_cobertura(),
         "feeds": estado_feeds(),
+        # El tablero se audita a si mismo con la misma vara del proyecto: cada
+        # invariante devuelve las cards que lo violan. Va en el indice, visible
+        # en el home, porque un status de sanidad escondido no es un status.
+        "sanidad": sanidad.reporte(RESULTADOS),
         "advertencia": ("Verde no es aprobado. El % viene de una validacion que devuelve las filas "
                         "que violan la regla; los no-conformes se explican, nunca se ocultan. El "
                         "dictamen lo emite el humano."),

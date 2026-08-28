@@ -123,6 +123,30 @@ nada" — hay que separarlas:
 `evidencia_config` (texto, p.ej. "lc_reserve_ifrs 37/37"), y `ejecutable` (bool + `motivo_no_ejecutable`). La card
 elige el texto según `cobertura`, no según si hay `pct`.
 
+### 3.3 Motores CITADOS (número del dossier/matriz, no recalculado por el tablero)
+Hay motores cuyo % **no lo calculó este tablero**: se **cita** de una corrida del repo de validación (DOSSIER /
+`MATRIZ_TOLERANCIAS.md`). Regla dura para no repetir el problema-espejo en su forma más sutil:
+- **Nunca muestres un porcentaje sin su escala.** Un `81.10%` solo, sin decir "a 1e-8", hace concluir a un lector
+  razonable que el motor falla 1 de cada 5 veces. Es falso: es el número **más estricto**, no el de negocio.
+- **Cita las tres granularidades** desde la matriz (1e-8 / 1e-5 / centavo), con los `[PEND]` **marcados como tales,
+  no omitidos**.
+- **El titular es el del centavo** (la tolerancia de negocio — lo que le importa al cliente y a la contabilidad); el
+  estricto (1e-8) **no se esconde**: va en las barras, debajo, con la **lectura del escalón**.
+- **Etiqueta la procedencia:** "Citado de `MATRIZ_TOLERANCIAS.md` (n = … · sesgo: …). Este tablero NO lo recalculó."
+- Ejemplo canónico — **CRED-MOR (moratorio)**:
+  ```
+  95.70%   al centavo            ← titular (tolerancia de negocio)
+    1e-8      81.10%
+    1e-5      [PEND]
+    centavo   95.70%
+  El escalón 81.10% → 95.70% es diagnóstico: residuo sub-centavo, granularidad del snapshot, no defecto del motor.
+  Citado de MATRIZ_TOLERANCIAS.md (n = 1,274 · sesgo: no). Este tablero NO lo recalculó.
+  ```
+- **Invariante de prueba** (protege esto): el titular debe salir de la matriz citada **y siempre llevar su escala**.
+  No pruebes "pct_mostrado == dossier_pct" (detalle de implementación); prueba que **ningún % se muestra sin escala**.
+- `citar ≠ calcular` sigue vigente: si el motor tiene **feed/caso ejecutable disponible**, ofrécelo como "calcular
+  aquí" (botón), pero mientras se cita, se cita **completo y con contexto**, no con la cifra que peor se ve.
+
 ### Motores a incluir (del DOSSIER)
 Plazo · Vista* · Saldo promedio* · ISR · ISR-vivo* · Crédito ordinario · Crédito moratorio · Crédito días ·
 IVA · GAT inversión · IFRS 9 etapas+% · Amortización · CAT · Motor B · Contable · WSO2.

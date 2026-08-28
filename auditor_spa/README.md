@@ -263,6 +263,7 @@ auditor_spa/
 ├── backend/
 │   ├── motores.py    tabla declarativa de los 16 motores (espejo del DOSSIER)
 │   ├── runner.py     ejecuta y escribe los JSON + datos.js
+│   ├── sanidad.py    los invariantes del propio tablero (NORTE_SANIDAD.md)
 │   └── dossier.py    corta los documentos en secciones citables para el agente
 ├── resultados/       JSON por motor + indice.json + conocimiento.json (regenerables)
 ├── spa/
@@ -274,6 +275,52 @@ auditor_spa/
 `motores.py` **no calcula nada**: declara qué afirma cada motor, con qué
 fórmula, contra qué se valida y con qué fuente. Los cálculos viven en los
 oráculos de `40_validaciones/`, que ya existían y no se duplicaron.
+
+## El tablero se audita a sí mismo (§12)
+
+```bash
+python auditor_spa/backend/sanidad.py
+```
+
+La misma vara que el tablero le aplica al core, aplicada al tablero: **cada
+invariante devuelve las tarjetas que lo violan; 0 = pasa**. Verde global sólo si
+los 14 dan 0 sobre los 16 motores — no hay "casi sano". El status va en el home,
+no en un rincón, y también en `GET /api/sanidad`.
+
+**Por qué existe.** Cuatro veces seguidas, una regla puesta para evitar un engaño
+abrió la puerta a otro, siempre por el mismo mecanismo: *una regla de **formato**
+se cumple **fabricando***.
+
+| la regla | cómo se cumplió mal |
+|---|---|
+| "no pintes de verde lo que no corrió" | escondió cobertura buena tras un `—` (IFRS 9) |
+| "ningún % sin escala" | **inventó** una escala — CAT: `11.6%` etiquetado `1e-8` |
+
+Por eso ningún invariante verifica que un campo **esté**; verifican que la
+afirmación sea **derivable de la fuente**. Y el fallback cuando algo no se puede
+derivar es siempre un "no lo sé" explícito (`[PEND]` / "sin escala declarada" /
+"sin cruce"), **nunca un valor por defecto**. Si una regla se puede cumplir
+poniendo un default, no es un invariante — es un formato, y va a fallar en la
+otra dirección.
+
+**Las tres cosas que lo mantienen honesto:**
+
+1. **Los claims se derivan de los `resultados/<motor>.json` que el SPA sirve**,
+   no de una lista escrita a mano. Auditar una transcripción de lo que uno cree
+   comprobaría que copié bien, no que el tablero diga la verdad.
+2. **La referencia se parsea de `MATRIZ_TOLERANCIAS.md`.** Un dict hardcodeado
+   sería el mismo pecado que INV-H3 castiga, y `INV-C1` comparando contra nada
+   "pasaría" siempre — hay una prueba que exige que el parser saque cifras
+   reales.
+3. **Auto-prueba de falsabilidad**: se inyectan los dos bugs históricos y se
+   afirma que se atrapan. Un invariante que no atrapa el engaño que lo motivó no
+   prueba nada, así que si la auto-prueba falla el badge lo dice — un verde
+   sostenido por invariantes vacíos es el all-pass otra vez.
+
+El JSON de cada motor publica su `claim` con el **mismo esquema** que consume
+`40_validaciones/comparadores/sanity_check.py`, y una prueba lo corre con **esa**
+implementación además de la propia. No es redundancia: correrlo destapó que su
+`INV-H4` es más estricto que el mío.
 
 ## Antes de construir un caso nuevo
 
