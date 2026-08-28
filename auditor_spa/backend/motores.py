@@ -156,9 +156,14 @@ MOTORES: tuple[Motor, ...] = (
                  "exacta de `dt` (inclusivo en ambos extremos, el dia de fondeo no cuenta) y el "
                  "SPM-de-RENDIMIENTO, que Finsus dice se guarda en la poliza de intereses y PUEDE "
                  "DIFERIR del average de consulta. En transaction_detail no esta."),
-        no_conformes=("El 18% que no cuadra NO se puede atribuir todavia ni al motor ni al metodo: "
-                      "falta el SPM de la poliza para comparar contra lo correcto. El riesgo del "
-                      "redondeo si se cerro: Finsus confirmo half-up sin arrastre del sub-centavo."),
+        no_conformes=("Corrida del 2026-08-28 sobre el posteo del 31-jul (5,000 cuentas): 91.52% "
+                      "conforme, 424 no conformes, y la prueba de signo marca SESGO. El sesgo es "
+                      "del METODO, no de AurumCore, y se puede demostrar: de esos 424, "
+                      "378 (89%) no tienen NINGUN dt entero que reproduzca el posteo — el SPM que "
+                      "leemos no es el que uso el core — y de los 46 restantes, 44 tienen un dt "
+                      "real MENOR que el nuestro. Las dos causas empujan C por arriba de B, que es "
+                      "el signo observado. Leerlo como defecto del motor de vista seria una "
+                      "acusacion falsa; se cierra con el SPM de la poliza (SOL-003)."),
         clase_no_conforme="data-sourcing", solicitudes=("SOL-003",), depende_de_logs=False,
         caso_validador="REND-VISTA", autopruebas="reproduce el 30.14 del doc",
     ),

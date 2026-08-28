@@ -147,10 +147,22 @@ def fila_rendimiento_plazo(fila: dict, params: dict) -> Decimal:
 
 
 def fila_rendimiento_vista(fila: dict, params: dict) -> Decimal:
+    """Adaptador de REND-VISTA.
+
+    La formula que confirmo Finsus (2026-08-24) es
+        interes = SPM x dt x tasa / 36000
+    que es EXACTAMENTE `rendimiento_vista(spm, tasa, dt, 360)`: dividir entre
+    36000 es dividir entre 100 y entre 360. Se reusa el oraculo ya autoprobado
+    contra el ejemplo del doc en vez de escribir la formula otra vez — dos
+    implementaciones de la misma regla son dos cosas que pueden divergir.
+
+    `dt` son los dias efectivamente DEVENGADOS, no los naturales del mes: la
+    cuenta abierta a media mes devenga menos. Lo calcula la consulta.
+    """
     return rendimiento_vista(
         spm=fila["saldo_promedio"],
         tasa=fila.get("tasa") or params["tasa"],
-        dias_periodo=fila["dias_periodo"],
+        dias_periodo=fila.get("dias_devengados") or fila["dias_periodo"],
         dias_anio=params["dias_anio"],
     )
 

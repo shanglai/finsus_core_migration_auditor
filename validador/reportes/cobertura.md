@@ -1,18 +1,18 @@
 # Cobertura del VALIDADOR — que se corrio, que no y que esta bloqueado
 
-> Generado: 2026-08-21T23:54:39+00:00 · `python cli.py --cobertura`
+> Generado: 2026-08-28T10:42:53+00:00 · `python cli.py --cobertura`
 >
 > **NO-CORRIDO NO ES PASO.** Un caso que no se ejecuto no aporta cobertura y no
 > puede pintarse verde en ningun tablero. Esta tabla existe para que la ausencia
 > de evidencia sea tan visible como la evidencia (charter §5.3).
 
-**4 de 16 casos corridos** · 2 con hallazgo · 12 sin corrida util.
+**5 de 16 casos corridos** · 3 con hallazgo · 11 sin corrida util.
 
 | caso | motor | sev | estado catalogo | ultima corrida | fecha | violaciones | evidencia |
 |---|---|---|---|---|---|---|---|
 | **BALANZA-D** | CTB | 2 | PARCIAL | NO-CORRIDO · nunca ejecutado | — | — | — |
 | **COMPLETITUD** | MOV | 1 | PARCIAL | NO-CORRIDO · nunca ejecutado | — | — | — |
-| **CONTABLE-B1** | CTB | 1 | VALIDADO | corrido · cero violaciones | 2026-08-21 | 0 | CONTABLE-B1_2026-08-21_125dff5b0603 |
+| **CONTABLE-B1** | CTB | 1 | VALIDADO | corrido · cero violaciones | 2026-08-28 | 0 | CONTABLE-B1_2026-08-28_abc2e91de338 |
 | **CONTABLE-C** | CTB | 1 | PENDIENTE | NO-CORRIDO · nunca ejecutado | — | — | — |
 | **CRED-IO** | COL | 1 | PENDIENTE | NO-CORRIDO · nunca ejecutado | — | — | — |
 | **CUENTAHAB-01** | MIG | 2 | BLOQUEADO | NO-CORRIDO · nunca ejecutado | — | — | — |
@@ -22,9 +22,9 @@
 | **ISR-01** | FIS | 1 | PARCIAL | NO-CORRIDO · error de ejecucion | 2026-08-21 | — | ISR-01_2026-08-21_06d1a7859246 |
 | **ISR-02** | FIS | 2 | VALIDADO | NO-CORRIDO · nunca ejecutado | — | — | — |
 | **ISR-03** | FIS | 1 | VALIDADO | corrido · CON VIOLACIONES | 2026-08-21 | 1 | ISR-03_2026-08-21_a61c52894d7e |
-| **REND-PLAZO** | DEV | 1 | VALIDADO | corrido · cero violaciones | 2026-08-21 | 0 | REND-PLAZO_2026-08-21_eaf41933beb4 |
-| **REND-VISTA** | DEV | 1 | PARCIAL | NO-CORRIDO · nunca ejecutado | — | — | — |
-| **SALDO-PROM** | DEV | 1 | BLOQUEADO | NO-CORRIDO · nunca ejecutado | — | — | — |
+| **REND-PLAZO** | DEV | 1 | VALIDADO | corrido · cero violaciones | 2026-08-28 | 0 | REND-PLAZO_2026-08-28_62b2d08afb0a |
+| **REND-VISTA** | DEV | 1 | PARCIAL | corrido · SESGO DETECTADO (severidad 1) | 2026-08-28 | 424 | REND-VISTA_2026-08-28_4f276056500d |
+| **SALDO-PROM** | DEV | 1 | PARCIAL | NO-CORRIDO · nunca ejecutado | — | — | — |
 | **WRITEOFFS** | CTB | 2 | PENDIENTE | NO-CORRIDO · nunca ejecutado | — | — | — |
 
 ## Casos que hoy NO se pueden correr (y por que)
@@ -50,8 +50,9 @@
      la ventana (2025-08-22..2026-08-20). Con base 0 el oraculo devuelve 0 y
      las 27 diferencias salieron todas del mismo signo.
 Las 27 violaciones de esa corrida son defecto de ESTA consulta, no de AurumCore, y asi quedaron registradas. Reconstruir el universo siguiendo el metodo de comparadores/isr_live_nativo.py es el siguiente paso. | K-FIS-002, K-FIS-004, S-FIS-001, K-DEV-001, C-002 |
-| REND-VISTA | SQL de aurum PENDIENTE; SQL de openfin PENDIENTE; Falta la consulta de extraccion: el universo depende del saldo promedio mensual, cuya definicion exacta sigue abierta en P-006, y de la corrida viva del 31-ago (P-015) que aun no existe. El oraculo esta listo y autoprobado; lo que falta es el dato, no la regla. | K-DEV-002, K-DEV-001, K-TMP-001 |
-| SALDO-PROM | SQL de aurum PENDIENTE; P-006 abierta. La formula (F-022) esta declarada, pero la correspondencia con lo que el CORE registra no se ha corroborado contra los logs (traza "Calculating with average balance"). Ademas account_balance_tracking arranca ~ago-2025 y no reconstruye cuentas viejas. | K-DEV-002, P-006 |
+| SALDO-PROM | SQL de aurum PENDIENTE; [DESTRABADO PARCIAL 2026-08-24] Ya NO se depende de esperar al 31-ago. Finsus confirmo la formula y su insumo esta en la BD: `aurumcore.finsus_account_history` (105M filas, por cuenta y por dia: average_balance_amount, interest_rate, balance_amount, iv_term_days). Base 360:
+    interes = SPM x dt x tasa / 36000
+Reconcilio al centavo en el caso limpio (cuenta 6de5351e: 10,165.70 x 31 x 4% / 36000 = 35.02 = posteado) y al 82.1% a volumen sobre los posteos reales del 31-jul. Lo que FALTA para cerrar: (1) la convencion exacta de `dt` — inclusivo en ambos extremos y el dia de fondeo no cuenta — y (2) el SPM-de-RENDIMIENTO, que Finsus dice se guarda en la poliza de intereses y PUEDE DIFERIR del average de consulta. Ese SPM no esta en transaction_detail. Mientras (2) no se resuelva, el 18% residual no se puede atribuir ni al motor ni al metodo. | K-DEV-002, P-006 |
 | WRITEOFFS | oraculo PENDIENTE (falta pieza de conocimiento); SQL de aurum PENDIENTE; Falta la pieza de conocimiento: no hay K-* que documente esta regla, solo una afirmacion en F-023 §1. Primer paso es crear la pieza, no escribir codigo. | F-023, P-006 |
 
 > Cada linea de esta tabla es un hueco de cobertura declarado. Cerrarlo exige
@@ -72,6 +73,14 @@ Las 27 violaciones de esa corrida son defecto de ESTA consulta, no de AurumCore,
 - celda dominante de la matriz A/B/C: `B=C (sin A)`
 - matriz: {'B=C (sin A)': 3, 'B!=C (sin A)': 1}
 - evidencia: `ISR-03_2026-08-21_a61c52894d7e`
+
+### REND-VISTA — Interes y capitalizacion de cuenta vista/ahorro
+
+- veredicto: **SESGO** · violaciones: **424** de 5000 filas
+- celda dominante de la matriz A/B/C: `B=C (sin A)`
+- matriz: {'B=C (sin A)': 4576, 'B!=C (sin A)': 424}
+- **sesgo detectado** (p=9.81241e-82): Sesgo positivo (C > B): 411 de 447 diferencias no nulas caen del mismo lado. Severidad 1 (charter §1.7): el agregado esta mal aunque cada evento respete la tolerancia.
+- evidencia: `REND-VISTA_2026-08-28_4f276056500d`
 
 > Recordatorio (§7.3): **cada hallazgo confirmado se convierte en un invariante**
 > permanente en `tests/`. La red de regresion solo crece.

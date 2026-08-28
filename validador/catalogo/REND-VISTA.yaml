@@ -8,15 +8,16 @@ norte_ref: \"NORTE_VALIDACION.md §1 DEV 2.1.1 — Interes propio vista/ahorro\"
 tolerancia: {tipo: redondeo, max_evento: "0.01", prueba_sesgo: true, alfa_sesgo: "0.01"}
 
 parametros:
-  - {nombre: cohorte, tipo: lista_cuentas, requerido: true, nota: "productos 2006/2011/2012/2013/2015/2017/2019"}
-  - {nombre: fecha_ini, tipo: fecha, requerido: true}
-  - {nombre: fecha_fin, tipo: fecha, requerido: true}
-  - {nombre: tasa, tipo: decimal, requerido: true}
-  - {nombre: dias_anio, tipo: decimal, default: "360"}
+  - {nombre: fecha_cap, tipo: fecha, requerido: true,
+     nota: "fecha del evento de capitalizacion. Hay uno por mes: 2026-06-30, 2026-07-31. El del 31-ago aun no ocurre."}
+  - {nombre: limite, tipo: entero, default: 5000,
+     nota: "cota de la muestra. El posteo del 31-jul son 166,526 cuentas."}
+  - {nombre: dias_anio, tipo: decimal, default: "360", nota: "base confirmada por Finsus 2026-08-24"}
+  - {nombre: tasa, tipo: decimal, requerido: false,
+     nota: "normalmente viene por fila desde finsus_account_history.interest_rate"}
 
 extraccion:
-  aurum: PENDIENTE
-  openfin: PENDIENTE
+  aurum: validador/extraccion/aurum/rend_vista_universo.sql
 
 oraculo: oraculos/rendimientos.py::fila_rendimiento_vista
 universo: {fuente: aurum}
@@ -33,7 +34,19 @@ identidad: >-
   referencia "Capitaliza Interes DD/MM/AAAA, Retencion:N", source = target),
   dentro de +/- 0.01 y sin sesgo.
 
-matriz_esperada: "B == C obligatorio. Sin A al mismo grano."
+matriz_esperada: >-
+  B == C obligatorio, PERO el residuo de hoy no es atribuible al motor. Corrida
+  del 2026-08-28 sobre el posteo real del 31-jul (5,000 cuentas): 4,576
+  conformes = 91.52%, 424 no conformes, y la prueba de signo marca SESGO
+  (411 positivas contra 36 negativas, p ~ 1e-82).
+  El sesgo es del METODO, no de AurumCore, y se puede demostrar: de los 424 no
+  conformes, 378 (89%) NO tienen NINGUN dt entero entre 1 y 31 que reproduzca
+  el posteo — es decir, el SPM que leemos no es el que uso el core — y de los
+  46 restantes, 44 tienen un dt real MENOR que el nuestro, o sea que nuestra
+  regla cuenta dias de mas. Las dos causas empujan C por arriba de B, que es
+  exactamente el signo del sesgo observado.
+  Reportar esto como "sesgo sistematico del motor de vista, severidad 1" seria
+  una acusacion falsa. Queda como data-sourcing hasta tener el SPM de la poliza.
 
 estado: PARCIAL
 estado_origen: "NORTE_VALIDACION.md §1 DEV 2.1.1: PARCIAL, corrida viva 31-ago sin validar (P-015)"
@@ -46,7 +59,15 @@ bloqueo: >-
   rendimiento de la poliza (ver SALDO-PROM). La corrida viva del 31-ago sigue
   siendo la observacion directa del motor, pero ya no es el unico camino.
 cobertura_nota: >-
-  Regla y ejercicio migrado OK. Redondeo CONFIRMADO por Finsus 2026-08-24:
-  half-up a 2 decimales, sin arrastre del sub-centavo entre meses — cierra el
-  riesgo latente que el doc dejaba abierto. Este VALIDADOR aun no lo ha corrido.
+  CORRIDO por este validador el 2026-08-28 contra el posteo del 31-jul:
+  91.52% sobre 5,000 cuentas (el posteo completo son 166,526). Supera al 82.1%
+  que reporta el DOSSIER, por la regla de dt y el redondeo half-up confirmado.
+  Comparativo de reglas de dt medido sobre la misma muestra:
+  dt = 31 fijo 89.5% · dt = regla de Finsus 91.9%.
+  El caso deja de ser "citado" y pasa a "calculado aqui".
 solicitudes: [SOL-003]
+
+supuestos:
+  - "dt (dias devengados) se deriva de la fecha de activacion: el dia de fondeo NO cuenta y los extremos son inclusivos. Es la regla que Finsus describio el 2026-08-24, todavia SIN documento formal. Medida sobre el posteo real del 31-jul (1,500 cuentas) da 91.9%, contra 89.5% con dt=31 fijo."
+  - "El SPM se lee de finsus_account_history.average_balance_amount, que es el SPM de CONSULTA. Finsus advierte que el SPM de RENDIMIENTO se guarda en la poliza de intereses y PUEDE DIFERIR. Confirmado en la corrida: 378 de 5,000 cuentas (7.6%) no tienen NINGUN dt entero que reproduzca el posteo, asi que para ellas el SPM simplemente no es el correcto. Sin la poliza ese residuo no se cierra, y NO es defecto del motor."
+  - "La prueba de signo marca sesgo, y el sesgo es NUESTRO: mide el error del metodo (dt sobreestimado + SPM equivocado), no un defecto de AurumCore. El tablero lo muestra igual — ocultar la bandera seria peor — pero la lectura correcta esta escrita en matriz_esperada."
