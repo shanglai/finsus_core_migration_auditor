@@ -280,6 +280,49 @@ Cubre solo lo que la fuente sustenta. Lo que quede fuera **se escribe en el caso
 - Precisión de base / snapshot / P-019: `COMPARACION_C_vs_DOC.md`, `DOSSIER_MOTORES_ORACULO_C.md`,
   `MATRIZ_TOLERANCIAS.md`, `tolerancias.py`, `K-DAT-002`.
 - Tres granularidades y prueba de sesgo: `MATRIZ_TOLERANCIAS.md`, `comparadores/tolerancias.py`.
+- **Caso ejecutable ya especificado (ejemplo de alcance declarado):** `CASO_CAT-01_estratificado.md` (CAT sobre el
+  estrato per-contrato; motor `comparadores/oraculo_cat.py`). Es el patrón a seguir para convertir un "% a volumen"
+  en un cuadre calculado con sus tres granularidades, sin prometer el 100% sobre estratos que no son un cálculo.
+
+---
+
+## 12. Sanidad del tablero (invariantes falsables + status global) — OBLIGATORIO
+El tablero se audita **a sí mismo** con la misma vara del proyecto: cada afirmación mostrada pasa por invariantes
+que **devuelven las cifras que los violan** (0 = pasa). Fuente de verdad: **`NORTE_SANIDAD.md`**; implementación
+canónica a espejar: **`comparadores/sanity_check.py`**.
+
+### 12.1 Por qué (la lección de las 4 recurrencias)
+Cada regla de **formato** ("ningún % sin escala") se cumple **fabricando** (inventar la escala de CAT). Por eso los
+invariantes verifican **la verdad de la afirmación** (que sea derivable de la fuente), **no la presencia de un campo**.
+El *fallback* cuando un dato no se puede derivar es **siempre un "no lo sé" explícito** (`[PEND]` / "sin escala
+declarada" / "sin cruce"), **nunca un valor por defecto**. Si tu regla se puede cumplir poniendo un default, no es un
+invariante — es un formato, y fallará en la otra dirección.
+
+### 12.2 Qué construir
+1. **Esquema de claim** por motor en `resultados/<motor>.json` (el mismo que consume `sanity_check.py`):
+   `motor`, `cobertura` (`datos|volumen|config|completitud|sin_cruce`), `titular {escala, valor}`,
+   `escalas {1e-8, 1e-5, centavo, …}` (con `[PEND]` marcados, **no** omitidos), `evidencia_config`, `ejecutable`,
+   `feed`, `caso`, `fuente`, `n`, `sesgo`.
+2. **Suite de invariantes** (familias H/E/C/T de `NORTE_SANIDAD.md`) corriendo sobre todos los claims. Reusa/porta
+   `sanity_check.py`; cada invariante devuelve las cards que lo violan.
+3. **Badge de status global en la UI**: `SANO` (verde, 0 violaciones) / `NO SANO` (rojo, con el detalle por
+   invariante). Visible en el home, no escondido. Es lo primero que ve el auditor.
+4. **Auto-prueba de falsabilidad** en la suite: inyecta los 2 bugs históricos (CAT `11.6` etiquetado `1e-8`; MOR
+   titular `81.1` ocultando el centavo) y **afirma que se atrapan**. Un invariante que no atrapa su bug es vacío.
+
+### 12.3 Invariantes mínimos (detalle en `NORTE_SANIDAD.md`)
+- **H1** escala obligatoria · **H2** escala verdadera (no supuesta; una granularidad no se cuelga de un número que
+  es `volumen`/`config`) · **H3** prohibido el default fabricado · **H4** procedencia · **H5** titular = centavo.
+- **E1** verde solo con corrida · **E2** sin-cruce ≠ pase · **E3** config exhibe evidencia · **E4** botón activo solo
+  con feed+caso.
+- **C1** misma cifra que `MATRIZ_TOLERANCIAS.md`/`COMPARACION` · **C2** `n`/sesgo coinciden · **C3** no stale (si hay
+  `RESULTADO_*` más reciente que cambia la cifra, se actualiza o se marca la fecha).
+- **T1** cita o degrada · **T2** `[PEND]` visible, no rellenado.
+
+### 12.4 Regla operativa
+El tablero **no publica** con status `NO SANO` sin mostrar las violaciones. El badge de sanidad es parte del entregable,
+igual que los resultados. **Verde global = 0 violaciones en todos los invariantes y todos los motores** — no hay
+"casi sano".
 
 **Recuerda:** el valor del tablero está en los **no-conformes bien explicados**, no en los verdes. Ese es el
 diferenciador del tercero independiente.

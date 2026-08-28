@@ -483,8 +483,13 @@ function detalle(id){
     const M=cr.match,e={};M.escalas.forEach(x=>e[x.nombre]=x);
     const p8=num(e['1e-8'].pct),pc=num(e['centavo'].pct);
     let lectura;
-    if(p8>=99.995) lectura=`<strong>Cuadre exacto.</strong> Coincide a 8 decimales: es el mismo cálculo que el core, bit a bit. Es la lectura más fuerte posible.`;
-    else if(pc-p8>=5) lectura=`<strong>El escalón ${e['1e-8'].pct}% → ${e['centavo'].pct}% es diagnóstico:</strong> el residuo es sub-centavo, o sea granularidad del snapshot, <em>no defecto del motor</em>.`;
+    // Si el motor DECLARA la lectura de su escalón, esa gana. La plantilla de
+    // abajo vale para casi todos los motores y para alguno es falsa; aplicarla
+    // a ciegas sería afirmar un diagnóstico que nadie verificó — la misma
+    // fabricación que los invariantes persiguen, pero en la prosa.
+    if(m.lectura_escalon) lectura=`<strong>Lectura de este motor:</strong> ${esc(m.lectura_escalon)}`;
+    else if(p8>=99.995) lectura=`<strong>Cuadre exacto.</strong> Coincide a 8 decimales: es el mismo cálculo que el core, bit a bit. Es la lectura más fuerte posible.`;
+    else if(pc-p8>=5) lectura=`<strong>Escalón ${e['1e-8'].pct}% → ${e['centavo'].pct}%.</strong> La lectura <em>habitual</em> de un escalón ancho es residuo sub-centavo — granularidad del snapshot, no defecto del motor. Este motor no la ha declarado, así que <em>hay que verificarla en el detalle del caso</em> antes de darla por buena.`;
     else if(pc<95) lectura=`<strong>Baja también al centavo (${e['centavo'].pct}%):</strong> hay diferencia <em>material</em> que investigar — defecto, linaje o dato faltante.`;
     else lectura=`El escalón entre granularidades es pequeño: el residuo no es sólo de redondeo.`;
     const sg=M.sesgo;

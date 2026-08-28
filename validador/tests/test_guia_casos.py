@@ -140,3 +140,54 @@ def test_los_casos_ejecutables_declaran_supuestos():
         if c.ejecutable:
             assert c.supuestos, (f"{cid} es ejecutable y no declara ni un supuesto. "
                                  f"Correr contra datos siempre exige decidir algo.")
+
+
+# --- CAT-01: la particion es el caso, no el porcentaje ---------------------
+
+def test_cat01_acota_el_universo_al_estrato_per_contrato():
+    """El universo NO puede incluir las constantes copiadas.
+
+    Comparar el oraculo contra un `cat` que 15,300 contratos comparten no mide
+    el motor: mide el campo. Si alguien quitara el filtro para "subir el
+    porcentaje", el caso dejaria de probar lo que dice probar.
+    """
+    caso = CASOS["CAT-01"]
+    sql = (config.RAIZ.parent / caso.extraccion["aurum"]).read_text(encoding="utf-8")
+    assert "umbral_constante" in sql, "el estrato de constantes no se esta excluyendo"
+    assert "c.cat <> 0" in sql, "los contratos con cat = 0 no se estan excluyendo"
+    assert "k.cat is null" in sql, "falta el anti-join contra las constantes"
+
+
+def test_cat01_declara_lo_que_deja_fuera():
+    """Un universo acotado sin el conteo de lo excluido se lee como cobertura total."""
+    caso = CASOS["CAT-01"]
+    nota = caso.cobertura_nota
+    for estrato in ("constante copiada", "cat = 0", "varia por contrato"):
+        assert estrato in nota, f"la nota de cobertura no declara el estrato {estrato!r}"
+    assert "no es una meta" in nota, (
+        "el caso debe decir explicitamente que subir el 11.60% a ~100% NO es la meta: "
+        "seria comparar contra constantes hasta que cuadren")
+
+
+def test_cat01_redondea_como_el_core():
+    """§11.2: half-up antes de comparar. Sin esto la prueba de signo marcaba
+    sesgo espurio (p=0.0089) que desaparecio al redondear (p=0.67)."""
+    from oraculos import cat as ocat
+    fuente = (config.RAIZ / "oraculos" / "cat.py").read_text(encoding="utf-8")
+    assert "Round2" in fuente, "el oraculo de CAT no redondea half-up como el core"
+    fila = {"contrato": "X", "monto": "96010", "comision_pct": 0, "comision_fija": 0,
+            "pago_sin_iva": ["105500"], "dias": [90]}
+    v = ocat.fila_cat(fila, {})
+    assert v == v.quantize(v.__class__("0.01")), f"CAT sin redondear a dos decimales: {v}"
+    # el ejemplo del doc: ~45.8%
+    assert abs(v - v.__class__("45.8")) < 1, f"el oraculo no reproduce el ejemplo del doc: {v}"
+
+
+def test_cat01_no_inventa_un_cat_cuando_no_hay_flujo():
+    """Devolver 0 en un contrato sin pagos futuros fabricaria justo el cero que
+    A28-CAT-CERO denuncia."""
+    import pytest as _pytest
+    from oraculos import cat as ocat
+    with _pytest.raises(ValueError):
+        ocat.fila_cat({"contrato": "X", "monto": "1000", "comision_pct": 0,
+                       "comision_fija": 0, "pago_sin_iva": [], "dias": []}, {})

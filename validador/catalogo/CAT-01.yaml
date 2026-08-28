@@ -1,0 +1,93 @@
+id: CAT-01
+titulo: CAT — Costo Anual Total sobre el estrato donde el campo SI es per-contrato
+motor: COL
+dominio: COL
+regla_ref: [C-006, F-023]
+severidad: 2
+norte_ref: "NORTE_VALIDACION.md §1 COL — CAT (Costo Anual Total)"
+tolerancia: {tipo: redondeo, max_evento: "0.01", prueba_sesgo: true, alfa_sesgo: "0.01"}
+
+parametros:
+  - {nombre: umbral_constante, tipo: entero, default: 100,
+     nota: "cuantos contratos deben compartir un mismo `cat` para tratarlo como constante copiada y no como calculo"}
+  - {nombre: limite, tipo: entero, default: 20000, nota: "cota de la extraccion"}
+
+extraccion:
+  aurum: validador/extraccion/aurum/cat_per_contrato.sql
+
+oraculo: oraculos/cat.py::fila_cat
+universo: {fuente: aurum}
+
+comparacion:
+  tipo: igualdad_montos
+  llaves: [contrato]
+  columna_b: cat_almacenado
+  columna_c: cat_oraculo
+  fuente_b: aurum
+
+identidad: >-
+  Para todo contrato cuyo `lc_loan_contract.cat` VARIA por contrato:
+  C = tasa anual que iguala VP(monto - comision de apertura) = VP(pagos sin IVA)
+  == B(cat almacenado), dentro de +/- 0.01 puntos porcentuales. La formula sale
+  de la Circular 21/2009 de Banxico via el doc del motor de creditos, no de
+  ninguna tabla del core.
+
+matriz_esperada: >-
+  B == C esperado SOLO en este estrato. Sin motor A: openfin no publica un CAT
+  per-contrato comparable. El valor del caso no es el porcentaje sino la
+  particion: separa "el motor calcula distinto" de "el campo no es la salida de
+  un motor", que el cruce a volumen mezclaba en un solo 11.60%.
+
+estado: PARCIAL
+estado_origen: "DOSSIER §12 + CASO_CAT-01_estratificado.md; oraculo_cat 3/3 vs doc y caso real 35.1%"
+cobertura_nota: >-
+  POR QUE EL UNIVERSO ES UNA FRACCION, Y POR QUE ESO ES LO CORRECTO.
+  Medido contra la base el 2026-08-28 sobre 31,866 contratos:
+    constante copiada  25,026  78.5%   NO validable
+    varia por contrato  4,220  13.2%   <- el universo de este caso
+    cat = 0             2,576   8.1%   hallazgo aparte (A28-CAT-CERO)
+    sin cat                44   0.1%   excluido
+  `cat = 27.10` cubre 15,300 contratos con 521 plazos y 3,930 montos distintos.
+  Un CAT es funcion del monto y del plazo, asi que ese numero no puede ser
+  correcto en 3,930 montos: es una constante, no un calculo. Comparar el
+  oraculo contra ella no mide el motor, y por eso el cruce global de 11.60%
+  medía el CAMPO, no el CAT. Subir ese 11.60% a ~100% sobre los 31,866 no es
+  una meta: seria comparar contra constantes hasta que cuadren.
+
+  CONVENCION CONFIRMADA POR DESPEJE (no por suposicion). Se invirtio la
+  identidad del CAT para obtener el `monto_recibido` implicito en el `cat` que
+  guarda el core; la diferencia contra el monto salio entre 2% y 6% —el rango
+  de las comisiones pactadas— y donde la comision configurada es la aplicada,
+  el CAT sale exacto. De ahi: la comision de apertura se DESCUENTA de la
+  disposicion, los dias corren de `activation_date` a `demandable_date`, y el
+  pago es capital + interes + seguros + otros sin IVA.
+
+  HALLAZGO DE PASO: el core marca esas comisiones `financed = 1` (financiada,
+  o sea sumada al credito) pero los datos dicen que se descuenta. Se sigue el
+  dato y se reporta la discrepancia; no se ajusta la bandera al resultado.
+
+bloqueo: >-
+  Lo que este caso NO puede dictaminar (SOL-015). En parte del universo la
+  comision IMPLICITA (~2%) no coincide con la CONFIGURADA (3.99%). Esas filas
+  salen como violacion —ocultarlas seria peor— pero son `data-sourcing`: falta
+  saber que comision se COBRO, que no es la pregunta de si la formula esta
+  bien. La formula no esta en duda: `oraculo_cat.py` reproduce 3/3 los ejemplos
+  del doc y un caso real exacto (35.1%). Hasta que el Manual de Calculos cierre
+  la semantica de la comision, el residuo NO se atribuye a AurumCore.
+
+  COMO LEER LA ESCALERA. `lc_loan_contract.cat` guarda DOS DECIMALES en las
+  4,224 filas, y el oraculo redondea half-up a dos decimales como el core, asi
+  que los tres niveles miden algo real: 1e-8 y 1e-5 cuentan los contratos donde
+  C y B coinciden EXACTAMENTE al centesimo (990), y el centavo admite ademas una
+  unidad de diferencia en el ultimo decimal (1,204). El escalon 23.43% -> 28.50%
+  es angosto justo por eso: no hay residuo sub-centavo que absorber, porque B no
+  guarda esa precision. Aqui el escalon NO es el diagnostico habitual de
+  granularidad de snapshot.
+solicitudes: [SOL-015]
+
+supuestos:
+  - "COMO LEER LA BANDERA DE SESGO. La primera corrida marco sesgo (p = 0.0089, +2026/-2197) y era del METODO, no del core: el oraculo devolvia el CAT sin redondear mientras el core lo GUARDA con dos decimales, o sea medio centesimo sistematico en una direccion. Al aplicar half-up a dos decimales —la convencion confirmada por Finsus el 2026-08-24— el sesgo desaparecio (p = 0.673, +1629/-1604) y el cuadre subio de 27.29% a 28.50%. Es el paso 1 del playbook del §11.3, y es la cuarta vez que el sesgo resulta ser del metodo. Si una corrida futura vuelve a marcarlo, el orden es el mismo: (1) redondeo, (2) precision de la base, (3) solo entonces candidato a defecto del core."
+  - "La comision de apertura se toma de `lc_account_commission` con `concept = 1` (concept = 2 son seguros, que van dentro del pago y no en la disposicion). Se toma UNA fila, no la suma: sumar varias filas de configuracion duplicaba la comision y desplazaba el CAT hacia abajo de forma sistematica. Fue un defecto propio, detectado al despejar la comision implicita."
+  - "Se asume comision DESCONTADA de la disposicion, contra la bandera `financed = 1` del propio core, porque el despeje del monto recibido implicito lo respalda y la bandera no. Si el Manual (SOL-015) dice lo contrario, el universo entero cambia de lectura y el caso se recorre con la otra convencion; por eso la convencion se declara aqui en vez de quedar enterrada en el SQL."
+  - "Los pagos con `dias <= 0` se excluyen del flujo en vez de forzarse a t=0: un pago que cae en la fecha de disposicion o antes no es un pago futuro que descontar. Son pocos y se cuentan, no se silencian."
+  - "El estrato de constantes copiadas y el de `cat = 0` NO entran al universo y por lo tanto NO cuentan como conformes ni como violaciones. Se extraen aparte y se reportan con su conteo: un universo acotado sin el conteo de lo excluido se lee como cobertura total, que es justo el subreporte que este proyecto persigue."

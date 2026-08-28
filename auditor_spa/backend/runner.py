@@ -201,6 +201,22 @@ def _resumen_desde_puntos(puntos, tolerancia, ejes, extra=None) -> dict:
     pares = [(p["c"], p["b"]) for p in puntos
              if p.get("c") is not None and p.get("b") is not None]
     match = resumen_tolerancias(pares) if pares else None
+    if match and n and match.get("n") != n:
+        # `resumen_tolerancias` mide sobre los pares (C,B) comparables. Una fila
+        # que el oraculo NO pudo calcular no forma par, y dejarla fuera del
+        # denominador sube el porcentaje por no haber podido medirla: la
+        # cobertura que falta se convertiria en cuadre. El comparador ya la
+        # cuenta como violacion 'sin C', asi que las barras se reexpresan sobre
+        # el universo entero para decir lo mismo que el titular.
+        sin_par = n - match["n"]
+        for e in match.get("escalas", []):
+            e["n"] = n
+            e["pct"] = f"{(e['n_ok'] / n * 100):.2f}"
+        match["n"] = n
+        match["n_sin_par"] = sin_par
+        match["nota_denominador"] = (
+            f"{sin_par} fila(s) del universo no produjeron un par (C,B) comparable "
+            f"y cuentan como no conformes en los tres niveles: no medir no es cuadrar.")
     d = {
         "n_comparadas": n, "n_ok": n_ok, "n_no_conformes": len(no_conf),
         "pct_match": (f"{(n_ok / n * 100):.2f}" if n else None),
@@ -318,6 +334,22 @@ def correr_contra_bd(motor, params: dict) -> dict | None:
     pares = [(p["c"], p["b"]) for p in puntos
              if p.get("c") is not None and p.get("b") is not None]
     match = resumen_tolerancias(pares) if pares else None
+    if match and n and match.get("n") != n:
+        # `resumen_tolerancias` mide sobre los pares (C,B) comparables. Una fila
+        # que el oraculo NO pudo calcular no forma par, y dejarla fuera del
+        # denominador sube el porcentaje por no haber podido medirla: la
+        # cobertura que falta se convertiria en cuadre. El comparador ya la
+        # cuenta como violacion 'sin C', asi que las barras se reexpresan sobre
+        # el universo entero para decir lo mismo que el titular.
+        sin_par = n - match["n"]
+        for e in match.get("escalas", []):
+            e["n"] = n
+            e["pct"] = f"{(e['n_ok'] / n * 100):.2f}"
+        match["n"] = n
+        match["n_sin_par"] = sin_par
+        match["nota_denominador"] = (
+            f"{sin_par} fila(s) del universo no produjeron un par (C,B) comparable "
+            f"y cuentan como no conformes en los tres niveles: no medir no es cuadrar.")
 
     return {
         "origen_resultado": "corrida_local",
@@ -386,7 +418,7 @@ def escala_de_corrida(motor, cruce: dict) -> str:
 
     pct = cruce.get("pct_match")
     match = cruce.get("match") or {}
-    niveles = {e["nombre"]: e["pct"] for e in match.get("escalas", [])}
+    niveles = {e["nombre"]: e for e in match.get("escalas", [])}
     if pct is None or not niveles:
         return "sin escala declarada"
 
@@ -399,8 +431,19 @@ def escala_de_corrida(motor, cruce: dict) -> str:
               Decimal("1E-8"): "1e-8"}.get(tol)
     if nombre is None or nombre not in niveles:
         return "sin escala declarada"
-    # La verificacion: si el nivel no reporta el mismo numero, no es su escala.
-    if Decimal(niveles[nombre]) != Decimal(pct):
+    # La verificacion se hace sobre las FILAS CONFORMES, no sobre el porcentaje.
+    # Los dos denominadores son distintos a proposito: el titular se mide sobre
+    # el universo entero (una fila que el oraculo no pudo calcular NO cuadra, y
+    # descartarla inflaria el porcentaje), mientras que las barras se miden
+    # sobre los pares (C,B) comparables. Comparar los porcentajes hacia declarar
+    # "sin escala" a un motor cuya escala si se conoce — subreporte por un
+    # detalle de denominador. Lo que prueba que el nivel es el titular es que
+    # explique exactamente las mismas filas conformes.
+    n_ok_nivel, n_ok_cruce = niveles[nombre].get("n_ok"), cruce.get("n_ok")
+    if n_ok_nivel is None or n_ok_cruce is None or n_ok_nivel != n_ok_cruce:
+        # Si falta el conteo no se puede verificar, y una escala que no se pudo
+        # verificar no se afirma: el fallback es el "no lo se", nunca el nombre
+        # que "deberia" ser (NORTE_SANIDAD INV-H3).
         return "sin escala declarada"
     return nombre
 

@@ -76,9 +76,16 @@ la regla de promoción: evaluarlos con A/B/C. El motor A (openfin) todavía no s
 | A28-CAT-CONSTANTE | COL/DAT | `cat` guarda un **valor constante** en 25,026 de 31,866 contratos (78.5%). `cat = 27.10` cubre 15,300 contratos que abarcan **521 plazos distintos** y **3,930 montos distintos** — un CAT no puede ser el mismo con plazo y monto distintos, así que en esas filas el campo **no es la salida de un cálculo per-contrato** | **DIFERENCIA_DISENO** o campo no poblado — *no* defecto del motor de CAT | 25,026 contratos | Estratificar el universo y comparar C **solo** contra el estrato donde `cat` varía (4,220). El 11.6% citado a volumen mide la mezcla, no el motor |
 | A28-CAT-CERO | COL/REG | **2,466 contratos ACTIVOS con `cat = 0`**, y **2,376 de ellos sí cobran interés** (2,463 con tasa ordinaria > 0, promedio **28.43%**). Un CAT de cero en un crédito que cobra 28% no es un CAT: es un campo sin poblar. Activaciones de 2023-11-29 a 2026-07-17 | **DEFECTO_CORE_NUEVO** (candidato) — la Circular 21/2009 exige revelar el CAT | 2,466 contratos activos | Confirmar si el producto tiene CAT que revelar; si lo tiene, es hallazgo regulatorio, no de cálculo |
 
+| A28-CAT-FINANCED | COL/DAT | `lc_account_commission.financed = 1` (comisión **financiada**, o sea sumada al crédito) en las comisiones de apertura del estrato per-contrato. Pero al despejar el `monto_recibido` implícito en el `cat` que el core guarda, la diferencia contra el monto sale de **2% a 6%** — el rango de las comisiones pactadas —, es decir la comisión **se descuenta** de la disposición | **REGLA_MAL_ESPECIFICADA** o bandera mal poblada | 4,143 filas de comisión | CAT-01 sigue el dato (descontada) y reporta la discrepancia; no se ajusta la bandera al resultado |
+
 **Por qué el segundo no se promueve todavía a `H-###`.** Falta descartar que esos productos tengan
 una exención (por ejemplo, si no son crédito al consumo sujeto a la Circular). Lo que ya **no** puede
 sostenerse es que el cero sea un CAT calculado: el contrato cobra interés.
+
+**Sobre el tercero.** Puede ser que `financed` signifique otra cosa en este core (por ejemplo, que la
+comisión sea *financiable* como opción y no que se haya financiado). Por eso entra como candidato y no
+como hallazgo: la observación es firme —el despeje no admite la lectura "financiada"— pero la lectura
+de la bandera no. Es la primera pregunta concreta que cierra la mitad de `SOL-015` que toca al CAT.
 
 ## Regla de promoción
 Un renglón pasa a `H-###` en `HALLAZGOS.md` **sólo** cuando: (1) se reprodujo el caso mínimo,

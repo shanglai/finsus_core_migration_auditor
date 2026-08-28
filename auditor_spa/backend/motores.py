@@ -115,6 +115,14 @@ class Motor:
     # justo el ejemplo canonico del escalon diagnostico. Mostrar el 81 pelon
     # hace pensar que el motor falla 1 de cada 5 veces.
     dossier_match: dict | None = None   # {"1e-8": "...", "1e-5": "...", "centavo": "...", "n": "...", "sesgo": "no"}
+    # La lectura VERDADERA del escalon de este motor, cuando se conoce. El
+    # tablero tiene una lectura generica ("escalon ancho = residuo sub-centavo")
+    # que vale para casi todos, y para CAT es FALSA: ahi el escalon es angosto
+    # porque `lc_loan_contract.cat` solo guarda dos decimales, no porque haya
+    # residuo sub-centavo que absorber. Un tablero que aplica la plantilla a
+    # ciegas afirma un diagnostico que no verifico, que es la misma fabricacion
+    # que NORTE_SANIDAD persigue — solo que en la prosa en vez de en la cifra.
+    lectura_escalon: str = ""
 
     @property
     def categoria(self) -> str:
@@ -195,6 +203,7 @@ class Motor:
             "depende_de_logs": self.depende_de_logs, "autopruebas": self.autopruebas,
             "evidencia_config": self.evidencia_config,
             "dossier_match": self.dossier_match,
+            "lectura_escalon": self.lectura_escalon,
             "pct_escala": (self.pct_citado or (None, None))[1],
         }
 
@@ -436,10 +445,23 @@ MOTORES: tuple[Motor, ...] = (
         oraculo="oraculo_cat.cat_oneclick / cat_frances", estado="parcial",
         dossier_pct="11.6",
         dossier_detalle="El cruce masivo da 11.6%, pero la formula NO esta en duda: reproduce los 3 ejemplos del doc y un caso real exacto.",
-        no_conformes=("`lc_loan_contract.cat` guarda en muchos contratos el CAT NOMINAL DEL PRODUCTO "
-                      "(miles con cat = 27.1), no el CAT por contrato. Es semantica del campo, no error de "
-                      "calculo. Falta confirmar esa semantica y la convencion de dias (SOL-015)."),
+        no_conformes=("MEDIDO 2026-08-28: `lc_loan_contract.cat` es un campo MIXTO. En 25,026 de "
+                      "31,866 contratos guarda una CONSTANTE copiada — `cat = 27.10` cubre 15,300 "
+                      "contratos con 521 plazos y 3,930 montos distintos, y un CAT es funcion del "
+                      "monto y del plazo, asi que ahi el campo no es la salida de un motor. CAT-01 "
+                      "acota el universo al estrato donde SI varia por contrato (4,220). El residuo "
+                      "de ese estrato es la comision realmente cobrada (implicita ~2% contra 3.99% "
+                      "configurada): data-sourcing, no formula. La formula reproduce 3/3 el doc."),
         clase_no_conforme="data-sourcing", solicitudes=("SOL-015",),
+        caso_validador="CAT-01",
+        lectura_escalon=(
+            "El escalon 23.43% -> 28.50% NO es el diagnostico habitual. "
+            "`lc_loan_contract.cat` guarda DOS DECIMALES en las 4,224 filas del "
+            "universo, asi que no hay residuo sub-centavo que absorber: 1e-8 y "
+            "1e-5 cuentan las coincidencias exactas al centesimo y el centavo "
+            "admite una unidad mas en el ultimo decimal. El residuo real es la "
+            "comision que se cobro (implicita ~2% contra 3.99% configurada), y "
+            "eso es data-sourcing, no formula."),
         insumos="lc_loan_contract.cat · lc_loan_amortization · lc_account_commission",
         autopruebas="3/3 contra el doc",
         dossier_match={"1e-8": None, "1e-5": None, "centavo": None, "volumen": "11.60",

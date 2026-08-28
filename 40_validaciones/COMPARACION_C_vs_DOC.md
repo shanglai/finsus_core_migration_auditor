@@ -83,7 +83,20 @@
 ### C6. CAT (Costo Anual Total)
 1. **¿En doc?** Sí — D-CRE §8 (One Click cerrado; Francesa por VP/IRR, Circular 21/2009 Banxico).
 2. **Corroboración:** 🟢 **fórmula validada** — `oraculo_cat.py` autoprueba **3/3 vs los ejemplos del doc** (One Click 45.80% y 289,458,538.17%; Francesa 34.48% por bisección). Caso real exacto: fa618d44 (loan 100, comisión apertura **3.99%** de `lc_account_commission`, 161 días) → **35.1% = CAT stored**. Comisión de apertura sourceada de `lc_account_commission` (type=2, `financed`).
-3. **Desviación / pendiente:** cruce a volumen 11.6% — mismo patrón que GAT: **`lc_loan_contract.cat` almacena un CAT que en muchos contratos es el NOMINAL del producto** (miles comparten `cat=27.1`), no el anualizado per-contrato (para plazos cortos el CAT real es alto por la comisión). Falta: (a) confirmar si el `cat` es per-contrato o nominal-producto (**SOL**); (b) convención de días del CAT. La fórmula NO está en duda.
+3. **Desviación / pendiente (afinado 2026-08-28, cruce a BD):** el cruce a volumen **11.6%** NO mide el motor: mide
+   contra un campo `lc_loan_contract.cat` que es **mixto y mayormente constante copiada**, no la salida de un motor.
+   Estratos (31,867 contratos): **25,026 (78.5%) constante** (≥100 contratos comparten el mismo `cat`; `cat=27.10`
+   cubre **15,300** contratos con **3,930 montos** y **521 plazos** distintos — imposible para un CAT real, que es
+   función de monto y plazo) · **4,220 (13.2%) varía por contrato** · **2,576 (8.1%) `cat=0`** · 44 sin `cat`. El
+   cruce **11.6% ≈ el estrato per-contrato (13.2%)**: el motor cuadra **donde el campo sí guarda un CAT per-contrato**;
+   el 88.4% restante es comparar contra algo que no es un CAT. **Corrección al [antes]:** el campo **no** es
+   "nominal-por-producto" (27.10 aparece en 7 productos; el producto dominante trae 1,381 valores distintos) → es
+   **mixto**. La fórmula **NO está en duda** (3/3 vs doc + caso real 35.1%). Remedio: **CASO CAT-01 estratificado**
+   (ver `CASO_CAT-01_estratificado.md`): correr C sobre los 4,220 per-contrato con alcance declarado; los 25,026
+   constantes son **data-sourcing**, no defecto (un motor no se valida contra una constante). Bloqueo: **SOL-015**
+   (convención de días + comisión `financed` vs descontada). **Hallazgo aparte A28-CAT-CERO → [[P-023]]:** 2,573
+   contratos `cat=0` cobran ~28.45% de interés (campo sin poblar; Circular 21/2009 exige revelar CAT → candidato
+   regulatorio, no de cálculo).
 
 ---
 

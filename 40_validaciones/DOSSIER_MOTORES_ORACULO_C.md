@@ -116,7 +116,7 @@
 - **Fórmula (doc §8):** One Click `CAT = [(pago_sin_iva/monto_recibido)^(360/días)−1]×100`; Francesa = i que iguala VP(disposición)=VP(pagos), por IRR. Pago para CAT = capital + interés + comisión/seguro **sin IVA** (excluye moratorios/IVA/prepago). Monto recibido = monto − comisión inicial.
 - **Valida contra:** doc + datos. **Insumos:** `lc_loan_contract.cat`, `lc_loan_amortization` (cap+int), `lc_account_commission` (apertura, ej. 3.99% type=2).
 - **Oráculo:** `oraculo_cat.cat_oneclick / cat_frances` — autoprueba **3/3 vs doc** (45.80%, 289,458,538.17%, 34.48%). Caso real exacto: 35.1%.
-- **No-conformes:** cruce masivo 11.6% porque `lc_loan_contract.cat` guarda en muchos contratos el CAT **nominal del producto** (miles con `cat=27.1`), no el per-contrato — la **fórmula no está en duda**. Falta confirmar semántica del campo + convención de días (SOL-015).
+- **No-conformes:** el "11.6% a volumen" **no mide el motor**. `lc_loan_contract.cat` es **campo mixto/constante copiada** (afinado 2026-08-28): 25,026 constantes (`cat=27.10` en 15,300 contratos con 3,930 montos → imposible para un CAT real) / **4,220 per-contrato** / 2,576 `cat=0`. El motor cuadra en el estrato per-contrato (≈11.6%). **Corrección:** el campo **no** es "nominal-por-producto", es **mixto**. Remedio: **CASO CAT-01** (`CASO_CAT-01_estratificado.md`) sobre los 4,220, alcance declarado (bloqueo SOL-015). Aparte: **A28-CAT-CERO** ([[P-023]]): 2,573 `cat=0` cobran ~28.45% → candidato **regulatorio** (Circular 21/2009), no de cálculo. La **fórmula no está en duda** (3/3 vs doc).
 
 ---
 

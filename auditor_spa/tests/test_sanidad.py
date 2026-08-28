@@ -281,13 +281,19 @@ def test_escala_de_corrida_se_verifica_contra_el_match():
     numero. Si no coincide, la salida es el "no lo se", no una etiqueta puesta
     para cumplir."""
     motor = M.POR_ID["PLAZO"]
-    bueno = {"pct_match": "100.00", "tolerancia": "0.01",
-             "match": {"escalas": [{"nombre": "centavo", "pct": "100.00"}]}}
+    bueno = {"pct_match": "100.00", "tolerancia": "0.01", "n_ok": 302,
+             "match": {"escalas": [{"nombre": "centavo", "pct": "100.00", "n_ok": 302}]}}
     assert R.escala_de_corrida(motor, bueno) == "centavo"
 
-    mentiroso = {"pct_match": "97.00", "tolerancia": "0.01",
-                 "match": {"escalas": [{"nombre": "centavo", "pct": "100.00"}]}}
+    # El nivel no explica las mismas filas conformes que el titular.
+    mentiroso = {"pct_match": "97.00", "tolerancia": "0.01", "n_ok": 293,
+                 "match": {"escalas": [{"nombre": "centavo", "pct": "100.00", "n_ok": 302}]}}
     assert R.escala_de_corrida(motor, mentiroso) == "sin escala declarada"
+
+    # Sin el conteo no hay con que verificar; no se supone la escala.
+    sin_conteo = {"pct_match": "100.00", "tolerancia": "0.01",
+                  "match": {"escalas": [{"nombre": "centavo", "pct": "100.00"}]}}
+    assert R.escala_de_corrida(motor, sin_conteo) == "sin escala declarada"
 
     sin_match = {"pct_match": "100.00", "tolerancia": "0.01", "match": None}
     assert R.escala_de_corrida(motor, sin_match) == "sin escala declarada"
@@ -362,3 +368,47 @@ def test_un_motor_sin_porcentaje_declara_su_fuente():
     for mid in ("ISR", "GAT", "WSO2", "SALDO-PROM", "MOTOR-B", "CRED-DIAS", "ISR-VIVO"):
         c = S.claim_de(json.loads((RESULTADOS / f"{mid}.json").read_text(encoding="utf-8")))
         assert c["fuente"], f"{mid} no declara procedencia"
+
+
+# --- La prosa tambien puede fabricar --------------------------------------
+
+def test_la_lectura_del_escalon_declarada_gana_a_la_plantilla():
+    """El tablero no puede afirmar un diagnostico que no verifico.
+
+    La plantilla dice "escalon ancho = residuo sub-centavo, no defecto". Para
+    CAT eso es FALSO: el escalon es angosto porque `lc_loan_contract.cat` guarda
+    dos decimales, no porque haya residuo que absorber. Un invariante sobre las
+    cifras no atrapa esto porque el engano vive en la prosa.
+    """
+    html = (RAIZ / "spa" / "index.html").read_text(encoding="utf-8")
+    assert "m.lectura_escalon" in html, "el SPA ignora la lectura declarada por el motor"
+    # La plantilla generica no puede AFIRMAR el diagnostico.
+    assert "hay que verificarla" in html, (
+        "la lectura generica del escalon sigue afirmando el diagnostico en vez "
+        "de marcarlo como la lectura habitual por verificar")
+
+
+def test_cat_declara_por_que_su_escalon_no_es_el_habitual():
+    cat = M.POR_ID["CAT"]
+    assert cat.lectura_escalon, "CAT no declara la lectura de su escalon"
+    assert "DOS DECIMALES" in cat.lectura_escalon
+    d = json.loads((RESULTADOS / "CAT.json").read_text(encoding="utf-8"))
+    assert d["lectura_escalon"] == cat.lectura_escalon
+
+
+def test_cat_se_calcula_aqui_sobre_el_estrato_per_contrato():
+    """CAT dejo de citar 11.60% a volumen: ahora es un cuadre calculado."""
+    d = json.loads((RESULTADOS / "CAT.json").read_text(encoding="utf-8"))
+    assert d["origen_resultado"] == "corrida_local"
+    assert d["cobertura"] == "datos"
+    assert d["pct_escala"] == "centavo"
+    assert d["caso_validador"] == "CAT-01"
+    cr = d["cruce"]
+    # El universo es el estrato, no los 31,866 contratos.
+    assert 4000 < cr["n_comparadas"] < 5000, (
+        f"el universo de CAT-01 deberia ser el estrato per-contrato, no {cr['n_comparadas']}")
+    # Las barras se miden sobre el universo entero, no solo sobre los pares.
+    for e in cr["match"]["escalas"]:
+        assert e["n"] == cr["n_comparadas"], (
+            "una fila que el oraculo no pudo calcular quedaria fuera del "
+            "denominador y subiria el porcentaje por no haberla medido")

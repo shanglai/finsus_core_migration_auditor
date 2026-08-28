@@ -61,6 +61,7 @@ INCLUYE = [
     "40_validaciones/PROMPT_AUDITOR_SPA.md",
     "40_validaciones/MATRIZ_TOLERANCIAS.md",
     "40_validaciones/NORTE_SANIDAD.md",
+    "40_validaciones/CASO_CAT-01_estratificado.md",
     # --- Paquete de datos para auditoria (universo, fechas, detalle desde DuckDB) ---
     "40_validaciones/PAQUETE_AUDITOR_DATOS/00_INDICE.md",
     "40_validaciones/PAQUETE_AUDITOR_DATOS/01_TABLA_MAESTRA_VALIDACIONES.md",
