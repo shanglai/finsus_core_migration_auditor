@@ -1,4 +1,4 @@
-# Cómo revisar el auditor — mapa, ejecución y tripas
+# Cómo revisar el auditor — mapa, ejecución e internals
 
 > Para quien llega a auditar **al auditor**: dónde vive cada cosa, cómo se corre, cómo se lee
 > un resultado y qué hay que saber para no darle crédito de más.
@@ -153,19 +153,90 @@ home.
 
 `engine/compare.py` no devuelve "pasa/falla". Clasifica cada fila en una celda:
 
-| celda | qué significa |
-|---|---|
-| `A=B=C` | los tres coinciden |
-| `A=B!=C` | **ambos cores mal contra la norma** — severidad máxima, y es la que el "todo pasa" esconde |
-| `A!=B=C` | defecto de OpenFin ya corregido en AurumCore |
-| `A=C!=B` | defecto de AurumCore |
-| `A!=B!=C` | los tres distintos: **la regla está mal especificada**, no el core |
-| `B=C (sin A)` / `B!=C (sin A)` | no hay motor A comparable para esa fila |
-| `sin B` | el core bajo prueba no tiene la fila |
-| `sin C` | **el oráculo no pudo calcular** — cuenta como violación, no se descarta |
+| celda                          | qué significa                                                                              |
+| ------------------------------ | ------------------------------------------------------------------------------------------ |
+| `A=B=C`                        | los tres coinciden                                                                         |
+| `A=B!=C`                       | **ambos cores mal contra la norma** — severidad máxima, y es la que el "todo pasa" esconde |
+| `A!=B=C`                       | defecto de OpenFin ya corregido en AurumCore                                               |
+| `A=C!=B`                       | defecto de AurumCore                                                                       |
+| `A!=B!=C`                      | los tres distintos: **la regla está mal especificada**, no el core                         |
+| `B=C (sin A)` / `B!=C (sin A)` | no hay motor A comparable para esa fila                                                    |
+| `sin B`                        | el core bajo prueba no tiene la fila                                                       |
+| `sin C`                        | **el oráculo no pudo calcular** — cuenta como violación, no se descarta                    |
 
 `sin C` es la que más se presta al autoengaño: descartar lo que no se pudo medir sube el
 porcentaje **por no haberlo medido**. Aquí cuenta como no conforme.
+
+### 6.1b El vocabulario de las tarjetas — cuatro ejes INDEPENDIENTES
+
+Leerlos como uno solo fue el defecto original que este tablero existe para evitar. Un motor puede
+ser `validado` **y** `sin cruce` sin contradicción.
+
+**`estado` — qué se SABE de la regla**
+
+| valor | significa |
+|---|---|
+| `validado` | regla + oráculo + cruce corrido, resultado documentado |
+| `parcial` | mecánica confirmada, **falta cerrar alcance** |
+| `bloqueado` | falta un insumo externo (dato, log, definición) |
+| `sin_cruce` | fórmula lista y autoprobada, sin cruce contra datos |
+
+`parcial` no es "a medias mal". IFRS 9 es `parcial` y cuadra 100% al centavo: lo que falta es
+*ampliar* el alcance (E1/E2, comercio, reestructurado), no arreglar lo cubierto.
+
+**`origen_resultado` — de dónde salió EL NÚMERO**
+
+| valor | etiqueta | significa |
+|---|---|---|
+| `corrida_local` | **Calculado aquí** | lo computó esta máquina contra la base, ahora |
+| `dossier` | **Citado del dossier** | lo reporta una corrida previa del repo de validación; este tablero NO lo recalculó |
+| `sin_cruce` | **Sin cruce** | hay fórmula y autoprueba, no hay cruce contra datos. **Eso no es un pase** |
+
+Es el eje que sostiene la honestidad del tablero: mezclar los tres en una barra verde sería el
+"todo pasa" que el producto existe para evitar.
+
+**`cobertura` — de qué CLASE es la evidencia**
+
+| valor | significa |
+|---|---|
+| `datos` | se comparó importe contra importe sobre una cohorte |
+| `volumen` | cruce 1-a-1 masivo — **no es una granularidad** |
+| `config` | el oráculo reproduce la tabla de configuración del propio core |
+| `completitud` | identidad exacta (doble partida `0.00`, `A ≥ B`), sin holgura |
+| `sin_cruce` | ni datos ni config |
+
+No es cosmético: un cruce a volumen leído como precisión aritmética fue el defecto que destapó CAT.
+Y `config` es **más fuerte** que un porcentaje, no más débil — un % depende de qué cohorte
+elegiste, la configuración no.
+
+**`pct_escala` — a qué escala está el número**
+
+`1e-8` · `1e-5` · `centavo` · `volumen` · `config` · `completitud` · **`sin escala declarada`**.
+
+El último es un "no lo sé" explícito y es deliberado que se vea feo: es un hueco por cerrar, no un
+estado final. Nunca se rellena con la escala que "debería" ser.
+
+**Por qué separados.** El caso que lo motivó: IFRS 9 salía `parcial` + `sin cruce` + `—` + botón
+apagado. Ninguna de las cuatro dice "no validado", pero **juntas** lo sugerían — y el motor está
+validado contra `lc_reserve_ifrs` 37/37. Hoy `ISR` es `validado` y `sin cruce` a la vez: la regla
+está cerrada y verificada contra la config del core, pero este tablero no corrió una cohorte. Las
+dos cosas son verdad.
+
+**Por qué falla un no-conforme** (distinguirlos es el trabajo del auditor; reportar linaje como
+defecto es tan grave como ocultar un defecto):
+
+`defecto` el motor calcula distinto de la regla — es hallazgo · `linaje` el dato de contraste
+discrepa entre tablas, el motor no está en duda · `data-sourcing` falta el insumo punto-en-tiempo
+para comparar justo · `bloqueo` no hay corrida todavía · `redondeo` diferencia sub-centavo por modo
+no desambiguado.
+
+**Contra qué se valida**, de más fuerte a más débil: `config` (tabla de configuración del propio
+Aurum) · `norma` (LISR, CNBV, Banxico) · `doc` (GTM oficial, con página) · `inferencia` (deducido de
+los datos — **por confirmar, no es un hecho**).
+
+**El botón "Ejecutar" apagado** no dice "este motor no se puede validar": dice **"aún no se le
+construyó un caso ejecutable"**. CAT lo tuvo apagado hasta el 2026-08-28 y su fórmula reproducía
+3/3 el doc desde el principio.
 
 ### 6.2 Independencia del oráculo (§11.1 del brief)
 
@@ -275,15 +346,15 @@ python -m pytest auditor_spa validador -q
 
 440 pruebas. Las que conviene mirar si se desconfía del conjunto:
 
-| archivo | qué protege |
-|---|---|
-| `validador/tests/test_no_all_pass.py` | que ningún camino devuelva "todo pasa"; catálogo y manifest sincronizados |
-| `validador/tests/test_caso_trampa.py` | un caso con un defecto **sembrado** que las pruebas tienen que atrapar |
-| `validador/tests/test_compare_matriz.py` | las celdas A/B/C, incluido universo vacío = "no prueba nada" |
-| `validador/tests/test_guia_casos.py` | el §11 como invariantes ejecutables, no como documentación |
-| `validador/tests/test_redondeo.py` | half-up explícito, cero `float` |
-| `auditor_spa/tests/test_sanidad.py` | los 14 invariantes **y** que atrapen sus bugs históricos |
-| `auditor_spa/tests/test_motores.py` | que el tablero no pueda presentar como verificado lo que no lo está |
+| archivo                                  | qué protege                                                               |
+| ---------------------------------------- | ------------------------------------------------------------------------- |
+| `validador/tests/test_no_all_pass.py`    | que ningún camino devuelva "todo pasa"; catálogo y manifest sincronizados |
+| `validador/tests/test_caso_trampa.py`    | un caso con un defecto **sembrado** que las pruebas tienen que atrapar    |
+| `validador/tests/test_compare_matriz.py` | las celdas A/B/C, incluido universo vacío = "no prueba nada"              |
+| `validador/tests/test_guia_casos.py`     | el §11 como invariantes ejecutables, no como documentación                |
+| `validador/tests/test_redondeo.py`       | half-up explícito, cero `float`                                           |
+| `auditor_spa/tests/test_sanidad.py`      | los 14 invariantes **y** que atrapen sus bugs históricos                  |
+| `auditor_spa/tests/test_motores.py`      | que el tablero no pueda presentar como verificado lo que no lo está       |
 
 El patrón: casi ninguna prueba verifica que algo *exista*; verifican que **atrape**. Cada una
 construye el engaño y afirma que sale como violación. Una prueba que no puede fallar no prueba
@@ -356,11 +427,11 @@ vez ya no se puede desubir.
 
 ## 11. Dónde queda lo que se encuentra
 
-| archivo | qué va ahí |
-|---|---|
-| `50_hallazgos/HALLAZGOS.md` | `H-###` confirmados: reproducidos, evaluados con A/B/C, clasificados y cuantificados |
-| `50_hallazgos/CANDIDATOS_A_HALLAZGO.md` | observaciones firmes que aún no pasaron los cuatro pasos |
-| `50_hallazgos/SOLICITUDES_DEL_AUDITOR.md` | `AUD-###`: lo que hay que preguntarle a Finsus |
+| archivo                                   | qué va ahí                                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------------------------ |
+| `50_hallazgos/HALLAZGOS.md`               | `H-###` confirmados: reproducidos, evaluados con A/B/C, clasificados y cuantificados |
+| `50_hallazgos/CANDIDATOS_A_HALLAZGO.md`   | observaciones firmes que aún no pasaron los cuatro pasos                             |
+| `50_hallazgos/SOLICITUDES_DEL_AUDITOR.md` | `AUD-###`: lo que hay que preguntarle a Finsus                                       |
 
 `50_hallazgos/` **no viaja en el bundle**, por eso es el lugar correcto para lo que nace de este
 lado. Las solicitudes se numeran `AUD-###` y no `SOL-###`: el número lo asigna el repo fuente, y
