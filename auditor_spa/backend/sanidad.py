@@ -47,6 +47,7 @@ GRANULARIDADES = {"1e-8", "1e-5", "centavo"}
 ESCALAS_VALIDAS = GRANULARIDADES | {"volumen", "config", "completitud", "doc", "caso"}
 
 # Las formas explicitas de decir "no lo se". Ninguna es un valor.
+PEND_MARCA = "[PEND]"
 NO_SE = ("[PEND]", "sin escala declarada", "sin cruce", None, "")
 
 # La cobertura declara de QUE clase es la evidencia; INV-H2 la usa para negarse
@@ -213,6 +214,7 @@ def claim_de(d: dict) -> dict:
         "sesgo": sesgo,
         "calculado_aqui": local,
         "estado": d.get("estado"),
+        "alcance": d.get("alcance"),
     }
 
 
@@ -240,6 +242,8 @@ INVARIANTES = {
     "INV-E2": "Sin cruce no es pase — un motor sin datos ni config no muestra porcentaje.",
     "INV-E3": "Config se muestra — cobertura=config exhibe su evidencia, nunca un guion.",
     "INV-E4": "Boton honesto — 'Ejecutar' activo solo con caso ejecutable + insumo.",
+    "INV-E5": "Alcance declarado — un % dice sobre que universo se calculo y cuanto representa; "
+              "la representatividad no se inventa cuando el universo esta pendiente.",
     "INV-C1": "Misma cifra en todos lados — el % coincide con MATRIZ_TOLERANCIAS.md.",
     "INV-C2": "n y sesgo citados coinciden con la fuente.",
     "INV-C3": "No stale — una cifra citada no contradice en silencio una corrida mas reciente.",
@@ -324,6 +328,28 @@ def revisar(claims: list[dict], ref: dict | None = None) -> list[dict]:
         # --- E4: el boton dice la verdad ----------------------------------
         if c["ejecutable"] and not (c["caso"] and c["feed"]):
             v("INV-E4", m, "boton 'Ejecutar' activo sin caso ejecutable o sin insumo")
+
+        # --- E5: el alcance se declara ------------------------------------
+        # Un porcentaje sin universo se lee con la cobertura que el lector le
+        # suponga. El caso que lo motivo: PLAZO publicaba 100% y se leia como
+        # "todo lo live", cuando el cohorte es el 39.6% de los periodos
+        # live-pagados. El resultado no cambia; el denominador si.
+        a = c.get("alcance")
+        if es_numero(val_t):
+            if not a:
+                v("INV-E5", m, f"muestra {val_t}% y no declara su alcance")
+            else:
+                if not a.get("universo"):
+                    v("INV-E5", m, "alcance sin universo declarado")
+                if not a.get("representatividad"):
+                    v("INV-E5", m, "alcance sin representatividad declarada")
+                # Mismo criterio que INV-H3: si el universo no se conoce, la
+                # representatividad NO se rellena con un numero.
+                if a.get("universo", "").startswith(PEND_MARCA)                         and es_numero(a.get("representatividad", "")):
+                    v("INV-E5", m, f"universo [PEND] pero publica representatividad "
+                                   f"{a['representatividad']}")
+        if a and a.get("no") == []:
+            v("INV-E5", m, "declara alcance sin decir que queda FUERA")
 
         # --- C1 / C2: una cifra, un valor ---------------------------------
         r = ref.get(m, {})

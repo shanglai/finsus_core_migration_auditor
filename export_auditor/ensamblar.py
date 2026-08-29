@@ -62,6 +62,10 @@ INCLUYE = [
     "40_validaciones/MATRIZ_TOLERANCIAS.md",
     "40_validaciones/NORTE_SANIDAD.md",
     "40_validaciones/CASO_CAT-01_estratificado.md",
+    "40_validaciones/INFORME_DETALLADO_AUDITORIA/00_INDICE.md",
+    "40_validaciones/INFORME_DETALLADO_AUDITORIA/01_CAPTACION_FISCAL.md",
+    "40_validaciones/INFORME_DETALLADO_AUDITORIA/02_CREDITO.md",
+    "40_validaciones/INFORME_DETALLADO_AUDITORIA/03_CONTABLE_PADRON.md",
     # --- Paquete de datos para auditoria (universo, fechas, detalle desde DuckDB) ---
     "40_validaciones/PAQUETE_AUDITOR_DATOS/00_INDICE.md",
     "40_validaciones/PAQUETE_AUDITOR_DATOS/01_TABLA_MAESTRA_VALIDACIONES.md",
@@ -84,6 +88,7 @@ INCLUYE = [
     "40_validaciones/SOLICITUDES_FINSUS.md",
     "export_auditor/PROMPT_ARRANQUE_AUDITOR.md",
     "export_auditor/PROMPT_SYNC_AUDITOR.md",
+    "export_auditor/PROMPT_SYNC_2026-08-28.md",
     "30_oraculo/ESPECIFICACIONES/S-FIS-001.md",
     "30_oraculo/TRAZABILIDAD.md",
     # Config de ejemplo (SIN credenciales reales)

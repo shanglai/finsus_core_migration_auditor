@@ -153,7 +153,7 @@ def test_las_fichas_se_generan_todas():
                         "## 3. Universo y representatividad",
                         "## 4. Racional del subconjunto",
                         "## 5. Santo y sena", "## 6. Resultado",
-                        "## 7. Lo que este punto NO concluye"):
+                        "Lo que este punto NO concluye"):
             assert seccion in md, f"{p.id} sin la seccion {seccion}"
 
 

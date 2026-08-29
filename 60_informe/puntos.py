@@ -119,6 +119,9 @@ class Punto:
     evidencia: list[str] = field(default_factory=list)
     reproducir: str = ""
     caso_validador: str = ""      # si este repo lo tiene como caso ejecutable
+    # Contraste contra `40_validaciones/INFORME_DETALLADO_AUDITORIA/`. Vacio =
+    # coincide. Con texto = hay algo que reconciliar, y se dice cual es.
+    contraste: str = ""
 
     @property
     def representatividad(self) -> str:
@@ -148,23 +151,28 @@ Punto(
     corte="2026-08-20", ejecutado="2026-08-21 17:00",
     n_comparado="530,195", unidad="periodos (157,999 cuentas)",
     denominador=Denominador(
-        total=PEND, segun="B (AurumCore)",
-        consulta=("select count(*) total, count(*) filter (where a.origin is null) origin_null "
-                  "from aurumcore.iv_payment_plan p "
-                  "join aurumcore.account a on a.account_id = p.account_id"),
-        nota=("Se declaro 'todas las origin IS NULL', o sea el subconjunto ES el universo "
-              "de su clase. Falta la cifra de control: cuantos periodos hay EN TOTAL "
-              "(origin null + no null) para expresar que fraccion del libro representa.")),
+        total="1,339,023", segun="B (AurumCore) — periodos live-pagados",
+        nota=("Verificado en BD el 2026-08-28 por el repo de validacion (informe detallado "
+              "seccion 3): 36,905,411 periodos totales en `iv_payment_plan`, 3,918,893 live "
+              "(`origin IS NULL`), de los cuales 1,339,023 estan pagados. Este tablero NO "
+              "reprodujo la medicion: la cita.")),
     conciliacion=(
-        "PEND — no se concilio contra un conteo independiente. La cifra de 530,195 sale "
-        "de la misma extraccion que se valido, asi que confirma consistencia interna, no "
-        "completitud del universo."),
+        "Los cortes de `iv_payment_plan` cierran contra el total de 36,905,411 "
+        "(live / live-pagados / migrados)."),
     racional_subconjunto=(
-        "NO es una muestra: es el universo COMPLETO de su clase. El recorte `origin is null` "
-        "no busca reducir volumen sino AISLAR el motor bajo prueba — separa lo que AurumCore "
-        "calculo de lo que heredo de openfin en la migracion. Mezclarlos daria un porcentaje "
-        "que no dice nada de ningun motor. El delimitador `origin` tiene semantica mixta "
-        "segun la tabla: aqui es limpio porque `iv_payment_plan` no lleva etiquetas de canal."),
+        "CORRECCION DE HONESTIDAD. Este informe decia antes que 530,195 era el universo "
+        "COMPLETO de su clase, y NO lo es. El metodo despeja la tasa del periodo 1 y la "
+        "reproduce en los demas, asi que exige al menos 2 pagos (having count >= 2), mas "
+        "`interest_paid`, `interest_amount > 0` e `iv_initial_amount > 0`. Ese cohorte son "
+        "157,999 cuentas y 530,195 periodos, o sea ~39.6% de los periodos live-pagados. Las "
+        "cuentas de UN SOLO PAGO no son validables por este metodo —no hay periodo desde "
+        "donde despejar sin circularidad— y quedan fuera POR METODOLOGIA, no por muestreo. "
+        "Dentro del cohorte se corre el 100%: es censo. El resultado (0 violaciones en "
+        "530,195) no cambia; el DENOMINADOR si."),
+    contraste=(
+        "CORREGIDO CONTRA EL INFORME DE LINKO. La version anterior de esta ficha afirmaba "
+        "cobertura completa de lo live. Es sobre-afirmacion —el problema-espejo en su "
+        "direccion facil— y se corrige: ~39.6%, no 100%."),
     tablas=["aurumcore.iv_payment_plan", "aurumcore.account"],
     filtros=["a.origin is null  -- generado por AurumCore, no migrado"],
     llave="(account_id, numero de periodo)",
@@ -201,11 +209,12 @@ Punto(
     corte="2026-08-20", ejecutado="2026-08-21 17:00",
     n_comparado="3,748", unidad="periodos (300 cuentas)",
     denominador=Denominador(
-        total=PEND, segun="B (AurumCore)",
-        consulta=("select count(*) from aurumcore.iv_payment_plan p "
-                  "join aurumcore.account a on a.account_id = p.account_id "
-                  "where a.origin = 'FINSUS'"),
-        nota="AQUI SI HAY MUESTREO: 300 cuentas de un total no declarado."),
+        total="32,986,518", segun="B (AurumCore) — periodos migrados",
+        nota=("Verificado en BD 2026-08-28. AQUI SI HAY MUESTREO: 300 cuentas. El informe "
+              "de Linko lo llama muestra de contraste y aclara que no busca cerrar el "
+              "motor —ya cerrado en V-01— sino caracterizar el residuo de migracion. Aun "
+              "asi, el metodo de seleccion de esas 300 cuentas sigue sin declararse, y sin "
+              "el, el 97.79% no se extrapola.")),
     conciliacion="PEND",
     racional_subconjunto=(
         "ESTE PUNTO SI ES UNA MUESTRA y su metodo de seleccion NO esta declarado. "
@@ -333,6 +342,16 @@ Punto(
     evidencia=["validador/reportes/REND-VISTA_2026-08-28_*/"],
     reproducir="cd validador && python cli.py --caso REND-VISTA --confirmar",
     caso_validador="REND-VISTA",
+    contraste=(
+        "NO SON COMPARABLES Y HAY QUE DECIRLO. Esta corrida es del CIERRE DE AGOSTO sobre "
+        "una cota de 20,000 filas y da 96.62% al centavo. El informe de Linko reporta el "
+        "CICLO DE JULIO como CENSO de 83,094 cuentas (~100% de los pagadores del ciclo, de "
+        "915,016 cuentas vista, la mayoria con interes 0) con 94.76% a 1e-8 y 95.03% al "
+        "centavo, con `oraculo_vista_finsus_history.py`, base 360 y dt 31. Ciclos y "
+        "universos distintos: ni se contradicen ni se promedian. Ademas "
+        "`MATRIZ_TOLERANCIAS.md` mantiene VISTA en [PEND] A PROPOSITO porque se sella con "
+        "el ciclo vivo del 31-ago; por eso el tablero muestra su cifra con fecha y nota y "
+        "no como si cerrara el punto (INV-C3)."),
 ),
 
 Punto(
@@ -382,9 +401,11 @@ Punto(
     ventana_datos="inversiones vigentes al corte", corte="2026-08-20", ejecutado="2026-08-20",
     n_comparado="126,465", unidad="inversiones (term 7)",
     denominador=Denominador(
-        total=PEND, segun="B (AurumCore)",
-        consulta="select count(*) from aurumcore.iv_payment_plan  -- y por plazo",
-        nota="126,465 corresponde al plazo 7; faltan los volumenes de los demas plazos."),
+        total="706,600", segun="B (AurumCore) — cuentas con `nominal_cgat > 0`",
+        nota=("Verificado en BD 2026-08-28. Correccion del informe: NO existe tabla "
+              "`investment_account`; las inversiones son filas de `aurumcore.account` "
+              "(8,325,509 en total), de las cuales 706,600 tienen `nominal_cgat > 0`. El "
+              "doc citaba 689,479 de un corte previo.")),
     conciliacion="volumenes por plazo declarados en COMPARACION_C_vs_DOC.md A4",
     racional_subconjunto=(
         "Se eligio el plazo 7 por ser el de mayor volumen, lo que da la prueba mas dura "
@@ -685,10 +706,9 @@ Punto(
     ventana_datos="corte de credito", corte="2026-08-20", ejecutado="2026-08-20",
     n_comparado="54,716", unidad="filas con IVA",
     denominador=Denominador(
-        total=PEND, segun="B (AurumCore)",
-        consulta=("select count(*) from aurumcore.lc_loan_amortization "
-                  "-- total de filas, con y sin IVA"),
-        nota="54,716 filas CON IVA; falta el total de filas para expresar la fraccion."),
+        total="55,636", segun="B (AurumCore) — filas con IVA > 0",
+        nota=("Verificado en BD 2026-08-28: `lc_loan_amortization` tiene 102,605 filas, "
+              "55,636 con IVA > 0. Las 54,716 validadas son el ~98% de esas.")),
     conciliacion="tasa implicita 16.0% en el 95% de las filas",
     racional_subconjunto=(
         "El recorte filas-con-IVA es estructural: una fila sin IVA no tiene nada que "
@@ -720,11 +740,12 @@ Punto(
     ventana_datos="corte de credito", corte="2026-08-20", ejecutado="2026-08-20",
     n_comparado="794", unidad="contratos",
     denominador=Denominador(
-        total=PEND, segun="B (AurumCore)",
-        consulta=("select count(distinct lc_contract_id) from "
-                  "aurumcore.lc_loan_amortization  -- y cuantos son FRENCH"),
-        nota=("794 contratos. La auditoria lo senalo en la sesion [00:29:23]: 'el tema de "
-              "amortizacion solo son 700 casos'. Falta el denominador.")),
+        total="31,970", segun="B (AurumCore) — contratos con tabla de amortizacion",
+        nota=("Verificado en BD 2026-08-28. La auditoria lo senalo en la sesion "
+              "[00:29:23]: el tema de amortizacion solo son 700 casos. Ahora se puede "
+              "contestar: 794 de 31,970 = 2.48%, y el recorte es por LINAJE (solo "
+              "contratos sin pagos, donde `capital_remaining_amount` todavia no se movio), "
+              "no por volumen.")),
     conciliacion=PEND,
     racional_subconjunto=(
         "Los 794 son los contratos FRESCOS (sin pagos aplicados) de amortizacion francesa. "
@@ -815,6 +836,12 @@ Punto(
                "50_hallazgos/CANDIDATOS_A_HALLAZGO.md (A28-CAT-CONSTANTE / CERO / FINANCED)"],
     reproducir="cd validador && python cli.py --caso CAT-01 --confirmar",
     caso_validador="CAT-01",
+    contraste=(
+        "DISCREPANCIA MENOR ABIERTA: este tablero midio 31,866 contratos en "
+        "`lc_loan_contract` el 2026-08-28 y el informe detallado de Linko dice 31,867. Un "
+        "contrato de diferencia, casi seguro por el instante de la medicion. Se levanta en "
+        "vez de alinearla en silencio: si las dos partes miden el mismo universo con un dia "
+        "de diferencia y no coinciden, eso lo tiene que saber quien lee los dos documentos."),
 ),
 
 Punto(

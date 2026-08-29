@@ -87,6 +87,38 @@ class Fuente:
 
 
 @dataclass
+class Alcance:
+    """Que se toma y que NO, con el universo detras. Fuente: el INFORME DETALLADO.
+
+    Lo pidio la auditoria en la sesion del 2026-08-28: no basta el porcentaje,
+    hace falta saber sobre QUE se calculo y cuanto representa. Un 100% sobre un
+    cohorte de 39.6% del libro y un 100% sobre el libro entero son afirmaciones
+    muy distintas, y la tarjeta las mostraba igual.
+
+    `tipo` separa las dos cosas que se confundian:
+      censo        se tomo el 100% de un alcance BIEN DEFINIDO. No extrapola
+                   porque no hace falta: no quedo nada fuera de ese alcance.
+      subconjunto  recorte con rationale (metodologico o de performance).
+      muestra      seleccion parcial. Es la unica que necesitaria metodo de
+                   muestreo declarado para poder extrapolar.
+    """
+    si: str
+    no: tuple[str, ...]
+    tipo: str
+    n: str
+    universo: str                  # total del que sale `n`, o "[PEND]"
+    representatividad: str
+    rationale: str
+    ref: str                       # ficha del informe detallado
+    nota: str = ""                 # matices (p.ej. ciclo distinto al citado)
+
+    def como_dict(self) -> dict:
+        return {"si": self.si, "no": list(self.no), "tipo": self.tipo, "n": self.n,
+                "universo": self.universo, "representatividad": self.representatividad,
+                "rationale": self.rationale, "ref": self.ref, "nota": self.nota}
+
+
+@dataclass
 class Motor:
     id: str
     nombre: str
@@ -123,6 +155,9 @@ class Motor:
     # ciegas afirma un diagnostico que no verifico, que es la misma fabricacion
     # que NORTE_SANIDAD persigue — solo que en la prosa en vez de en la cifra.
     lectura_escalon: str = ""
+    # Alcance declarado (INFORME_DETALLADO_AUDITORIA). Sin esto, la tarjeta
+    # muestra un porcentaje sin decir sobre que universo se calculo.
+    alcance: "Alcance | None" = None
 
     @property
     def categoria(self) -> str:
@@ -204,6 +239,7 @@ class Motor:
             "evidencia_config": self.evidencia_config,
             "dossier_match": self.dossier_match,
             "lectura_escalon": self.lectura_escalon,
+            "alcance": self.alcance.como_dict() if self.alcance else None,
             "pct_escala": (self.pct_citado or (None, None))[1],
         }
 
@@ -536,3 +572,269 @@ def resumen_cobertura() -> dict[str, Any]:
         "bloqueados_por_logs": [m.id for m in MOTORES if m.depende_de_logs],
         "solicitudes_abiertas": sorted({s for m in MOTORES for s in m.solicitudes}),
     }
+
+# --- Alcance por motor -------------------------------------------------------
+# FUENTE: 40_validaciones/INFORME_DETALLADO_AUDITORIA/ (corte 2026-08-26,
+# denominadores verificados en BD el 2026-08-28). Se CITA, no se recalcula: los
+# denominadores los midio el repo de validacion con acceso a la base, y este
+# tablero no los ha reproducido. Donde este tablero SI corrio el caso, el
+# alcance dice de que corrida habla.
+_I = "40_validaciones/INFORME_DETALLADO_AUDITORIA"
+
+ALCANCE_POR_MOTOR: dict[str, Alcance] = {
+    "PLAZO": Alcance(
+        si="Interes de inversion a plazo GENERADO por AurumCore (no migrado), todos los periodos del cohorte.",
+        no=("Inversiones migradas de openfin (`origin = 'FINSUS'`) — es otro punto.",
+            "Cuentas de UN SOLO PAGO: el metodo despeja la tasa del periodo 1 y la "
+            "reproduce en los demas, asi que con un solo pago no hay de donde despejar "
+            "sin circularidad. Quedan fuera POR METODOLOGIA, no por muestreo.",
+            "Productos sin plan de pagos."),
+        tipo="censo del cohorte aplicable",
+        n="530,195 periodos / 157,999 cuentas",
+        universo="1,339,023 periodos live-pagados (de 36,905,411 totales en iv_payment_plan)",
+        representatividad="~39.6% de los periodos live-pagados",
+        rationale=(
+            "CORRECCION DE HONESTIDAD (informe detallado §3): antes se reportaba como "
+            "'100% de lo live' y NO lo es. El cohorte exige >= 2 pagos, `interest_paid`, "
+            "`interest_amount > 0` e `iv_initial_amount > 0`. Dentro de ese cohorte se "
+            "corre el 100% —es censo, no muestra— pero el cohorte es el 39.6% de los "
+            "periodos live-pagados. El resultado (0 violaciones en 530,195) no cambia; "
+            "el DENOMINADOR si."),
+        ref=f"{_I}/01_CAPTACION_FISCAL.md#v-01"),
+
+    "VISTA": Alcance(
+        si="Interes mensual de cuenta a la VISTA que Aurum posteo, recalculado por el oraculo.",
+        no=("Cuentas sin pago en el ciclo.",
+            "El ciclo vivo de agosto: cierra el 31-ago y se re-corre entonces.",
+            "El SPM de RENDIMIENTO real: se usa `finsus_account_history`, no la poliza."),
+        tipo="cota de extraccion (esta corrida) / censo del ciclo (la cifra citada)",
+        n="20,000 pagos (corrida de este tablero)",
+        universo="[PEND] para la corrida de este tablero",
+        representatividad="[PEND]",
+        rationale=(
+            "El limite de 20,000 filas es una COTA OPERATIVA para no degradar AurumCore, "
+            "que es produccion — no una decision estadistica. La herramienta puede correr "
+            "el universo completo en cuanto se acuerde la ventana."),
+        nota=(
+            "esta corrida es del CIERRE DE AGOSTO sobre una cota de "
+            "20,000 filas y da 96.62% al centavo. El informe detallado cita otra cosa: "
+            "el CICLO DE JULIO como CENSO de 83,094 cuentas (~100% de los pagadores del "
+            "ciclo), con 94.76% a 1e-8 y 95.03% al centavo. Son ciclos y universos "
+            "distintos, no una contradiccion — pero tampoco son comparables. "
+            "`MATRIZ_TOLERANCIAS.md` mantiene VISTA en [PEND] A PROPOSITO: se sella con "
+            "el ciclo vivo del 31-ago."),
+        ref=f"{_I}/01_CAPTACION_FISCAL.md#v-04"),
+
+    "SALDO-PROM": Alcance(
+        si="El SPM de RENDIMIENTO (distinto del de consulta `account.average_balance_amount`).",
+        no=("Todo: el punto declara un bloqueo, no un resultado.",),
+        tipo="subconjunto parcial (barrido de logs)",
+        n="90 filas / 27 cuentas",
+        universo="[PEND] — el dato no esta en la base, esta en la traza de log",
+        representatividad="[PEND]",
+        rationale=(
+            "No hubo eleccion de subconjunto: es lo que el barrido de logs alcanzo a "
+            "capturar. Nota del informe: V-04 ya NO depende de este SPM, usa "
+            "`finsus_account_history`."),
+        ref=f"{_I}/01_CAPTACION_FISCAL.md#v-05"),
+
+    "GAT": Alcance(
+        si="El GAT publicado al cliente (`nominal_cgat` / `real_cgat`), como prueba NO-CIRCULAR.",
+        no=("El cruce 1-a-1 a volumen sobre todo el padron de inversiones.",
+            "El GAT real per-contrato: falta la tabla de tramos de tasa."),
+        tipo="estrato de prueba no-circular",
+        n="126,465 inversiones (plazo 7)",
+        universo="706,600 cuentas de inversion (`account.nominal_cgat > 0`, de 8,325,509 cuentas)",
+        representatividad="17.90%",
+        rationale=(
+            "La validacion NO depende del volumen: si `nominal_cgat` es funcion pura de "
+            "(tasa, plazo, 360), reproducirla exacto en 126,465 casos ya lo demuestra. Se "
+            "eligio el plazo 7 por ser el de mayor volumen. NOTA: no existe tabla "
+            "`investment_account`; las inversiones son filas de `aurumcore.account`."),
+        ref=f"{_I}/01_CAPTACION_FISCAL.md#v-06"),
+
+    "ISR": Alcance(
+        si="ISR de inversiones con los TRES motores (A openfin / B Aurum / C oraculo).",
+        no=("El ISR de cuentas a la VISTA.",
+            "Las inversiones que existen en UN solo core: el join las excluye por "
+            "construccion, y ese diferencial no se cuantifico.",
+            "El cruce masivo per-contrato al pago: requiere el Manual (SOL-015)."),
+        tipo="censo del universo comun A ∩ B",
+        n="18,599 inversiones / 14,913 clientes",
+        universo="el universo comun A ∩ B de inversiones",
+        representatividad="100% del comun",
+        rationale=(
+            "El universo lo define la INTERSECCION, no una muestra: solo se puede comparar "
+            "A contra B donde la inversion existe en los dos. El recorte es estructural."),
+        ref=f"{_I}/01_CAPTACION_FISCAL.md#v-0708"),
+
+    "ISR-VIVO": Alcance(
+        si="El ISR que AurumCore calcula por si mismo despues del cutover.",
+        no=("Todo: el punto esta BLOQUEADO por falta de insumo.",),
+        tipo="bloqueado",
+        n="[PEND]", universo="[PEND]", representatividad="[PEND]",
+        rationale=(
+            "El ~13% que se ha citado NO es un resultado de validacion sino la senal del "
+            "bloqueo: falta el saldo base PUNTO-EN-TIEMPO al momento del pago. Publicarlo "
+            "como porcentaje de acierto seria enganoso."),
+        ref=f"{_I}/01_CAPTACION_FISCAL.md#v-12"),
+
+    "CRED-ORD": Alcance(
+        si="La provision DIARIA de interes ordinario que el core escribe en su feed operativo.",
+        no=("El interes moratorio (otro punto, otra base y otra tasa).",
+            "Contratos sin provision ese dia.",
+            "Que la tasa pactada sea la correcta contra el contrato: solo que la del feed "
+            "coincida con la de la DB (0 mismatch en 4,091)."),
+        tipo="censo del dia",
+        n="4,091 provisiones ordinarias",
+        universo="todas las provisiones ordinarias del feed 2026-08-20 (4,945 contratos con evento; 31,867 contratos en total)",
+        representatividad="100% del dia",
+        rationale=(
+            "El universo lo define el EVENTO, no una muestra: la provision diaria es el "
+            "acto de calculo que se audita, y el feed del dia trae todos los contratos que "
+            "devengaron. Un solo dia porque el feed lo produce un proceso de extraccion de "
+            "logs aparte, no una consulta a la base."),
+        ref=f"{_I}/02_CREDITO.md#v-13"),
+
+    "CRED-MOR": Alcance(
+        si="Provision diaria de interes MORATORIO sobre capital vencido.",
+        no=("Contratos sin mora.",
+            "La correccion de la CLASIFICACION en mora: se toma el `capital_venc` que el "
+            "core declara."),
+        tipo="censo del dia",
+        n="1,274 provisiones moratorias (692 con `capital_venc`)",
+        universo="todas las provisiones moratorias del feed 2026-08-20",
+        representatividad="100% del dia",
+        rationale=(
+            "Mismo criterio que ordinario. El sub-recorte a 692 no es eleccion sino "
+            "consecuencia: comparar contra un `capital_venc` de cero no prueba nada, y "
+            "contarlas como no conformes acusaria al motor de un dato que no existe. Las "
+            "582 restantes se declaran, no se esconden."),
+        ref=f"{_I}/02_CREDITO.md#v-14"),
+
+    "CRED-DIAS": Alcance(
+        si="Que los dias de provision sean los del PERIODO de amortizacion, no los transcurridos.",
+        no=("El monto del interes.",),
+        tipo="verificacion de mecanica",
+        n="3 contratos (traza de log)",
+        universo="[PEND]", representatividad="no aplica",
+        rationale=(
+            "Es una pregunta BINARIA sobre la convencion del motor. Tres trazas con el "
+            "mismo comportamiento la contestan; trescientas no la contestarian mejor. Lo "
+            "que n=3 NO puede decir es si hay productos con otra convencion."),
+        ref=f"{_I}/02_CREDITO.md#v-15"),
+
+    "CRED-IVA": Alcance(
+        si="IVA sobre el interes de credito.",
+        no=("Productos que no gravan.",
+            "Que la tasa de 16% sea la aplicable a cada cliente (exenciones, frontera)."),
+        tipo="censo",
+        n="54,716 filas",
+        universo="55,636 filas con IVA > 0 (de 102,605 filas de amortizacion)",
+        representatividad="98.35% de las filas con IVA",
+        rationale=(
+            "El recorte 'filas con IVA' es estructural: una fila sin IVA no tiene nada que "
+            "validar. No hubo muestreo, se tomaron todas."),
+        ref=f"{_I}/02_CREDITO.md#v-16"),
+
+    "AMORT": Alcance(
+        si="Mecanica de la tabla: cuota constante, interes Actual/360, capital = cuota - interes, saldo -> 0.",
+        no=("Amortizacion AMERICANA, ITALIANA y ALEMANA: no tienen formula en el doc.",
+            "Contratos CON pagos aplicados: `capital_remaining_amount` es un campo VIVO."),
+        tipo="subconjunto por linaje",
+        n="794 contratos",
+        universo="31,970 contratos con tabla de amortizacion",
+        representatividad="2.48%",
+        rationale=(
+            "El recorte es METODOLOGICO, no de volumen: en un contrato con pagos el "
+            "`capital_remaining_amount` ya se movio, asi que compararlo contra la tabla "
+            "original daria diferencias del paso del tiempo, no del motor. Validar donde "
+            "la comparacion es JUSTA y declarar el resto es preferible a un porcentaje mas "
+            "grande y sin significado."),
+        ref=f"{_I}/02_CREDITO.md#v-17"),
+
+    "CAT": Alcance(
+        si="El CAT per-contrato (Circular 21/2009), sobre el estrato donde `cat` de verdad varia por contrato.",
+        no=("Los 25,026 contratos con `cat` CONSTANTE copiada: no es un calculo, comparar "
+            "contra el no mide el motor.",
+            "Los 2,576 con `cat = 0`: es el hallazgo A28-CAT-CERO, no un cuadre.",
+            "El CAT de amortizacion italiana y alemana."),
+        tipo="subconjunto estratificado",
+        n="4,225 contratos (corrida de este tablero)",
+        universo="31,867 contratos de credito (25,026 constante / 4,220 per-contrato / 2,576 cat=0 / 44 sin cat)",
+        representatividad="13.2% es el estrato con CAT real",
+        rationale=(
+            "El recorte NO busca subir el porcentaje: busca que el porcentaje SIGNIFIQUE "
+            "algo. Un CAT es funcion del monto y del plazo, asi que `cat = 27.10` en 15,300 "
+            "contratos con 3,930 montos distintos es una constante, no un calculo. El "
+            "11.6% global medía EL CAMPO, no el CAT."),
+        nota=(
+            "DISCREPANCIA MENOR ABIERTA: este tablero midio 31,866 contratos el 2026-08-28 "
+            "y el informe detallado dice 31,867. Un contrato de diferencia, probablemente "
+            "por el momento de la medicion. Se levanta en vez de alinearlo en silencio."),
+        ref=f"{_I}/02_CREDITO.md#v-18"),
+
+    "IFRS9": Alcance(
+        si="Las etapas (mora -> etapa) y los % de reserva, y la aplicacion en E3.",
+        no=("Etapas 1 y 2 amortizando: la base depende de un spec pendiente.",
+            "La composicion de `reserva_int`: definida el 2026-08-24 pero sin formulas.",
+            "Cartera COMERCIAL y creditos REESTRUCTURADOS: faltan las 9 tablas.",
+            "Zona MARGINADA: el staging no trae la zona, se asume no marginada."),
+        tipo="censo de la config + corrida sobre cota de extraccion",
+        n="37/37 celdas de config · 20,000 filas de staging (corrida de este tablero)",
+        universo="toda la tabla `lc_reserve_ifrs` + `lc_risk_stage`",
+        representatividad="100% de la config",
+        rationale=(
+            "ALCANCE DELIBERADAMENTE ESTRECHO: solo etapa 3, consumo, zona no marginada — "
+            "la parte donde la regla esta CERRADA en la fuente. Cubrir E1/E2 hoy exigiria "
+            "inventar la base de calculo. La INDEPENDENCIA es lo que da valor: el % de C "
+            "sale del GTM, no de `lc_reserve_ifrs`; que ademas coincida 37/37 es un "
+            "RESULTADO, no el metodo."),
+        ref=f"{_I}/02_CREDITO.md#v-19"),
+
+    "MOTOR-B": Alcance(
+        si="Que NO FALTE ninguna operacion de openfin (A) en AurumCore (B), por dia.",
+        no=("El cruce instancia-a-instancia: falta el crosswalk de tipos (SOL-004).",
+            "Que los importes cuadren: solo que el conteo de B no sea menor que el de A."),
+        tipo="censo por dia",
+        n="6 dias (21K-29K operaciones por dia)",
+        universo="todas las operaciones de esos 6 dias",
+        representatividad="100% de 6 dias",
+        rationale=(
+            "Seis dias CONSECUTIVOS, no sueltos: la completitud se rompe por lotes, asi "
+            "que dias seguidos detectan el hueco y dias dispersos no. Ampliable a mas dias."),
+        ref=f"{_I}/03_CONTABLE_PADRON.md#v-20"),
+
+    "CONTABLE": Alcance(
+        si="Que cada dia la suma de debitos mas creditos sea exactamente 0.00.",
+        no=("El amarre contra saldos y el mapeo a cuenta contable: la doble partida cuadra "
+            "aunque el mapeo sea erroneo. La alerta de balanza (producto 2001) es de otra "
+            "naturaleza y sigue abierta.",),
+        tipo="censo por dia",
+        n="7 dias (17K-220K asientos por dia)",
+        universo="todos los asientos de esos 7 dias",
+        representatividad="100% de 7 dias",
+        rationale=(
+            "La doble partida es una identidad EXACTA, no un estimador: si un dia cuadra a "
+            "0.00, cuadra, sin margen muestral. Siete dias consecutivos cubren un ciclo "
+            "semanal completo, incluido el fin de semana, que es cuando los batch se "
+            "comportan distinto."),
+        ref=f"{_I}/03_CONTABLE_PADRON.md#v-2122"),
+
+    "WSO2": Alcance(
+        si="Cobertura BIDIRECCIONAL entre el proveedor de identidad y el padron.",
+        no=("La semantica del ciclo de vida de identidad: la asimetria se ESPERA (P-017) y "
+            "esa explicacion no esta verificada.",),
+        tipo="censo bidireccional",
+        n="20 huerfanos / 181,850 / 295 altas incompletas",
+        universo="todo el padron contra todo WSO2",
+        representatividad="100%",
+        rationale=(
+            "No hay subconjunto: se cruzaron los dos padrones completos. Lo que falta "
+            "declarar es el TAMANO de cada uno, para que 20 y 181,850 se lean como "
+            "fracciones y no como numeros sueltos."),
+        ref=f"{_I}/03_CONTABLE_PADRON.md#v-23"),
+}
+
+for _mid, _a in ALCANCE_POR_MOTOR.items():
+    POR_ID[_mid].alcance = _a

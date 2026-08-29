@@ -412,3 +412,81 @@ def test_cat_se_calcula_aqui_sobre_el_estrato_per_contrato():
         assert e["n"] == cr["n_comparadas"], (
             "una fila que el oraculo no pudo calcular quedaria fuera del "
             "denominador y subiria el porcentaje por no haberla medido")
+
+
+# --- INV-E5: el alcance se declara (delta del export 2026-08-28) -----------
+
+def _claim_con_alcance(**kw):
+    a = {"universo": "1,339,023", "representatividad": "~39.6%", "no": ["mono-pago"]}
+    a.update(kw.pop("alcance", {}) or {})
+    return claim(alcance=a, **kw)
+
+
+def test_e5_un_porcentaje_sin_alcance_es_violacion():
+    """El caso que lo motivo: PLAZO publicaba 100% y se leia como 'todo lo live',
+    cuando el cohorte es el 39.6% de los periodos live-pagados."""
+    assert "INV-E5" in invs([claim(alcance=None)])
+
+
+def test_e5_alcance_sin_universo_o_sin_representatividad():
+    assert "INV-E5" in invs([_claim_con_alcance(alcance={"universo": ""})])
+    assert "INV-E5" in invs([_claim_con_alcance(alcance={"representatividad": ""})])
+
+
+def test_e5_la_representatividad_no_se_inventa_sobre_un_universo_pendiente():
+    """Mismo criterio que INV-H3: si no se sabe el universo, no hay porcentaje."""
+    assert "INV-E5" in invs([_claim_con_alcance(
+        alcance={"universo": "[PEND]", "representatividad": "39.60%"})])
+    # Declararlo pendiente en ambos SI pasa: es el "no lo se" explicito.
+    assert "INV-E5" not in invs([_claim_con_alcance(
+        alcance={"universo": "[PEND]", "representatividad": "[PEND]"})])
+
+
+def test_e5_un_alcance_sin_fuera_de_alcance_es_violacion():
+    assert "INV-E5" in invs([_claim_con_alcance(alcance={"no": []})])
+
+
+def test_e5_no_se_dispara_con_un_alcance_completo():
+    assert "INV-E5" not in invs([_claim_con_alcance()])
+
+
+# --- El alcance viaja del catalogo al tablero ------------------------------
+
+def test_los_dieciseis_motores_declaran_su_alcance():
+    for m in M.MOTORES:
+        assert m.alcance, f"{m.id} no declara alcance"
+        assert m.alcance.no, f"{m.id} no declara que queda FUERA de su alcance"
+        assert m.alcance.ref.startswith("40_validaciones/INFORME_DETALLADO_AUDITORIA"), (
+            f"{m.id} no cita la ficha del informe detallado")
+
+
+def test_plazo_ya_no_afirma_cobertura_completa_de_lo_live():
+    """La correccion que trajo el export: 530,195 NO es el 100% de lo live."""
+    a = M.POR_ID["PLAZO"].alcance
+    assert "39.6" in a.representatividad, (
+        f"PLAZO sigue sin declarar su representatividad real: {a.representatividad}")
+    assert "1,339,023" in a.universo
+    # La distincion vive donde el lector la necesita: en el "que NO se valida".
+    texto = (a.rationale + " " + " ".join(a.no)).upper()
+    assert "METODOLOGIA" in texto and "MUESTREO" in texto, (
+        "PLAZO no explica que las cuentas de un solo pago quedan fuera por metodo, "
+        "no por muestreo")
+
+
+def test_vista_advierte_que_su_cifra_no_es_comparable_con_la_citada():
+    """INV-C3: el tablero calcula agosto sobre una cota; el informe cita julio
+    como censo. Ni se contradicen ni se promedian — hay que decirlo."""
+    a = M.POR_ID["VISTA"].alcance
+    assert a.nota, "VISTA no advierte el contraste de ciclo"
+    assert "JULIO" in a.nota.upper() and "AGOSTO" in a.nota.upper()
+    assert "94.76" in a.nota, "VISTA no cita la cifra del informe contra la que contrasta"
+
+
+def test_el_alcance_llega_al_json_y_al_spa():
+    d = json.loads((RESULTADOS / "PLAZO.json").read_text(encoding="utf-8"))
+    assert d["alcance"]["representatividad"]
+    assert d["alcance"]["no"]
+    html = (RAIZ / "spa" / "index.html").read_text(encoding="utf-8")
+    assert "bloqueAlcance" in html, "el SPA no pinta el alcance"
+    assert "NO se valida" in html, "el SPA no muestra que queda fuera"
+    assert "Representatividad" in html

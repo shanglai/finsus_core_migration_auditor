@@ -126,7 +126,13 @@ def ficha(p: Punto) -> str:
           + (f" — clase `{p.clase_no_conforme}`" if p.clase_no_conforme else "") + ":\n")
         A(p.no_conformes + "\n")
 
-    A("## 7. Lo que este punto NO concluye\n")
+    if p.contraste:
+        A("## 7. Contraste con el informe detallado de Linko\n")
+        A("> Este tablero es un tercero: donde su medicion y la del repo de "
+          "validacion no coinciden, se dice — no se alinea en silencio.\n")
+        A(p.contraste + "\n")
+
+    A(f"## {8 if p.contraste else 7}. Lo que este punto NO concluye\n")
     if p.no_concluye:
         A("Los limites de la afirmacion. Un resultado leido fuera de estos limites dice "
           "mas de lo que la prueba soporta.\n")
@@ -134,14 +140,15 @@ def ficha(p: Punto) -> str:
     else:
         A("— (sin limites adicionales declarados)\n")
 
+    _n = 8 + (1 if p.contraste else 0)
     if p.bloqueo or p.insumo_requerido:
-        A("## 8. Bloqueo — que hace falta y cuando\n")
+        A(f"## {_n}. Bloqueo — que hace falta y cuando\n")
         if p.bloqueo:
             A(f"**Que bloquea:** {p.bloqueo}\n")
         if p.insumo_requerido:
             A(f"**Insumo requerido:** {p.insumo_requerido}\n")
 
-    A(f"## {9 if (p.bloqueo or p.insumo_requerido) else 8}. Evidencia\n")
+    A(f"## {_n + (1 if (p.bloqueo or p.insumo_requerido) else 0)}. Evidencia\n")
     A(_lista([f"`{e}`" for e in p.evidencia]) + "\n")
     A("---\n")
     A("*Verde no es dictamen. Cada validacion devuelve las filas que violan la regla; "
@@ -151,15 +158,16 @@ def ficha(p: Punto) -> str:
 
 
 def indice() -> str:
-    L = ["# Informe detallado de auditoria — indice\n"]
+    L = ["# Reconciliacion del auditor — alcance y representatividad por punto\n"]
     L.append(
-        "> Una ficha por punto de validacion, con **alcance, periodo, universo, "
-        "representatividad, racional del subconjunto y santo y sena**. Responde a lo que "
-        "el equipo de auditoria pidio en la sesion del 2026-08-28 y que el informe de alto "
-        "nivel no traia.\n")
+        "> **Que es esto.** El repo de validacion publico su "
+        "`40_validaciones/INFORME_DETALLADO_AUDITORIA/` con los denominadores "
+        "cerrados contra la base el 2026-08-28. Este documento es la vista del "
+        "**tercero**: los mismos puntos con lo que ESTE tablero puede reproducir, y "
+        "**donde las dos mediciones no coinciden, se dice**.\n")
     L.append(
-        "> Complementa —no reemplaza— "
-        "`40_validaciones/PAQUETE_AUDITOR_DATOS/01_TABLA_MAESTRA_VALIDACIONES.md`.\n")
+        "> No reemplaza al informe de Linko ni al `PAQUETE_AUDITOR_DATOS/`. Aporta "
+        "el contraste y los comandos para reproducir cada corrida desde este lado.\n")
     L.append("## Lo que este informe agrega\n")
     L.append(
         "| Pregunta de la sesion | Donde se contesta |\n|---|---|\n"
@@ -180,6 +188,15 @@ def indice() -> str:
             L.append("|---|---:|---:|---:|---|---|")
         L.append(f"| **{p.id}** {p.titulo} | {p.n_comparado} {p.unidad} | {p.denominador.total} "
                  f"| {p.representatividad} | {p.corte} | [ver](detalle/{_slug(p.id)}.md) |")
+
+    contr = [p for p in PUNTOS if p.contraste]
+    if contr:
+        L.append("\n## Contrastes abiertos con el informe de Linko\n")
+        L.append("Lo que un tercero aporta no es repetir la cifra: es decir "
+                 "donde no cuadra.\n")
+        for q in contr:
+            L.append(f"### {q.id} · {q.titulo}\n")
+            L.append(q.contraste + "\n")
 
     pend = [p for p in PUNTOS if p.denominador.pendiente]
     L.append(f"\n## Estado de la representatividad\n")

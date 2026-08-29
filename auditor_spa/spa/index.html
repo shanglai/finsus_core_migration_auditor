@@ -169,6 +169,15 @@ pre.formula{margin:0;padding:12px 14px;background:var(--neutro-bg);border-radius
 .g .p{width:64px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
 .escalon{font-size:12.5px;background:var(--neutro-bg);padding:9px 12px;border-radius:7px;line-height:1.5}
 .flag{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700}
+.alcance{border:1px solid var(--linea);border-radius:9px;padding:12px 14px;font-size:12.5px;line-height:1.6}
+.alcance .fila{display:flex;gap:10px;margin-bottom:5px}
+.alcance .et{color:var(--suave);min-width:132px;flex-shrink:0}
+.alcance ul{margin:3px 0 0 16px;padding:0}
+.alcance li{margin-bottom:3px}
+.alcance .no{color:var(--mal)}
+.alcance .ojo{background:var(--alerta-bg,var(--neutro-bg));border-left:3px solid var(--alerta);
+  padding:8px 11px;border-radius:5px;margin-top:9px}
+.repr{font-weight:700}
 .sanidad{border:1px solid var(--linea);border-radius:10px;padding:13px 15px;margin-bottom:18px}
 .sanidad.mal{border-color:var(--mal);background:var(--mal-bg)}
 .sanidad.bien{border-color:var(--ok)}
@@ -455,11 +464,43 @@ function galeria(cat){
         <div class="cat-chip">${esc(m.categoria)}</div>
         ${p!==null?`<div class="pct"><span class="val">${p.toFixed(2)+'%'}</span>
           <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span></div>
-          ${m.pct_escala?`<div class="cita">${ETIQUETA_ESCALA(m.pct_escala)}</div>`:''}`
+          ${m.pct_escala?`<div class="cita">${ETIQUETA_ESCALA(m.pct_escala)}</div>`:''}
+          ${m.alcance?`<div class="cita">${esc(m.alcance.tipo)} · <b>${esc(m.alcance.representatividad)}</b></div>`:''}`
         : respaldo(m,false)}
         <div class="cita"><span class="badge b-${m.origen_resultado==='corrida_local'?'corrida_local':
           (m.origen_resultado==='dossier'?'dossier':'sin_cruce')}">${esc(et)}</span></div>
       </div>`;}).join('')}</div>`;
+}
+
+/* ---------- alcance: que se toma y que NO ----------
+   Un porcentaje sin su universo no se puede leer. Un 100% sobre un cohorte que
+   es el 39.6% del libro y un 100% sobre el libro entero son afirmaciones muy
+   distintas, y la tarjeta las mostraba igual. Fuente: el INFORME DETALLADO. */
+const TIPO_ALCANCE=t=>{
+  const k=String(t||'').toLowerCase();
+  if(k.startsWith('censo')) return ['censo','Se tomó el <strong>100%</strong> de un alcance bien definido. No extrapola porque no hace falta: dentro de ese alcance no quedó nada fuera.'];
+  if(k.startsWith('muestra')) return ['muestra','Selección <strong>parcial</strong>. Para extrapolar haría falta declarar el método de muestreo.'];
+  if(k.startsWith('bloqueado')) return ['bloqueado','No hay alcance que declarar: falta el insumo.'];
+  return ['subconjunto','Recorte con <strong>rationale</strong> declarado (metodológico o de performance), no muestreo estadístico.'];
+};
+function bloqueAlcance(m){
+  const a=m.alcance; if(!a) return '';
+  const [et,expl]=TIPO_ALCANCE(a.tipo);
+  return `<div class="sec"><h3>Alcance — qué se toma y qué no</h3><div class="alcance">
+    <div class="fila"><span class="et">Sí se valida</span><span>${esc(a.si)}</span></div>
+    <div class="fila"><span class="et">NO se valida</span><span><ul>${
+      (a.no||[]).map(x=>`<li class="no">${esc(x)}</li>`).join('')}</ul></span></div>
+    <div class="fila"><span class="et">Tipo</span><span><span class="badge b-${
+      et==='censo'?'validado':(et==='bloqueado'?'bloqueado':'parcial')}">${esc(a.tipo)}</span>
+      <span class="cita"> ${expl}</span></span></div>
+    <div class="fila"><span class="et">Comparado</span><span>${esc(a.n)}</span></div>
+    <div class="fila"><span class="et">De un universo de</span><span>${esc(a.universo)}</span></div>
+    <div class="fila"><span class="et">Representatividad</span><span class="repr">${esc(a.representatividad)}</span></div>
+    <div class="fila"><span class="et">Por qué ese recorte</span><span>${esc(a.rationale)}</span></div>
+    ${a.nota?`<div class="ojo"><strong>Ojo:</strong> ${esc(a.nota)}</div>`:''}
+    <div class="cita" style="margin-top:9px">Citado de <span class="mono">${esc(a.ref)}</span>.
+      Los denominadores los midió el repo de validación contra la base; este tablero no los ha reproducido.</div>
+  </div></div>`;
 }
 
 /* ---------- vista: detalle ---------- */
@@ -586,6 +627,7 @@ function detalle(id){
     <div class="sec"><h3>Valida contra</h3><div class="chips">${chips}</div>
       ${m.insumos?`<div class="cita" style="margin-top:8px">insumos: ${esc(m.insumos)}</div>`:''}</div>
 
+    ${bloqueAlcance(m)}
     ${conteo?`<div class="sec"><h3>Conteo</h3>${conteo}</div>`:''}
     ${gran}
 

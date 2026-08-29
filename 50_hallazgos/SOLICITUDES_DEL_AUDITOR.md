@@ -9,7 +9,7 @@
 > para lo que nace de este lado. **Estas solicitudes no tienen `SOL-###` todavía**: el número lo
 > asigna el repo fuente. Se citan con `AUD-###` hasta que se escalen y reciban su id.
 >
-> Actualizado: 2026-08-28
+> Actualizado: 2026-08-29
 
 ---
 
@@ -95,3 +95,32 @@ motor.
 - IFRS 9 `88.10 → 100.00`: escalón clásico — el residuo es **precisión de la base** (`capital_venc`
   leído a menos decimales de los que el core usó), **patrón P-019, no defecto de AurumCore**. El
   porcentaje implícito en las filas que fallan sale correcto (75.0000 / 90.0001 / 100.0000).
+
+
+---
+
+## AUD-004 — Dos discrepancias menores contra el `INFORME_DETALLADO_AUDITORIA` 🟢
+
+**Estado:** detectadas 2026-08-29 al reconciliar el export nuevo · **para aclarar, no bloquean**
+
+El informe detallado cerró los denominadores contra la base el 2026-08-28 y este tablero los
+adoptó. Al cruzarlos aparecieron dos diferencias que se levantan en vez de alinearse en silencio.
+
+**(a) `lc_loan_contract`: 31,866 vs 31,867.** Este tablero midió **31,866** contratos el
+2026-08-28 al construir `CAT-01`; el informe dice **31,867**. Un contrato de diferencia, casi
+seguro por el instante de la medición. No cambia ninguna conclusión —la partición de estratos y
+el 13.2% se sostienen igual— pero si dos partes miden el mismo universo con horas de diferencia y
+no coinciden, quien lea los dos documentos tiene que saberlo. **Se pide:** confirmar el conteo con
+un corte común, o declarar la hora de cada medición.
+
+**(b) VISTA — dos cifras que no son comparables.** El informe reporta el **ciclo de julio** como
+censo de 83,094 cuentas: **94.76% a 1e-8 / 95.03% al centavo**. Este tablero corrió el **cierre de
+agosto** sobre una cota de 20,000 filas: **96.37% / 96.62%**. Ciclos y universos distintos — ni se
+contradicen ni se promedian. El tablero lo muestra con fecha y nota (INV-C3) en vez de presentar
+una sola cifra. **Se pide:** acordar cuál es la cifra de referencia para el informe, y si este
+tablero debe re-correr el ciclo de julio con el censo completo para que ambos lados publiquen la
+misma. Se resuelve solo con el cierre del 31-ago, que es cuando la matriz sella VISTA.
+
+**Nota de método.** La corrección de V-01 (de "100% de lo live" a **~39.6% de los periodos
+live-pagados**) llegó del informe de Linko y **este tablero la adoptó tal cual**: era
+sobre-afirmación de cobertura, que es el mismo problema-espejo en su dirección fácil.

@@ -2,29 +2,9 @@
 
 > Todo lo que este informe NO puede afirmar todavia, con **como se cierra**. Un pendiente sin instruccion de cierre se vuelve permanente.
 
-## 1. Denominadores sin medir (15 de 19 puntos)
+## 1. Denominadores sin medir (10 de 19 puntos)
 
 Es la pregunta central de la auditoria [00:32:35]. Cada uno trae la consulta que lo cierra; todas son de solo lectura y de agregacion (no leen datos de cliente).
-
-### V-01 · Rendimiento plazo fijo — motor vivo (origin IS NULL)
-
-Comparado **530,195** periodos (157,999 cuentas), de un total **no declarado** segun B (AurumCore).
-
-Se declaro 'todas las origin IS NULL', o sea el subconjunto ES el universo de su clase. Falta la cifra de control: cuantos periodos hay EN TOTAL (origin null + no null) para expresar que fraccion del libro representa.
-
-```sql
-select count(*) total, count(*) filter (where a.origin is null) origin_null from aurumcore.iv_payment_plan p join aurumcore.account a on a.account_id = p.account_id
-```
-
-### V-02 · Rendimiento plazo fijo — migrado (origin = FINSUS)
-
-Comparado **3,748** periodos (300 cuentas), de un total **no declarado** segun B (AurumCore).
-
-AQUI SI HAY MUESTREO: 300 cuentas de un total no declarado.
-
-```sql
-select count(*) from aurumcore.iv_payment_plan p join aurumcore.account a on a.account_id = p.account_id where a.origin = 'FINSUS'
-```
 
 ### V-04 · Rendimiento vista — oraculo independiente
 
@@ -44,16 +24,6 @@ Comparado **90** filas (27 cuentas), de un total **no declarado** segun logs del
 
 ```sql
 no hay consulta: el dato no esta en la base, esta en la traza de log
-```
-
-### V-06 · GAT inversion (nominal / real)
-
-Comparado **126,465** inversiones (term 7), de un total **no declarado** segun B (AurumCore).
-
-126,465 corresponde al plazo 7; faltan los volumenes de los demas plazos.
-
-```sql
-select count(*) from aurumcore.iv_payment_plan  -- y por plazo
 ```
 
 ### V-07/08 · ISR inversiones — join A/B/C completo y desviacion clasificada
@@ -92,26 +62,6 @@ Comparado **3** contratos (traza de log), de un total **no declarado** segun log
 
 ```sql
 contar cuantos contratos aparecen en la traza CreditAmortizationChargeServiceImpl
-```
-
-### V-16 · Credito — IVA sobre interes
-
-Comparado **54,716** filas con IVA, de un total **no declarado** segun B (AurumCore).
-
-54,716 filas CON IVA; falta el total de filas para expresar la fraccion.
-
-```sql
-select count(*) from aurumcore.lc_loan_amortization -- total de filas, con y sin IVA
-```
-
-### V-17 · Credito — AMORTIZACION (tabla francesa)
-
-Comparado **794** contratos, de un total **no declarado** segun B (AurumCore).
-
-794 contratos. La auditoria lo senalo en la sesion [00:29:23]: 'el tema de amortizacion solo son 700 casos'. Falta el denominador.
-
-```sql
-select count(distinct lc_contract_id) from aurumcore.lc_loan_amortization  -- y cuantos son FRENCH
 ```
 
 ### V-19 · IFRS 9 — etapas y porcentaje de reserva
@@ -155,11 +105,10 @@ select count(*) from aurumcore.accountholder
 ```
 
 
-## 2. Universos sin conciliar (5)
+## 2. Universos sin conciliar (4)
 
 Un universo que solo se cuenta a si mismo confirma consistencia interna, no completitud.
 
-- **V-01** Rendimiento plazo fijo — motor vivo (origin IS NULL)
 - **V-02** Rendimiento plazo fijo — migrado (origin = FINSUS)
 - **V-04** Rendimiento vista — oraculo independiente
 - **V-09/10/11** ISR — reconciliacion al pago, devengo diario e insumo de saldo base
