@@ -9,7 +9,7 @@
 > para lo que nace de este lado. **Estas solicitudes no tienen `SOL-###` todavía**: el número lo
 > asigna el repo fuente. Se citan con `AUD-###` hasta que se escalen y reciban su id.
 >
-> Actualizado: 2026-08-29
+> Actualizado: 2026-08-31
 
 ---
 
@@ -101,7 +101,7 @@ motor.
 
 ## AUD-004 — Dos discrepancias menores contra el `INFORME_DETALLADO_AUDITORIA` 🟢
 
-**Estado:** detectadas 2026-08-29 al reconciliar el export nuevo · **para aclarar, no bloquean**
+**Estado:** detectadas 2026-08-29 · **CERRADAS por acuerdo en el export del 2026-08-31** (`INFORME_DETALLADO_AUDITORIA/00_INDICE.md` §4) · sin impacto en conclusiones
 
 El informe detallado cerró los denominadores contra la base el 2026-08-28 y este tablero los
 adoptó. Al cruzarlos aparecieron dos diferencias que se levantan en vez de alinearse en silencio.
@@ -124,3 +124,19 @@ misma. Se resuelve solo con el cierre del 31-ago, que es cuando la matriz sella 
 **Nota de método.** La corrección de V-01 (de "100% de lo live" a **~39.6% de los periodos
 live-pagados**) llegó del informe de Linko y **este tablero la adoptó tal cual**: era
 sobre-afirmación de cobertura, que es el mismo problema-espejo en su dirección fácil.
+
+
+### Cierre acordado de AUD-004 (export 2026-08-31)
+
+**(a) `lc_loan_contract`.** El cierre **no es alinear la cifra**, es **declarar la hora de cada
+medición**: 31,867 (Linko, 2026-08-28) vs **31,866 (este tablero, 2026-08-28 14:29 UTC)**. Un
+contrato de diferencia = deriva de tabla viva. La cifra de referencia del informe es 31,867; la
+tarjeta de CAT muestra ambas con su hora.
+
+**(b) VISTA.** Referencia vigente = **ciclo de julio, censo de 83,094 cuentas (94.76% a 1e-8 /
+95.03% al centavo)**. La corrida de este tablero —agosto sobre cota de 20,000 → 96.62%— queda
+etiquetada como **preview**, no como cifra de referencia. Se unifica con el cierre del 31-ago.
+
+> Por qué importa la forma del cierre: alinear la cifra sin explicar la diferencia habría
+> producido dos documentos que coinciden y ninguno que se pueda auditar. Declarar la hora deja la
+> discrepancia **explicada**, que es lo que un tercero aporta.

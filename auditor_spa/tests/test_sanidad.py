@@ -490,3 +490,57 @@ def test_el_alcance_llega_al_json_y_al_spa():
     assert "bloqueAlcance" in html, "el SPA no pinta el alcance"
     assert "NO se valida" in html, "el SPA no muestra que queda fuera"
     assert "Representatividad" in html
+
+
+# --- El glosario del bundle manda (sync 2026-08-31) ------------------------
+
+GLOSARIO = RAIZ.parent / "40_validaciones" / "GLOSARIO_ESTADOS_TABLERO.md"
+
+
+def test_las_etiquetas_del_tablero_son_las_del_glosario():
+    """El brief del sync pide alinear las etiquetas EXACTAMENTE al glosario.
+
+    Dos diccionarios se separan en cuanto alguien edita uno. Esta prueba falla
+    si el tablero define un estado, una cobertura o una escala que el glosario
+    del bundle no reconoce.
+    """
+    if not GLOSARIO.exists():
+        pytest.skip("el glosario no esta en este bundle")
+    txt = GLOSARIO.read_text(encoding="utf-8").lower()
+    for e in M.ESTADOS:
+        assert e.replace("_", " ") in txt, f"el estado '{e}' no existe en el glosario"
+    for c in ("datos", "volumen", "config", "completitud"):
+        assert c in txt, f"la cobertura '{c}' no existe en el glosario"
+    for g in ("1e-8", "1e-5", "centavo"):
+        assert g in txt, f"la escala '{g}' no existe en el glosario"
+
+
+def test_el_glosario_se_renderiza_desde_el_bundle_no_desde_una_copia():
+    """Si el tablero mantuviera su propia copia de las definiciones, se
+    separaria del bundle sin que nadie lo note."""
+    html = (RAIZ / "spa" / "index.html").read_text(encoding="utf-8")
+    assert "GLOSARIO_ESTADOS_TABLERO.md" in html, (
+        "el SPA no cita el documento fuente del glosario")
+    assert "s.doc==='GLOSARIO'" in html, (
+        "el SPA no renderiza el glosario desde el corpus; parece tener una copia")
+    con = json.loads((RESULTADOS / "conocimiento.json").read_text(encoding="utf-8"))
+    docs = {s["doc"] for s in con["secciones"]}
+    assert "GLOSARIO" in docs, "el glosario no entro al corpus del agente"
+
+
+def test_aud004_declara_la_hora_de_la_medicion():
+    """El cierre acordado de AUD-004(a) NO es alinear la cifra: es declarar la
+    hora de cada medicion."""
+    a = M.POR_ID["CAT"].alcance
+    assert "31,866" in a.nota and "31,867" in a.nota, "CAT no contrasta las dos cifras"
+    assert "14:29" in a.nota, "CAT no declara la HORA de su medicion"
+
+
+def test_vista_declara_cual_es_la_cifra_de_referencia():
+    """AUD-004(b): la referencia vigente es el censo de julio; lo de agosto es
+    preview. Mostrar las dos sin decir cual manda invita a elegir la que
+    convenga."""
+    a = M.POR_ID["VISTA"].alcance
+    assert "REFERENCIA" in a.nota.upper()
+    assert "PREVIEW" in a.nota.upper() or "preview" in a.tipo
+    assert "94.76" in a.nota and "96.62" in a.nota

@@ -59,3 +59,17 @@ rationale · Santo y seña (tablas/columnas/filtros/llave/motor/tolerancias) · 
 - GAT: no existe tabla `investment_account`; las inversiones son filas de **`aurumcore.account`** (8,325,509 total) con
   **`nominal_cgat>0` = 706,600** (el doc citaba 689,479, corte previo). Denominador de GAT **cerrado**.
 - El "qué NO se valida" por punto responde también a la petición de ver *"qué se está tomando"* (F-031 @00:49). → P-024.
+- **Hora de medición:** los denominadores de arriba se midieron en `aurumcore` el **2026-08-28** (VPN Linko). Las tablas
+  vivas pueden derivar entre mediciones.
+
+## 4. Conciliaciones abiertas (AUD-004, levantadas por el auditor)
+> Se declaran, no se alinean en silencio.
+- **`lc_loan_contract`: 31,867 (Linko, 2026-08-28) vs 31,866 (auditor, 2026-08-28).** Diferencia = **1 contrato** =
+  deriva de **tabla viva** (una activación/baja entre mediciones a horas distintas). No cambia ninguna conclusión.
+  **Cierre:** corte común o —lo que hacemos aquí— **declarar la hora de cada medición**. La cifra de referencia para el
+  informe es **31,867 @2026-08-28**; la del auditor, 31,866 @2026-08-28.
+- **VISTA — cifra de referencia:** el tablero del auditor corrió el **ciclo de agosto sobre una cota de 20,000 filas →
+  96.62% al centavo**; el informe cita el **ciclo de julio como censo de 83,094 cuentas → 94.76% a 1e-8 / 95.03% al
+  centavo**. **Ciclos y universos distintos: ni se contradicen ni se promedian.** Referencia vigente = **julio censo**
+  (ya es el completo); la corrida de agosto-20k es preview. **Cierre definitivo: 31-ago** (ciclo vivo completo), y ambos
+  lados publican la misma cifra.

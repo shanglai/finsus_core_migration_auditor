@@ -607,7 +607,7 @@ ALCANCE_POR_MOTOR: dict[str, Alcance] = {
         no=("Cuentas sin pago en el ciclo.",
             "El ciclo vivo de agosto: cierra el 31-ago y se re-corre entonces.",
             "El SPM de RENDIMIENTO real: se usa `finsus_account_history`, no la poliza."),
-        tipo="cota de extraccion (esta corrida) / censo del ciclo (la cifra citada)",
+        tipo="preview sobre cota (esta corrida) — la referencia es el censo de julio",
         n="20,000 pagos (corrida de este tablero)",
         universo="[PEND] para la corrida de este tablero",
         representatividad="[PEND]",
@@ -616,13 +616,15 @@ ALCANCE_POR_MOTOR: dict[str, Alcance] = {
             "que es produccion — no una decision estadistica. La herramienta puede correr "
             "el universo completo en cuanto se acuerde la ventana."),
         nota=(
-            "esta corrida es del CIERRE DE AGOSTO sobre una cota de "
-            "20,000 filas y da 96.62% al centavo. El informe detallado cita otra cosa: "
-            "el CICLO DE JULIO como CENSO de 83,094 cuentas (~100% de los pagadores del "
-            "ciclo), con 94.76% a 1e-8 y 95.03% al centavo. Son ciclos y universos "
-            "distintos, no una contradiccion — pero tampoco son comparables. "
-            "`MATRIZ_TOLERANCIAS.md` mantiene VISTA en [PEND] A PROPOSITO: se sella con "
-            "el ciclo vivo del 31-ago."),
+            "AUD-004 (b) — DOS CIFRAS, UNA REFERENCIA. La cifra de REFERENCIA VIGENTE es "
+            "la del informe: CICLO DE JULIO, censo de 83,094 cuentas (~100% de los "
+            "pagadores del ciclo), 94.76% a 1e-8 y 95.03% al centavo. Lo que muestra esta "
+            "tarjeta —96.62% al centavo— es un PREVIEW del ciclo de agosto sobre una cota "
+            "de 20,000 filas, no el censo. Ciclos y universos distintos: ni se "
+            "contradicen ni se promedian, y no se eligen por conveniencia. "
+            "`MATRIZ_TOLERANCIAS.md` mantiene VISTA en [PEND] A PROPOSITO. Cierre "
+            "definitivo: el ciclo vivo del 31-ago, cuando ambos lados publican la misma "
+            "cifra y se cierran INV-C3 y este AUD-004."),
         ref=f"{_I}/01_CAPTACION_FISCAL.md#v-04"),
 
     "SALDO-PROM": Alcance(
@@ -769,9 +771,14 @@ ALCANCE_POR_MOTOR: dict[str, Alcance] = {
             "contratos con 3,930 montos distintos es una constante, no un calculo. El "
             "11.6% global medía EL CAMPO, no el CAT."),
         nota=(
-            "DISCREPANCIA MENOR ABIERTA: este tablero midio 31,866 contratos el 2026-08-28 "
-            "y el informe detallado dice 31,867. Un contrato de diferencia, probablemente "
-            "por el momento de la medicion. Se levanta en vez de alinearlo en silencio."),
+            "AUD-004 (a) — CONCILIADA POR HORA, no alineada en silencio. Este tablero "
+            "midio 31,866 contratos el 2026-08-28 a las 14:29 UTC; el informe de Linko "
+            "reporta 31,867 el mismo dia. La diferencia es UN contrato: deriva de tabla "
+            "viva (una activacion o baja entre las dos mediciones). No cambia ninguna "
+            "conclusion —la particion de estratos y el 13.2% se sostienen igual—. La "
+            "cifra de REFERENCIA del informe es 31,867 @2026-08-28; esta corrida trabajo "
+            "sobre 31,866 @2026-08-28 14:29 UTC. Se cierra declarando la hora, que es lo "
+            "que se hace aqui."),
         ref=f"{_I}/02_CREDITO.md#v-18"),
 
     "IFRS9": Alcance(

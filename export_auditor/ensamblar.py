@@ -73,6 +73,8 @@ INCLUYE = [
     "40_validaciones/PAQUETE_AUDITOR_DATOS/03_INVENTARIO_DUCKDB.md",
     # --- Para auditoria: manuales + guia + estado + respuesta Finsus ---
     "40_validaciones/GUIA_AUDITORIA.md",
+    "40_validaciones/GLOSARIO_ESTADOS_TABLERO.md",
+    "40_validaciones/ACCESO_Y_RED.md",
     "40_validaciones/MANUAL_DEFINICIONES.md",
     "40_validaciones/MANUAL_USO_ORACULO_AUDITOR.md",
     "40_validaciones/ESTADO_RESUMEN.md",
@@ -86,9 +88,11 @@ INCLUYE = [
     "40_validaciones/PLAN_FASE1_ISR.md",
     "40_validaciones/REFERENCIA_TABLAS_POR_CASO.md",
     "40_validaciones/SOLICITUDES_FINSUS.md",
+    "export_auditor/00_START_HERE.md",
     "export_auditor/PROMPT_ARRANQUE_AUDITOR.md",
     "export_auditor/PROMPT_SYNC_AUDITOR.md",
     "export_auditor/PROMPT_SYNC_2026-08-28.md",
+    "export_auditor/PROMPT_SYNC_2026-08-31.md",
     "30_oraculo/ESPECIFICACIONES/S-FIS-001.md",
     "30_oraculo/TRAZABILIDAD.md",
     # Config de ejemplo (SIN credenciales reales)

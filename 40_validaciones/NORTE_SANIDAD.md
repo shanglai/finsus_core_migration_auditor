@@ -43,6 +43,10 @@ tablero** (lado auditor). Ningún invariante se cierra con tolerancia negociada.
   nunca un `—`. *Viola:* config sin `evidencia_config`.
 - **INV-E4 · Botón honesto.** "Ejecutar" activo **solo** si hay **caso ejecutable + insumo disponible**. *Viola:*
   botón activo sin caso o sin feed (p.ej. CRED-MOR sin `credits-closing-trans`).
+- **INV-E5 · Alcance declarado.** Cada card declara **qué se valida, qué NO, sobre qué universo y cuánto representa**.
+  *Viola:* card sin alcance · sin universo · con **representatividad inventada** sobre universo `[PEND]` (mismo
+  criterio que INV-H3) · alcance que no dice **qué queda fuera**. (Añadido por el auditor 2026-08-28; verificado que
+  atrapa los cuatro modos.)
 
 ## 4. Familia C — Consistencia entre fuentes (una cifra, un valor)
 - **INV-C1 · Misma cifra en todos lados.** El % de un motor es **idéntico** en el tablero, `MATRIZ_TOLERANCIAS.md`

@@ -27,6 +27,15 @@ DOCUMENTOS = [
     (VAL / "COMPARACION_C_vs_DOC.md", "COMPARACION", "Comparacion C contra el documento"),
     (VAL / "SOLICITUDES_FINSUS.md", "SOLICITUDES", "Lo que esta bloqueado y quien lo desbloquea"),
     (VAL / "REFERENCIA_TABLAS_POR_CASO.md", "TABLAS", "Tablas, columnas y filtros por caso"),
+    # La "tablita de significados" que el grupo auditoria pidio en la sesion del
+    # 2026-08-28. El tablero la RENDERIZA desde aqui en vez de mantener una copia
+    # de las definiciones: dos glosarios se separan, y el que manda es el del
+    # bundle.
+    (VAL / "GLOSARIO_ESTADOS_TABLERO.md", "GLOSARIO",
+     "Que significa cada etiqueta del tablero"),
+    (VAL / "NORTE_SANIDAD.md", "SANIDAD", "Invariantes falsables del propio tablero"),
+    (VAL / "INFORME_DETALLADO_AUDITORIA/00_INDICE.md", "ALCANCE",
+     "Alcance, universo y representatividad por punto"),
 ]
 
 _RE_ENC = re.compile(r"^(#{1,3})\s+(.*)$")
