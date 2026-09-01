@@ -19,7 +19,7 @@
   col9=tipo `INTEREST PROVISIONING`) ↔ `aurumcore.lc_finantial_data_stage.capital`. Motor
   `comparadores/oraculo_credito.py::interes_ordinario_dia` = `capital × (tasa/100) / 360` (base 360 = `calendar_type 1`).
   Tolerancias `tolerancias.py`.
-- **Conciliación:** tasa feed=DB **4,091/4,091** (0 mismatch); **96.8% exacto a 1e-8** (3,472/3,585 c/ capital); ≤$0.01
+- **Conciliación:** tasa feed=DB **4,091/4,091** (0 mismatch); **97.32% a 1e-8 / 97.43% al centavo** (3,489/3,585 c/capital, corte 01-sep); (firme 23-ago 96.8%). abs(capital) K-DAT-007. ≤$0.01
   **97.0%**. Sin sesgo. Residuo = **linaje de datos** (tabla de capital punto-en-tiempo, **P-019**), no defecto.
   `RESULTADO_credito_vivo_2026-08-23.md`.
 
@@ -29,7 +29,7 @@
 - **Universo y representatividad:** **1,274 provisiones moratorias = censo del día**; con `capital_venc`: 692.
 - **Santo y seña:** mismo feed (`MORATORY PROVISIONING`, col7=tasa moratoria) ↔ `aurumcore.lc_finantial_data.capital_venc`.
   Motor `oraculo_credito.py::interes_moratorio_dia` = `capital_venc × (tasaMor/100) / 360`, días=1, **sin redondear**.
-- **Conciliación:** tasa 0 mismatch; **81.1% exacto a 1e-8** (561/692); **≤$0.01 = 95.70%** (662). El escalón
+- **Conciliación:** tasa 0 mismatch; **94.66% a 1e-8 / 95.38% al centavo** (656/693, corte 01-sep); (firme 23-ago 81.1%/95.7%). El **1e-8 se mueve con el corte** = granularidad del snapshot de `capital_venc`, no defecto; el centavo (~95.4%) es el estable. ~~≤$0.01 = 95.70%~~ (662). El escalón
   81→95.7 = **granularidad del snapshot de `capital_venc`** (más volátil intra-período), no defecto. Los 30 fuera =
   placeholders (`capital_venc=10M`)/liquidados. P-020 resuelta. **Cifra firme: 95.7% al centavo** (no el 89% que se
   mencionó verbalmente).
@@ -46,7 +46,7 @@
   filas totales en `aurumcore.lc_loan_amortization` (31,970 contratos distintos).
 - **Santo y seña:** `aurumcore.lc_loan_amortization.interest_tax_amount` vs `oraculo_credito.py::iva_interes(interés, 16)`
   = `Round2(interés × 16/100)`, half-up.
-- **Conciliación:** **99.0% exacto** (tasa implícita 16.0% en 95%; resto = redondeo en montos chicos).
+- **Conciliación (por cohortes, corte 01-sep):** cohorte **16% general** = 98.91% a 1e-8 / **99.46% al centavo** (96.96% del universo); **IVA-incluido 16/84=19.05%** (0.5%, convención); **resto** = 16% con redondeo en montos ínfimos (RESULTADO_iva_cohortes). ~~99.0% exacto (tasa implícita 16.0% en 95%; resto = redondeo en mon~~tos chicos).
 
 ## V-17 · Amortización (tabla francesa)
 - **Alcance — sí:** mecánica de la tabla (cuota constante, interés Actual/360, capital=cuota−interés, saldo→0).

@@ -61,6 +61,9 @@ INCLUYE = [
     "40_validaciones/PROMPT_AUDITOR_SPA.md",
     "40_validaciones/MATRIZ_TOLERANCIAS.md",
     "40_validaciones/NORTE_SANIDAD.md",
+    "40_validaciones/CROSSWALK_CRITERIOS_BLOQUEANTES.md",
+    "40_validaciones/CROSSWALK_OF_AU_SOL-004.md",
+    "40_validaciones/PLAN_ACTUALIZACION_AUDITOR_INTERNO.md",
     "40_validaciones/CASO_CAT-01_estratificado.md",
     "40_validaciones/INFORME_DETALLADO_AUDITORIA/00_INDICE.md",
     "40_validaciones/INFORME_DETALLADO_AUDITORIA/01_CAPTACION_FISCAL.md",
@@ -93,6 +96,7 @@ INCLUYE = [
     "export_auditor/PROMPT_SYNC_AUDITOR.md",
     "export_auditor/PROMPT_SYNC_2026-08-28.md",
     "export_auditor/PROMPT_SYNC_2026-08-31.md",
+    "export_auditor/PROMPT_CIERRE_2026-09-01.md",
     "30_oraculo/ESPECIFICACIONES/S-FIS-001.md",
     "30_oraculo/TRAZABILIDAD.md",
     # Config de ejemplo (SIN credenciales reales)

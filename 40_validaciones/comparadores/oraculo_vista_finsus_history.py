@@ -44,27 +44,58 @@ def main():
     ap.add_argument("--cierre", default="2026-07-31", help="record_date del cierre del ciclo (SPM en finsus_account_history)")
     ap.add_argument("--pago", default="2026-08-01", help="process_date del pago mensual en yield_dto (B posteada)")
     ap.add_argument("--limite", type=int, default=0, help="cuentas a muestrear (0 = TODAS)")
+    ap.add_argument("--dt-por-cuenta", action="store_true",
+                    help="usa el dt real por cuenta (dias con saldo en el mes) en vez de dt fijo; base 360")
     a = ap.parse_args()
     lim = "" if a.limite == 0 else f"limit {int(a.limite)}"
 
-    c = conn(); cur = c.cursor(); cur.execute("set statement_timeout=280000")
-    print(f"=== VISTA vivo · SPM {a.cierre} vs pago {a.pago} · {'UNIVERSO' if a.limite==0 else a.limite} ===")
-    q = f"""
-      select y.account_id, y.yield_amount, h.average_balance_amount, h.interest_rate
-      from aurumcore.yield_dto y
-      join aurumcore.finsus_account_history h
-        on h.account_id = y.account_id and h.record_date = date '{a.cierre}'
-      where y.iv_payment_plan_id is null
-        and y.process_date = date '{a.pago}'
-        and y.yield_amount > 0
-        and h.average_balance_amount > 0
-      {lim}
-    """
+    c = conn(); cur = c.cursor(); cur.execute("set statement_timeout=290000")
+    print(f"=== VISTA vivo · SPM {a.cierre} vs pago {a.pago} · {'UNIVERSO' if a.limite==0 else a.limite}"
+          f"{' · dt-por-cuenta' if a.dt_por_cuenta else ''} ===")
+    if a.dt_por_cuenta:
+        q = f"""
+          with pay as (
+            select y.account_id, y.yield_amount b, h.average_balance_amount spm, h.interest_rate tasa
+            from aurumcore.yield_dto y
+            join aurumcore.finsus_account_history h
+              on h.account_id = y.account_id and h.record_date = date '{a.cierre}'
+            where y.iv_payment_plan_id is null and y.process_date = date '{a.pago}'
+              and y.yield_amount > 0 and h.average_balance_amount > 0 {lim}),
+          dt as (
+            select account_id, count(distinct record_date) dt
+            from aurumcore.finsus_account_history
+            where record_date between date_trunc('month', date '{a.cierre}') and date '{a.cierre}'
+              and average_balance_amount > 0 and account_id in (select account_id from pay)
+            group by account_id)
+          select p.account_id, p.b, p.spm, p.tasa, coalesce(d.dt, 31) dt
+          from pay p left join dt d on d.account_id = p.account_id
+        """
+    else:
+        q = f"""
+          select y.account_id, y.yield_amount, h.average_balance_amount, h.interest_rate
+          from aurumcore.yield_dto y
+          join aurumcore.finsus_account_history h
+            on h.account_id = y.account_id and h.record_date = date '{a.cierre}'
+          where y.iv_payment_plan_id is null
+            and y.process_date = date '{a.pago}'
+            and y.yield_amount > 0
+            and h.average_balance_amount > 0
+          {lim}
+        """
     cur.execute(q)
     filas = cur.fetchall()
     print(f"pares (B posteado ∧ SPM en historia): {len(filas):,}")
     if not filas:
         print("sin pares — revisar cierre/cobertura."); return
+
+    if a.dt_por_cuenta:
+        pares = [(rendimiento_vista(Decimal(str(spm)), Decimal(str(tasa)), int(dt), 360), Decimal(str(b)))
+                 for acc, b, spm, tasa, dt in filas]
+        imprimir(f"vista-{a.cierre}-dtcuenta (base 360)", resumen_tolerancias(pares))
+        fuera = [(acc, cval, Decimal(str(b))) for (cval, _), (acc, b, *_r) in zip(pares, filas)
+                 if abs(cval - Decimal(str(b))) > Decimal("0.01")]
+        print(f"\nno-conformes al centavo: {len(fuera):,} de {len(filas):,} (residual = granularidad del SPM de cierre)")
+        return
 
     # C para cada convencion; nos quedamos con la mejor por cuenta (la que mas cuadra al centavo)
     mejor_pares = []       # (C_mejor, B) usando la convencion que mas cuadra globalmente

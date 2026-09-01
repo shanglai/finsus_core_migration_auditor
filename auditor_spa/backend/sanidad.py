@@ -164,7 +164,12 @@ def claim_de(d: dict) -> dict:
     local = cr.get("origen_resultado") == "corrida_local"
 
     escalas: dict[str, str] = {}
-    if local and cr.get("match"):
+    # Una corrida SUPERADA por un corte declarado no manda las barras: el
+    # titular es la cifra en firme, y mezclar las dos series haria que la
+    # tarjeta se contradijera a si misma. La corrida sigue publicada aparte,
+    # etiquetada como preview.
+    superada = bool(cr.get("superada"))
+    if local and not superada and cr.get("match"):
         for e in cr["match"].get("escalas", []):
             escalas[e["nombre"]] = e["pct"]
     dm = d.get("dossier_match") or {}
@@ -177,7 +182,7 @@ def claim_de(d: dict) -> dict:
         for e in GRANULARIDADES:
             escalas.setdefault(e, "[PEND]")
 
-    if local:
+    if local and not superada:
         fuente = ("corrida local " + (cr.get("ejecutado") or "")).strip()
         n = cr.get("n_comparadas")
         s = (cr.get("sesgo") or {}).get("sesgo_detectado") if cr.get("sesgo") else None
@@ -212,7 +217,7 @@ def claim_de(d: dict) -> dict:
         "fuente": fuente,
         "n": n,
         "sesgo": sesgo,
-        "calculado_aqui": local,
+        "calculado_aqui": local and not superada,
         "estado": d.get("estado"),
         "alcance": d.get("alcance"),
     }

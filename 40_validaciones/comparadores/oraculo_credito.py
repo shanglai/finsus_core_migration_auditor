@@ -36,6 +36,9 @@ def _round2(x):
     return D(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
+# NOTA DEL DATO (verificado 2026-09-01): en AurumCore, lc_finantial_data(_stage).capital y capital_venc se
+# almacenan NEGATIVOS (p.ej. -514291.92). Al alimentar estas funciones usar abs(capital); cruzar sin abs() da
+# C negativo y 0% de match espurio (no es defecto del motor). El |valor| coincide con el capital implícito del feed.
 def interes_ordinario_dia(saldo_insoluto, tasa_anual, base=360):
     """Provision diaria de interes ordinario (sin redondear, alta precision)."""
     return D(saldo_insoluto) * (D(tasa_anual) / Decimal(100)) / D(base)

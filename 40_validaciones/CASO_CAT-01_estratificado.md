@@ -39,10 +39,12 @@ reportar match a 1e-8 / 1e-5 / centavo con tolerancias.py + prueba de sesgo
   (cuando la corrida exista), con el 1e-8 debajo; y los otros dos estratos etiquetados por lo que son.
 
 ## 4. Bloqueo (SOL-015) — qué acota el dictamen
-La **convención de días** del CAT y si la **comisión de apertura** va `financed` (se suma al crédito) o **descontada**
-de la disposición **siguen pendientes** (Manual de Cálculos Oficiales). Sin eso, el residuo que quede **dentro de los
-4,220 no se puede atribuir a AurumCore** — podría ser convención del oráculo. **El caso se escribe con alcance
-declarado; el dictamen sobre el residuo, no** (hasta SOL-015).
+**Parcialmente desbloqueado (F-033, Tabla Consolidada v1):** el motor 9 (Comisiones) aclara que la **comisión
+financiada** = *descontada al inicio*, base = **Monto Autorizado**, y el CAT (motor 10.a) iguala el VP de las
+**disposiciones netas recibidas** = "Monto Recibido" = monto − comisión descontada. → usar **disposición neta** en
+`cat_frances`. **Sigue pendiente la convención de días** del CAT (360 vs Actual). Con esa pieza cerramos SOL-015; sin
+ella, el residuo dentro de los 4,220 **no se atribuye a AurumCore** (podría ser convención del oráculo). **El caso se
+escribe con alcance declarado; el dictamen sobre el residuo, no** (hasta cerrar la convención de días).
 
 ## 5. Hallazgo aparte — A28-CAT-CERO (no es parte del cuadre)
 **2,573 contratos `cat=0` que cobran ~28.45% de interés** (≈2,466 activos; activaciones 2023-11-29 → 2026-07-17).

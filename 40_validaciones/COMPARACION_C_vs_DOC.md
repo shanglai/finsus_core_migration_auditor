@@ -14,7 +14,7 @@
 
 ### A1. Rendimiento cuenta a la VISTA (2.1.1)
 1. **¿En doc?** Sí — D-REN p.3-4. `Round2(Trunc20(Trunc20((SPM×Tasa)/100)/DíasAño)×DíasPeriodo)`.
-2. **Corroboración:** 🟡 fórmula = doc; autoprueba del oráculo da el ejemplo del doc (30.14). **Pero no validado vivo en BD** (la corrida mensual de vista aún no ocurre / requiere saldo promedio de logs).
+2. **Corroboración:** 🟢 **VALIDADO VIVO 2026-09-01** — ciclo de agosto (primer cierre 100% post-cutover), censo de **82,925** cuentas: `yield_dto` (pago 01-sep) ↔ oráculo desde `finsus_account_history` (SPM+tasa 31-ago), **base 360·dt31 = 94.56% a 1e-8 / 94.82% al centavo**. Consistente con julio (94.76/95.03) → cifra estable. Residuo ~5% = `dt` intra-mes (no defecto). `RESULTADO_vista_vivo_2026-09-01.md`.
 3. **Desviación (consiste en):** el doc **no define el modo del `Round2`** para vista (a diferencia de plazo, que sí especifica `half_even`). Asumimos half-up. Impacto: ± un centavo por evento, potencial **sesgo** si el modo real difiere → verificar en la primera corrida mensual viva (31-ago) y/o logs `Calculating yield amount Using RATE`.
 
 ### A2. Rendimiento INVERSIÓN / PLAZO FIJO (2.1.2)
@@ -52,7 +52,7 @@
 
 ### C1. Interés ORDINARIO
 1. **¿En doc?** Sí — D-CRE p.3. `C×(i/100)×(t/DíasAño)`, base = **Saldo Insoluto del Capital**, provisión **diaria**, base 360 (`calendar_type 1`).
-2. **Corroboración:** 🟢 **validado vivo: 96.8% exacto a 1e-8** vs `capital` DB, **0/4,091 mismatch de tasa** (feed `credits-closing` 08-20); ejemplo del doc (20.83) reproducido.
+2. **Corroboración:** 🟢 **validado vivo: 97.32% a 1e-8 / 97.43% al centavo** (corte 01-sep; firme 23-ago 96.8%) vs `capital` DB, **0 mismatch de tasa** (feed `credits-closing` 08-20); ejemplo del doc (20.83) reproducido. **CONVENCIÓN CLAVE del dato:** `lc_finantial_data(_stage).capital` y `capital_venc` se **almacenan NEGATIVOS** (p.ej. `-514291.92`); el oráculo usa **`abs(capital)`**. Cruzar sin `abs()` da C negativo → 0% de match espurio. (Verificado 2026-09-01: el valor absoluto coincide exacto con el capital implícito del feed.)
 3. **Desviación:** ninguna de motor. **P-019 RESUELTO (2026-08-24, log↔DB):** del log despejé el capital que el motor usó → son fracciones amortizadas sensatas (mediana 95.5% del loan) = **motor correcto**. 84.2% stage+fin_data coinciden. El residuo ~12% es un **gap de población de la financial-data/reserva (lote 5004)** intra-mes, NO del motor de interés → **potencial subestimación de RESERVA** (escalar: confirmar cobertura al cierre de mes). Ver P-019b.
 
 ### C2. Interés MORATORIO
@@ -105,12 +105,12 @@
 ### D1. Motor B diario (A vs B transaccional)
 1. **¿En doc?** Parcial — D-CIC documenta los **ciclos/tipos** de transacción (SPEI, Pomelo, Authorizer, P2P, ajustes, tarjetas) y su afectación a **límites**; D-QRY da la **lógica de extracción** live (Sergio).
 2. **Corroboración:** 🟡 A vs B robusto (6 días, +0.1% a +2.1%, siempre OF≥AU = sin faltante).
-3. **Desviación (consiste en):** (a) el delimitador **`origin is null`** aparece en los queries oficiales **solo en subconsultas de exclusión** de crédito, no en el WHERE principal → su semántica como "live" **no está confirmada** (P-013/SOL-004); (b) **matriz oficial de tipo_transacción → efecto está "por incorporar" (vacía)** en el doc → no hay referencia oficial de tipos; (c) campo temporal A=`created` vs B=`last_updated` (posible desalineación).
+3. **Desviación (consiste en):** (a) el delimitador **`origin is null`** aparece en los queries oficiales **solo en subconsultas de exclusión** de crédito, no en el WHERE principal → su semántica como "live" **no está confirmada** (P-013/SOL-004); (b) ~~matriz de tipo_transacción → efecto "por incorporar (vacía)"~~ **ACTUALIZADO 2026-08-31:** la matriz existe (Ciclos v180826 → [[K-MOV-002]]) **Y el crosswalk OF↔AU se CONFIRMÓ en datos: 313 de 314 tipos OF empatan por número con `aurumcore.cat_finsus_transaction`** (misma numeración) → **SOL-004 (bridge de tipos) cerrado**; Motor B ya puede ir **instancia-a-instancia por tipo** (ver `CROSSWALK_OF_AU_SOL-004.md`); (c) campo temporal A=`created` vs B=`last_updated` (posible desalineación).
 
 ### D2. Contable B1/B3/B4 (doble partida, amarre)
 1. **¿En doc?** ⬛ **NO.** D-CIC **no mapea tipo_movimiento → cuenta contable de mayor** (sin pólizas, sin cargo↔abono, sin naturaleza); las 3 capas de saldo (contable/disponible/retenido) no se definen formalmente. Los docs IFRS remiten la contabilidad a "R04 A-0417 fuera de alcance".
-2. **Corroboración:** 🟡 B1 doble partida = **$0.00** (auto-consistente); balanza D ~1-2%.
-3. **Desviación (consiste en):** **gap de documentación** — nuestra matriz de amarre [[K-CTB-001]] se construyó de **datos observados**, no de fuente oficial. No hay contra qué corroborarla. **Acción:** pedir a Finsus el **catálogo tipo_movimiento → cuenta contable** (SOL nuevo). Alerta abierta: producto 2001 −34% en balanza; `daily_account_balances` stale.
+2. **Corroboración:** 🟢 B1 doble partida = **$0.00**; **y el mapeo `tipo → cuenta` existe en config y los posteos lo respetan** (ver punto 3). Balanza D ~1-2% (alerta abierta).
+3. **Desviación (consiste en):** ~~gap de documentación sin fuente~~ **CERRADO 2026-09-01:** el mapeo **está en config** — `aurumcore.cat_accounting_transaction` (**709 filas · 28 tipos**, keyed por par de cuentas de **mayor** → tipo + descripción + naturaleza) [[K-CTB-001]] v2. **Validación por volumen:** el 08-14, **99.60% de los posteos** (95,043/95,420) usan un par de cuenta **definido en la config** → **C = config del propio core** (como IFRS), no "no hay fuente". **Residual 0.40%** (377 posteos / 13 pares) sin catalogar, bajo volumen (edge cases rendimiento/interno) → caracterizar (¿nuevos productos o gap de config?). *(La matriz que el DOC no trae; la config sí.)* Alerta aparte: producto 2001 −34% en balanza; `daily_account_balances` stale. OF↔AU por cuenta: `cat_tx_cuadre` vs mayor AU (ver `CROSSWALK_OF_AU_SOL-004.md`).
 
 ### D3. Cuentahabientes WSO2 ↔ padrón
 1. **¿En doc?** No (fuera de estos docs de cálculo).
@@ -139,7 +139,7 @@ Write-offs (A), tasa variable TIIE/CETES (D), revaluación cambiaria/UDIS (E). �
 ### E4. IFRS 9 — reservas (stages + % por cartera)
 1. **¿En doc?** Sí — D-IFR (stages p.21, Tablas 1/2/3 p.18-20) + D-REG (reportes).
 2. **Corroboración:** 🟢 **parte determinista validada al máximo nivel** — `oraculo_ifrs9.py` autoprueba 14/14, y **C = config real de Aurum**: etapas = `lc_risk_stage` (exacto), % = `lc_reserve_ifrs` (**37/37 exacto**). Finsus cartera = **CONSUMO**. Aplicación `reserva=base×%` validada para E3 fully-vencido (base=capital_venc, 65% a volumen exacto).
-3. **Desviación:** ninguna en tablas/stages/%. Pendiente (no desviación): (a) definición de **"capital exigible"** como base para E1/E2 amortizando (porción exigible vs saldo) → 65%/30% de match, es data-def; (b) **tabla numérica de PI** para el modelo comercial (no en doc) → SOL; menor para Finsus (usa % directo).
+3. **Desviación:** ninguna en tablas/stages/%. Pendiente (no desviación): (a) definición de **"capital exigible"** como base para E1/E2 amortizando (porción exigible vs saldo) → 65%/30% de match, es data-def; (b) **tabla numérica de PI** para el modelo comercial (no en doc) → SOL; menor para Finsus (usa % directo). **Actualización F-033 (Tabla Consolidada v1):** ya trae la **fórmula de Etapa 2 (vida completa)** `Reservas = Max( (PI×SP×EI)/(r+PI) × [1−((1−PI)^n/(1+r)^n)], PI×SP×EI )` — desbloquea la mecánica de E2 del **modelo comercial**; para Finsus (**CONSUMO**) sigue aplicando el **% directo CNBV** (el Core no calcula PI).
 
 ## F. Documentado pero AÚN NO evaluado por C (cobertura pendiente de nuestro oráculo)
 | Proceso | Doc | Por qué importa para el dictamen |

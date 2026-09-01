@@ -104,8 +104,12 @@ def test_el_titular_citado_prefiere_la_tolerancia_de_negocio():
     al cliente y a la contabilidad. Las tres barras siguen debajo, asi que el
     numero estricto no se esconde — se contextualiza."""
     mor = M.POR_ID["CRED-MOR"]
-    assert mor.pct_citado == ("95.70", "centavo")
-    assert (mor.dossier_match or {}).get("1e-8") == "81.10",         "el numero estricto debe seguir disponible para las barras"
+    assert mor.pct_citado == ("95.38", "centavo")
+    assert (mor.dossier_match or {}).get("1e-8") == "94.66", (
+        "el numero estricto debe seguir disponible para las barras")
+    # Y la cifra en firme anterior no se borra: se declara a que sustituye.
+    assert "81.10" in (mor.dossier_match or {}).get("firme_anterior", ""), (
+        "se reemplazo la cifra firme del 23-ago sin dejar rastro de cual era")
 
 
 def test_sin_cruce_no_muestra_porcentaje():

@@ -47,6 +47,130 @@ CLASES_NO_CONFORME = {
 # el auditor de Finsus piensa en productos, no en codigos de dominio.
 CATEGORIAS = ("Captacion", "Fiscal", "Credito", "Transaccional/Contable", "Padron")
 
+# El umbral de BLOQUEO que definio Auditoria Interna de Finsus (F-032, criterio
+# raiz): una diferencia solo es bloqueante si supera $0.99 MXN y NO se explica
+# por redondeo o truncamiento. Se muestra en cada tarjeta porque es la vara con
+# la que el grupo auditoria va a leer los numeros, y sin ella un "95.38% al
+# centavo" no dice si algo es bloqueante o no.
+#
+# Ojo con la lectura facil: que la validacion corra 1-2 ordenes de magnitud por
+# DEBAJO del umbral no significa "todo pasa". Significa que los residuos que
+# quedan estan por debajo de lo que ellos consideran material — siempre que
+# esten EXPLICADOS, que es la otra mitad de su criterio.
+UMBRAL_BLOQUEO = {
+    "monto": "0.99",
+    "moneda": "MXN",
+    "fuente": "F-032 Criterios de Hallazgos Bloqueantes (Auditoria Interna Finsus, 2026-08-31)",
+    "texto": ("Diferencias mayores a $0.99 MXN que NO se expliquen por redondeo o "
+              "truncamiento."),
+    "lectura": ("Este tablero valida al CENTAVO ($0.01) y a 1e-8, o sea 1-2 ordenes de "
+                "magnitud por debajo del umbral. Un residuo sub-centavo no puede ser "
+                "bloqueante por su propia vara — pero solo si esta explicado, que es la "
+                "condicion que su criterio pone y que aqui se cumple caso por caso."),
+}
+
+# Cada criterio/area de F-032 -> donde se atiende. Lo pidio el prompt de cierre:
+# el material debe MAPEAR cada observacion a la card/motor/documento que la
+# atiende, y el tablero hacerlo navegable.
+CRITERIOS_F032 = [
+    {"id": "C1", "familia": "condicion",
+     "texto": "Impida dictamen positivo sobre integridad de los motores",
+     "estado": "cubierto",
+     "motores": ["PLAZO", "VISTA", "CRED-ORD", "CRED-MOR", "CRED-IVA", "ISR", "GAT",
+                 "CAT", "IFRS9"],
+     "doc": "CROSSWALK_CRITERIOS_BLOQUEANTES.md",
+     "nota": "8 motores validados en datos. Sin desviacion de calculo material abierta."},
+    {"id": "C2", "familia": "condicion",
+     "texto": "Diferencias > $0.99 MXN no explicables por redondeo o truncamiento",
+     "estado": "cubierto",
+     "motores": ["CRED-MOR", "VISTA", "CRED-IVA"],
+     "doc": "MATRIZ_TOLERANCIAS.md",
+     "nota": ("Todo cuadra al centavo/1e-8; los residuos sub-centavo se explican como "
+              "granularidad del snapshot. Los diffs > $0.99 que habia en vista con "
+              "`dt = 31` fijo se cerraron con `dt` por cuenta (corte 01-sep).")},
+    {"id": "C3", "familia": "condicion",
+     "texto": "Riesgo de incumplimiento regulatorio",
+     "estado": "levantado",
+     "motores": ["CAT"],
+     "doc": "50_hallazgos/CANDIDATOS_A_HALLAZGO.md",
+     "nota": ("A28-CAT-CERO (revelacion de CAT, Circular 21/2009), IDNC, Prosofipo y la "
+              "config go-forward de ISR. Son gaps del proveedor o decision de Comite, no "
+              "defecto de calculo.")},
+    {"id": "C4", "familia": "condicion",
+     "texto": "Afectacion a patrimonio o saldos de ahorradores",
+     "estado": "cubierto-con-pendiente",
+     "motores": ["PLAZO", "VISTA", "SALDO-PROM"],
+     "doc": "INFORME_DETALLADO_AUDITORIA/01_CAPTACION_FISCAL.md",
+     "nota": "Captacion validada. Pendiente: exencion de PERSONAS MORALES (SOL-011)."},
+    {"id": "C5", "familia": "condicion",
+     "texto": "Sin control compensatorio o mitigante suficiente",
+     "estado": "cubierto",
+     "motores": [],
+     "doc": "GLOSARIO_ESTADOS_TABLERO.md",
+     "nota": ("Cada no-conforme se clasifica y explica (defecto / linaje / data-sourcing / "
+              "bloqueo / redondeo). Ninguno queda como defecto de AurumCore abierto.")},
+    {"id": "C6", "familia": "condicion",
+     "texto": "Compromete consistencia de transacciones de canales vs core",
+     "estado": "parcial",
+     "motores": ["MOTOR-B"],
+     "doc": "CROSSWALK_OF_AU_SOL-004.md",
+     "nota": ("OF >= AU siempre, 0 faltantes en 6 dias. El bridge de tipos OF<->AU quedo "
+              "confirmado 313/314 por numero; falta el cruce de INSTANCIAS con ese bridge, "
+              "que necesita el mapeo semantico OF-descr <-> AU-texto.")},
+    {"id": "C7", "familia": "condicion",
+     "texto": "Inconsistencia contable u operativa vs reportes regulatorios",
+     "estado": "cubierto-con-pendiente",
+     "motores": ["CONTABLE"],
+     "doc": "COMPARACION_C_vs_DOC.md",
+     "nota": ("Doble partida $0.00 en 7/7 dias. D2 CERRADO el 01-sep: el mapeo tipo->cuenta "
+              "existe en config (`cat_accounting_transaction`) y 99.6% de los posteos lo "
+              "respetan. Residual 0.4% (13 pares) por caracterizar. Reporteria regulatoria: "
+              "pendiente regenerar.")},
+    {"id": "A2", "familia": "area",
+     "texto": "Errores SISTEMATICOS (no aislados) en interes / retencion / IVA / saldos",
+     "estado": "cubierto-con-vigilancia",
+     "motores": ["CRED-MOR", "VISTA", "IFRS9", "CAT"],
+     "doc": "NORTE_SANIDAD.md",
+     "nota": ("Se corre prueba de signo en cada motor. Donde marca sesgo, la descomposicion "
+              "(redondeo -> precision de base -> residual) demuestra que es METODO, no core. "
+              "Ha pasado cuatro veces y las cuatro era del metodo.")},
+    {"id": "A3", "familia": "area",
+     "texto": "Imposibilidad de que Auditoria Interna REPRODUZCA el oraculo",
+     "estado": "depende-de-terceros",
+     "motores": [],
+     "doc": "ACCESO_Y_RED.md",
+     "nota": ("Nuestra parte esta lista: bundle reproducible, manual y `sanity_check.py`. "
+              "Depende de que el grupo auditoria tenga ruta a la subred y usuario "
+              "read-only. Es la ruta critica y NO la controla este tablero.")},
+    {"id": "A5", "familia": "area",
+     "texto": "Mapeo contable incorrecto (registro incompleto, omitido o erroneo)",
+     "estado": "cubierto-con-pendiente",
+     "motores": ["CONTABLE"],
+     "doc": "COMPARACION_C_vs_DOC.md",
+     "nota": "D2 cerrado 01-sep. Residual 0.4% (13 pares de bajo volumen) por caracterizar."},
+    {"id": "A6", "familia": "area",
+     "texto": "Errores en saldos de captacion (fisicas / morales)",
+     "estado": "cubierto-con-pendiente",
+     "motores": ["PLAZO", "VISTA"],
+     "doc": "INFORME_DETALLADO_AUDITORIA/01_CAPTACION_FISCAL.md",
+     "nota": "Pendiente la definicion de PERSONAS MORALES para la exencion (SOL-011)."},
+    {"id": "A7", "familia": "area",
+     "texto": "Errores en CAT / tasa / saldo insoluto de OneClick (transparencia)",
+     "estado": "levantado",
+     "motores": ["CAT"],
+     "doc": "50_hallazgos/CANDIDATOS_A_HALLAZGO.md",
+     "nota": ("A28-CAT-CERO: 2,573 creditos activos cobran ~28% con `cat = 0`. Es campo sin "
+              "poblar, no error de formula: el CAT reproduce 3/3 el doc.")},
+    {"id": "A8", "familia": "area",
+     "texto": "Pruebas no ejecutadas o con errores en procesos criticos",
+     "estado": "cubierto-con-pendiente",
+     "motores": ["VISTA", "SALDO-PROM", "ISR-VIVO", "CAT"],
+     "doc": "INFORME_DETALLADO_AUDITORIA/00_INDICE.md",
+     "nota": ("VISTA ejecutado el 01-sep (censo de agosto), AUD-004 cerrado. Quedan SPM "
+              "(logs) e ISR-vivo (base punto-en-tiempo, SOL-003): INSUMO EXTERNO faltante, "
+              "no falla del motor. Y CAT-01 con SOL-015 abierto por la convencion de dias.")},
+]
+
 CATEGORIA_POR_MOTOR = {
     "VISTA": "Captacion", "PLAZO": "Captacion", "SALDO-PROM": "Captacion", "GAT": "Captacion",
     "ISR": "Fiscal", "ISR-VIVO": "Fiscal",
@@ -158,6 +282,11 @@ class Motor:
     # Alcance declarado (INFORME_DETALLADO_AUDITORIA). Sin esto, la tarjeta
     # muestra un porcentaje sin decir sobre que universo se calculo.
     alcance: "Alcance | None" = None
+    # Cuando una corrida PROPIA queda superada por un corte declarado mas
+    # completo. No se borra —eso seria perder cobertura en silencio— ni se
+    # publica como titular —eso contradiria la cifra en firme—: se degrada a
+    # PREVIEW y se dice que la sustituye y por que.
+    corrida_superada_por: str = ""
 
     @property
     def categoria(self) -> str:
@@ -240,6 +369,7 @@ class Motor:
             "dossier_match": self.dossier_match,
             "lectura_escalon": self.lectura_escalon,
             "alcance": self.alcance.como_dict() if self.alcance else None,
+            "corrida_superada_por": self.corrida_superada_por,
             "pct_escala": (self.pct_citado or (None, None))[1],
         }
 
@@ -253,7 +383,29 @@ MOTORES: tuple[Motor, ...] = (
         ejemplo="SPM 5,000 · tasa 7% · base 360 · 31 dias -> 30.14",
         fuentes=(Fuente(D, "GTM-Pago de Rendimientos p.3"),),
         oraculo="oraculo_rendimientos.rendimiento_vista", estado="parcial",
-        dossier_pct="82.1",
+        corrida_superada_por=(
+            "CENSO DEL CICLO DE AGOSTO, corte 2026-09-01. La corrida de este tablero fue "
+            "un PREVIEW: 20,000 filas (cota operativa) con `dt` de mes, y dio 96.62% al "
+            "centavo. La cifra en firme es el censo completo de 82,925 cuentas con `dt` "
+            "POR CUENTA: 97.47% a 1e-8 / 97.65% al centavo "
+            "(`RESULTADO_vista_vivo_2026-09-01.md`). Universo mayor y convencion mejor, "
+            "asi que sustituye al preview. La corrida local NO se borra: sigue abajo con "
+            "su etiqueta, porque perder cobertura en silencio es tan malo como publicar "
+            "de mas."),
+        dossier_pct="97.65",
+        dossier_match={"1e-8": "97.47", "1e-5": "97.47", "centavo": "97.65",
+                       "n": "82,925 cuentas (censo del ciclo de agosto)", "sesgo": "si",
+                       "corte": "2026-09-01",
+                       "firme_anterior": ("cita de julio 94.76%/95.03% (censo 83,094) y "
+                                          "preview propio de agosto 96.62% (cota 20,000)"),
+                       "porque_cambio": (
+                           "Censo del ciclo VIVO de agosto con `dt` POR CUENTA. Sustituye a "
+                           "la cita de julio (otro ciclo) y al preview de este tablero (cota "
+                           "de 20,000 con `dt` de mes). Cierra AUD-004(b)."),
+                       "nota": ("Con `dt = 31` fijo la misma corrida da 94.56/94.56/94.82. "
+                                "La cifra vigente es la de `dt` por cuenta. El residual "
+                                "~2.5% es que el SPM-DE-CIERRE subestima el promedio del "
+                                "periodo (C < B): granularidad del SPM, no defecto.")},
         dossier_detalle=("DESTRABADO 2026-08-24 y REALINEADO el 28-ago: B se toma de `yield_dto` "
                          "(el registro del posteo) en vez de la referencia de texto de "
                          "transaction_detail, y la base de dias se elige por evidencia entre las "
@@ -356,7 +508,14 @@ MOTORES: tuple[Motor, ...] = (
         clase_no_conforme="linaje", depende_de_logs=True,
         insumos="lc_loan_contract (loan_amount, ordinary_interest_rate, calendar_type) · lc_finantial_data.capital · feed credits-closing-trans",
         autopruebas="reproduce el 20.83 del doc",
-        dossier_match={"1e-8": "96.80", "1e-5": None, "centavo": None, "n": "4,091", "sesgo": "no",
+        dossier_match={"1e-8": "97.32", "1e-5": "97.32", "centavo": "97.43",
+                       "n": "3,585 (feed 08-20)", "sesgo": "no",
+                       "corte": "2026-09-01",
+                       "firme_anterior": "96.80% a 1e-8 (firme 2026-08-23)",
+                       "porque_cambio": (
+                           "K-DAT-007: `capital` se almacena NEGATIVO y el cruce anterior no "
+                           "aplicaba abs(), lo que producia falsos ceros. No es que el motor "
+                           "haya mejorado: la medicion anterior estaba mal del lado del cruce."),
                         "nota": "el centavo esta [PEND] y sera >= 96.8; el residuo ~12% es data-sourcing de reserva (P-019), no sesgo de motor"},
     ),
     Motor(
@@ -374,7 +533,16 @@ MOTORES: tuple[Motor, ...] = (
         clase_no_conforme="redondeo", depende_de_logs=True,
         insumos="lc_finantial_data (capital_venc, mora_days) · lc_loan_contract.moratorium_interest_rate",
         autopruebas="reproduce el 0.50 del doc",
-        dossier_match={"1e-8": "81.10", "1e-5": None, "centavo": "95.70", "n": "1,274", "sesgo": "no",
+        dossier_match={"1e-8": "94.66", "1e-5": "94.66", "centavo": "95.38",
+                       "n": "693 (feed 08-20)", "sesgo": "si",
+                       "corte": "2026-09-01",
+                       "firme_anterior": "81.10% a 1e-8 / 95.70% al centavo (firme 2026-08-23)",
+                       "porque_cambio": (
+                           "El 1e-8 SE MUEVE CON EL CORTE (81.10% -> 94.66%) porque "
+                           "`capital_venc` es un campo vivo y volatil intra-periodo. El "
+                           "CENTAVO es el estable: 95.70% -> 95.38%. Lo que hay que leer es "
+                           "el centavo; que el estricto oscile entre cortes es justamente la "
+                           "prueba de que el residuo es granularidad del snapshot, no defecto."),
                         "nota": "escalon clasico 81 -> 96: el residuo sub-centavo es granularidad del snapshot, NO defecto. P-020 cerrada"},
     ),
     Motor(
@@ -397,7 +565,16 @@ MOTORES: tuple[Motor, ...] = (
         dossier_detalle="54,716 filas con IVA.",
         no_conformes="Redondeo en montos chicos.", clase_no_conforme="redondeo",
         insumos="lc_loan_amortization (interest_amount, interest_tax_amount)",
-        dossier_match={"1e-8": "99.00", "1e-5": None, "centavo": None, "n": "54,716", "sesgo": "no",
+        dossier_match={"1e-8": "98.91", "1e-5": "98.91", "centavo": "99.46",
+                       "n": "54,421 (cohorte 16%, 96.96% de las filas)", "sesgo": "no",
+                       "corte": "2026-09-01",
+                       "firme_anterior": "99.00% a 1e-8 sobre 54,716 filas (firme 2026-08-23)",
+                       "porque_cambio": (
+                           "Ya no es un numero global: se ESTRATIFICA por tasa. Cohorte 16% "
+                           "general 99.46% al centavo; aparte IVA-incluido (16/84 = 19.05%) "
+                           "279 filas (0.5%) al 99.28%, que es CONVENCION y no defecto; y un "
+                           "resto de 1,426 filas (2.5%) de 16% con redondeo en montos "
+                           "infimos. Promediarlos habria escondido tres fenomenos distintos."),
                         "nota": "el resto es redondeo en montos chicos; tasa implicita 16.0% en el 95%"},
     ),
     Motor(
@@ -571,6 +748,8 @@ def resumen_cobertura() -> dict[str, Any]:
         "categorias": list(CATEGORIAS),
         "bloqueados_por_logs": [m.id for m in MOTORES if m.depende_de_logs],
         "solicitudes_abiertas": sorted({s for m in MOTORES for s in m.solicitudes}),
+        "umbral_bloqueo": UMBRAL_BLOQUEO,
+        "criterios_f032": CRITERIOS_F032,
     }
 
 # --- Alcance por motor -------------------------------------------------------

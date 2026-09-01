@@ -9,7 +9,7 @@
 > para lo que nace de este lado. **Estas solicitudes no tienen `SOL-###` todavía**: el número lo
 > asigna el repo fuente. Se citan con `AUD-###` hasta que se escalen y reciban su id.
 >
-> Actualizado: 2026-08-31
+> Actualizado: 2026-09-01
 
 ---
 
@@ -140,3 +140,48 @@ etiquetada como **preview**, no como cifra de referencia. Se unifica con el cier
 > Por qué importa la forma del cierre: alinear la cifra sin explicar la diferencia habría
 > producido dos documentos que coinciden y ninguno que se pueda auditar. Declarar la hora deja la
 > discrepancia **explicada**, que es lo que un tercero aporta.
+
+
+---
+
+## AUD-005 — Dos inconsistencias dentro del bundle del corte 2026-09-01 🟠
+
+**Estado:** detectadas 2026-09-01 al adoptar el corte · **no cambian ninguna cifra; sí cambian cómo se leen**
+
+**(a) `sanity_check.py` quedó atrás de su propia matriz.** `MATRIZ_REF` está **hardcodeada** con las
+cifras pre-01-sep:
+
+| motor | `MATRIZ_REF` (hardcodeado) | `MATRIZ_TOLERANCIAS.md` (corte 01-sep) |
+|---|---|---|
+| CRED-ORD | 96.80% @1e-8 | **97.32%** |
+| CRED-MOR | 81.10% / 95.70% | **94.66% / 95.38%** |
+| IVA | 99.00% @1e-8 | **98.91%** |
+
+El chequeo dice **SANO** porque su lista `CLAIMS` también trae las cifras viejas: es internamente
+consistente consigo mismo, pero **ambos lados quedaron atrás de la fuente**. Hoy su **INV-C1
+compara una copia contra otra copia**, así que no puede detectar la discrepancia que existe para
+detectar. Es exactamente el defecto que el propio NORTE_SANIDAD advierte —"prohibido el default
+fabricado"— aplicado a la referencia.
+
+**Se pide:** que `MATRIZ_REF` y `CLAIMS` se **deriven de `MATRIZ_TOLERANCIAS.md`** en vez de
+copiarse. De este lado ya se hace así (`auditor_spa/backend/sanidad.py::leer_matriz` parsea el
+documento), y por eso mi INV-C1 sí ve la diferencia. Mientras tanto, mi prueba de cruce con su
+`sanity_check.py` acota la excepción a esa clase conocida —cualquier violación de otro tipo sigue
+rompiendo la suite— y falla sola cuando ustedes actualicen, para recordar quitarla.
+
+**(b) VISTA: la cifra peor se cita sin decir su convención.** La misma corrida da dos números
+según la convención de `dt`:
+
+- `dt` **por cuenta** → **97.47% / 97.47% / 97.65%** ← la vigente
+- `dt = 31` fijo → 94.56% / 94.56% / 94.82%
+
+`MATRIZ_TOLERANCIAS.md` lo dice bien (declara ambas y cuál manda). Pero
+`CROSSWALK_CRITERIOS_BLOQUEANTES.md` §2 área #8 y `INFORME_DETALLADO_AUDITORIA/00_INDICE.md`
+citan **94.56/94.82 sin mencionar la convención**. Un lector del crosswalk —que es el marco del
+Dictamen— concluye que VISTA está en 94.82% cuando la cifra vigente es 97.65%.
+
+Es el mismo principio que ya aplicamos a la escala: **ningún porcentaje sin el contexto que lo
+hace legible**. Aquí el contexto no es la granularidad sino la convención.
+
+**Se pide:** alinear crosswalk e índice a la cifra vigente, declarando la variante como hace la
+matriz. El tablero ya muestra ambas con su etiqueta.

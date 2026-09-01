@@ -198,8 +198,11 @@ def test_la_matriz_de_referencia_se_lee_de_verdad():
     cifras = [(m, e, v) for m, f in ref.items()
               for e, v in f.items() if e in S.GRANULARIDADES and v]
     assert len(cifras) >= 5, f"la matriz se leyo casi vacia: {cifras}"
-    assert ref["CRED-MOR"]["1e-8"] == "81.10"
-    assert ref["CRED-MOR"]["centavo"] == "95.70"
+    # Corte 2026-09-01. El 1e-8 del moratorio SE MUEVE con el corte porque
+    # `capital_venc` es un campo vivo; el centavo es el estable. Fijar aqui el
+    # valor viejo convertiria la prueba en un ancla al pasado.
+    assert ref["CRED-MOR"]["1e-8"] == "94.66"
+    assert ref["CRED-MOR"]["centavo"] == "95.38"
     assert ref["PLAZO"]["centavo"] == "100.00"
 
 
@@ -221,7 +224,9 @@ def test_c1_no_reclama_lo_que_corrimos_nosotros():
 
 def test_c2_un_sesgo_que_no_cuadra_con_la_fuente():
     ref = S.leer_matriz()
-    assert "INV-C2" in invs([claim(motor="CRED-MOR", sesgo="si")], ref)
+    # La matriz declara sesgo "si" para el moratorio al corte 01-sep; citar "no"
+    # es la discrepancia que INV-C2 tiene que atrapar.
+    assert "INV-C2" in invs([claim(motor="CRED-MOR", sesgo="no")], ref)
 
 
 def test_c2_no_confunde_la_nota_al_pie_con_otro_valor():
@@ -248,14 +253,19 @@ def test_t2_una_granularidad_omitida_no_es_lo_mismo_que_pend():
 
 def test_avisos_upstream_solo_admite_lo_que_el_tablero_muestra_mas_nuevo():
     ref = S.leer_matriz()
-    # Nuestra corrida supera un [PEND] de la matriz -> aviso, no violacion.
-    nuestro = claim(motor="VISTA", calculado_aqui=True, n=20000,
+    # Al corte 01-sep la matriz ya trae VISTA con cifras, asi que ese aviso se
+    # cerro. Se construye el caso con un motor que SI sigue [PEND] para que la
+    # prueba siga probando el mecanismo y no el estado del dia.
+    pendiente = next((m for m, f in ref.items()
+                      if all(f.get(e) is None for e in S.GRANULARIDADES)), None)
+    assert pendiente, "ya no hay ningun motor [PEND] en la matriz; revisar la prueba"
+    nuestro = claim(motor=pendiente, calculado_aqui=True, n=20000,
                     titular={"escala": "centavo", "valor": "96.62"},
                     escalas={"1e-8": "96.37", "1e-5": "96.37", "centavo": "96.62"})
     assert S.avisos_upstream([nuestro], ref)
     # Una cifra CITADA que contradice a la matriz NO entra al cajon: es INV-C1.
     citado = claim(motor="CRED-MOR", titular={"escala": "centavo", "valor": "89.00"},
-                   escalas={"1e-8": "81.10", "1e-5": "[PEND]", "centavo": "89.00"})
+                   escalas={"1e-8": "94.66", "1e-5": "[PEND]", "centavo": "89.00"})
     assert S.avisos_upstream([citado], ref) == []
     assert "INV-C1" in invs([citado], ref)
 
@@ -352,7 +362,24 @@ def test_los_claims_pasan_el_sanity_check_de_finsus():
     claims = [{**c, "titular": (c["titular"]["escala"], c["titular"]["valor"])}
               for c in S.cargar_claims(RESULTADOS)]
     V = F.chk(claims)
-    assert V == [], "\n".join(f"  [{i}] {m}: {d}" for i, m, d in V)
+
+    # AUD-005: su `MATRIZ_REF` esta HARDCODEADA con las cifras pre-2026-09-01
+    # (96.80 / 81.10 / 95.70 / 99.00) mientras `MATRIZ_TOLERANCIAS.md` ya trae
+    # las del corte 01-sep. Su INV-C1 compara una copia contra otra copia, asi
+    # que hoy marca discrepancias que no existen. Esta prueba NO se relaja: se
+    # acota a esa clase conocida, de modo que cualquier violacion de OTRO tipo
+    # sigue rompiendo.
+    ref_matriz = S.leer_matriz()
+    esperadas = []
+    for inv, m, det in V:
+        viejo_ok = (inv == "INV-C1"
+                    and any(str(v) in det for v in ("96.80", "81.10", "95.70", "99.00"))
+                    and m in ref_matriz)
+        if not viejo_ok:
+            esperadas.append((inv, m, det))
+    assert esperadas == [], "\n".join(f"  [{i}] {m}: {d}" for i, m, d in esperadas)
+    assert V, ("su MATRIZ_REF ya se actualizo: quitar la excepcion de AUD-005 y "
+               "volver a exigir cero violaciones")
 
 
 def test_h4_exige_procedencia_aunque_no_haya_cifra():
@@ -544,3 +571,81 @@ def test_vista_declara_cual_es_la_cifra_de_referencia():
     assert "REFERENCIA" in a.nota.upper()
     assert "PREVIEW" in a.nota.upper() or "preview" in a.tipo
     assert "94.76" in a.nota and "96.62" in a.nota
+
+
+# --- Cierre de version, corte 2026-09-01 -----------------------------------
+
+def test_ninguna_cifra_nueva_reemplaza_una_firme_sin_declararlo():
+    """Regla de oro del PLAN: un resultado nuevo no reemplaza uno en firme sin
+    declarar QUE sustituye y POR QUE. Si `corte` esta, tienen que estar los tres."""
+    for m in M.MOTORES:
+        d = m.dossier_match or {}
+        if not d.get("corte"):
+            continue
+        assert d.get("firme_anterior"), (
+            f"{m.id} declara corte {d['corte']} y no dice a que cifra sustituye")
+        assert d.get("porque_cambio"), (
+            f"{m.id} sustituye una cifra en firme y no explica por que")
+
+
+def test_una_corrida_propia_superada_no_se_borra_ni_se_publica_de_titular():
+    """VISTA: el preview de 20,000 filas quedo superado por el censo de agosto.
+
+    Los dos errores posibles son simetricos: publicarlo como titular contradice
+    el corte declarado; borrarlo pierde cobertura en silencio.
+    """
+    d = json.loads((RESULTADOS / "VISTA.json").read_text(encoding="utf-8"))
+    assert d["origen_resultado"] == "dossier", "el preview sigue de titular"
+    assert d["pct_mostrado"] == "97.65", f"titular inesperado: {d['pct_mostrado']}"
+    cr = d.get("cruce") or {}
+    assert cr.get("superada") is True, "la corrida no esta marcada como superada"
+    assert cr.get("superada_por"), "no dice que la supera"
+    assert cr.get("pct_match") == "96.62", "se perdio el preview en vez de conservarlo"
+
+
+def test_la_corrida_superada_no_manda_las_barras():
+    """Si las barras vinieran del preview, la card se contradiria a si misma."""
+    c = S.claim_de(json.loads((RESULTADOS / "VISTA.json").read_text(encoding="utf-8")))
+    assert c["escalas"].get("centavo") == "97.65"
+    assert c["calculado_aqui"] is False
+
+
+def test_todas_las_cards_declaran_el_umbral_de_bloqueo():
+    """F-032: $0.99 MXN es la vara con la que el grupo auditoria lee los numeros."""
+    idx = json.loads((RESULTADOS / "indice.json").read_text(encoding="utf-8"))
+    u = idx["cobertura"]["umbral_bloqueo"]
+    assert u["monto"] == "0.99" and u["moneda"] == "MXN"
+    assert "F-032" in u["fuente"]
+    html = (RAIZ / "spa" / "index.html").read_text(encoding="utf-8")
+    assert "bloqueUmbral()" in html, "el detalle no muestra el umbral"
+    assert "bloqueante &gt; $0.99" in html, "la galeria no muestra el umbral"
+
+
+def test_estar_bajo_el_umbral_no_se_presenta_como_todo_pasa():
+    """Su criterio pide DOS cosas: por debajo de $0.99 Y explicado. Publicar solo
+    la primera seria el all-pass con otra vara."""
+    idx = json.loads((RESULTADOS / "indice.json").read_text(encoding="utf-8"))
+    lectura = idx["cobertura"]["umbral_bloqueo"]["lectura"].lower()
+    assert "explicado" in lectura, (
+        "la lectura del umbral no dice que el residuo tiene que estar explicado")
+
+
+def test_cada_criterio_de_f032_apunta_a_donde_se_atiende():
+    """El prompt de cierre lo pide explicito: mapeo observacion -> donde se atiende."""
+    idx = json.loads((RESULTADOS / "indice.json").read_text(encoding="utf-8"))
+    crits = idx["cobertura"]["criterios_f032"]
+    assert len(crits) >= 13
+    ids = {m.id for m in M.MOTORES}
+    for c in crits:
+        assert c["nota"], f"{c['id']} sin explicacion"
+        assert c["motores"] or c["doc"], f"{c['id']} no apunta a nada"
+        for mid in c["motores"]:
+            assert mid in ids, f"{c['id']} apunta al motor inexistente {mid}"
+
+
+def test_el_tablero_no_declara_cubierto_lo_que_depende_de_terceros():
+    """A3 (reproducibilidad) NO lo controla este tablero: depende del acceso del
+    grupo auditoria. Marcarlo 'cubierto' seria apropiarse de un pendiente ajeno."""
+    idx = json.loads((RESULTADOS / "indice.json").read_text(encoding="utf-8"))
+    a3 = [c for c in idx["cobertura"]["criterios_f032"] if c["id"] == "A3"][0]
+    assert a3["estado"] == "depende-de-terceros"

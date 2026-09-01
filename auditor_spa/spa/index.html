@@ -169,6 +169,17 @@ pre.formula{margin:0;padding:12px 14px;background:var(--neutro-bg);border-radius
 .g .p{width:64px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
 .escalon{font-size:12.5px;background:var(--neutro-bg);padding:9px 12px;border-radius:7px;line-height:1.5}
 .flag{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700}
+.umbral{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;
+  background:var(--neutro-bg);color:var(--suave);border:1px solid var(--linea);white-space:nowrap}
+.corte{font-size:11.5px;color:var(--suave)}
+.superada{background:var(--alerta-bg,var(--neutro-bg));border-left:3px solid var(--alerta);
+  padding:9px 12px;border-radius:5px;font-size:12.5px;line-height:1.55;margin:8px 0}
+.crit{border:1px solid var(--linea);border-radius:8px;padding:10px 13px;margin-bottom:9px;font-size:12.5px}
+.crit h4{margin:0 0 5px;font-size:13px;display:flex;gap:9px;align-items:baseline}
+.crit .dest{margin-top:7px;display:flex;gap:6px;flex-wrap:wrap}
+.crit .dest a{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--ok-bg);
+  color:var(--ok);text-decoration:none;cursor:pointer;font-weight:700}
+.crit .dest .doc{background:var(--neutro-bg);color:var(--suave);font-weight:400}
 table.glos{border-collapse:collapse;width:100%;font-size:12.5px;margin:8px 0}
 table.glos th,table.glos td{border:1px solid var(--linea);padding:6px 9px;text-align:left;vertical-align:top}
 table.glos th{background:var(--neutro-bg);font-weight:700}
@@ -438,6 +449,7 @@ function panelSanidad(){
     <h4><span class="badge b-${ok?'validado':'bloqueado'}">${ok?'SANO':'NO SANO'}</span>
       Sanidad del tablero — ${s.n_violaciones} violación(es) en ${(s.invariantes||[]).length}
       invariantes sobre ${s.n_motores} motores
+      <span class="abrir" onclick="ir('#/criterios')">criterios de auditoría</span>
       <span class="abrir" onclick="ir('#/glosario')">glosario de estados</span>
       <span class="abrir" onclick="SAN_ABIERTO=!SAN_ABIERTO;pintar()">${SAN_ABIERTO?'ocultar':'ver detalle'}</span>
     </h4>
@@ -470,7 +482,8 @@ function galeria(cat){
         ${p!==null?`<div class="pct"><span class="val">${p.toFixed(2)+'%'}</span>
           <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span></div>
           ${m.pct_escala?`<div class="cita">${ETIQUETA_ESCALA(m.pct_escala)}</div>`:''}
-          ${m.alcance?`<div class="cita">${esc(m.alcance.tipo)} · <b>${esc(m.alcance.representatividad)}</b></div>`:''}`
+          ${m.alcance?`<div class="cita">${esc(m.alcance.tipo)} · <b>${esc(m.alcance.representatividad)}</b></div>`:''}
+          <div class="cita"><span class="umbral">bloqueante &gt; $0.99</span></div>`
         : respaldo(m,false)}
         <div class="cita"><span class="badge b-${m.origen_resultado==='corrida_local'?'corrida_local':
           (m.origen_resultado==='dossier'?'dossier':'sin_cruce')}">${esc(et)}</span></div>
@@ -617,8 +630,11 @@ function detalle(id){
 
     ${p!==null?`<div class="pct"><span class="val">${p.toFixed(2)+'%'}</span>
       <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span>
-      ${m.pct_escala?`<span class="cita">${ETIQUETA_ESCALA(m.pct_escala)}</span>`:''}</div>`
+      ${m.pct_escala?`<span class="cita">${ETIQUETA_ESCALA(m.pct_escala)}</span>`:''}</div>
+      ${bloqueCorte(m)}`
     : respaldo(m,true)}
+    ${bloqueUmbral()}
+    ${bloqueSuperada(m)}
 
     <div class="exec">
       <button id="b-run" ${puede?'':'disabled'} data-motor="${m.id}">Ejecutar</button>
@@ -654,6 +670,75 @@ function detalle(id){
     ${m.autoprueba?`<div class="cita">autoprueba de la fórmula: <strong>${m.autoprueba.ok?'pasa':'NO pasa'}</strong> — ${esc(m.autoprueba.detalle)}</div>`:''}
     ${cr&&cr.evidencia?`<div class="cita mono">evidencia: ${esc(cr.evidencia)}${cr.reconstruido_de_evidencia?' (reconstruido, sin volver a consultar la base)':''}</div>`:''}
   </div>`;
+}
+
+/* ---------- umbral de bloqueo, corte y corrida superada ----------
+   El umbral $0.99 es la vara con la que el grupo auditoría va a leer estos
+   números (F-032). Sin él, un "95.38% al centavo" no dice si algo es
+   bloqueante. Ojo con la lectura fácil: estar por debajo del umbral no es
+   "todo pasa" — su criterio exige además que el residuo esté EXPLICADO. */
+function bloqueUmbral(){
+  const u=(IDX.cobertura||{}).umbral_bloqueo; if(!u) return '';
+  return `<div class="cita" style="margin:8px 0">
+    <span class="umbral">umbral de bloqueo: $${esc(u.monto)} ${esc(u.moneda)}</span>
+    ${esc(u.texto)} <em>${esc(u.lectura)}</em></div>`;
+}
+/* Un resultado nuevo no reemplaza uno en firme sin declararlo: corte, qué
+   sustituye y por qué. */
+function bloqueCorte(m){
+  const d=m.dossier_match||{}; if(!d.corte&&!d.firme_anterior) return '';
+  return `<div class="corte">
+    ${d.corte?`corte declarado <strong>${esc(d.corte)}</strong>`:''}
+    ${d.firme_anterior?` · sustituye a: ${esc(d.firme_anterior)}`:''}
+    ${d.porque_cambio?`<br><em>${esc(d.porque_cambio)}</em>`:''}
+    ${d.nota?`<br>${esc(d.nota)}`:''}</div>`;
+}
+/* Una corrida propia superada no se borra ni se publica como titular. */
+function bloqueSuperada(m){
+  const cr=m.cruce; if(!cr||!cr.superada) return '';
+  return `<div class="superada"><strong>La corrida de este tablero quedó superada.</strong><br>
+    ${esc(cr.superada_por||'')}<br>
+    <span class="cita">Lo de abajo —conteo, granularidades, scatter y no conformes— es el
+    <strong>preview</strong>, no la cifra en firme. Se conserva porque borrarlo perdería
+    cobertura en silencio.</span></div>`;
+}
+
+/* ---------- criterios de hallazgo bloqueante (F-032) ----------
+   El prompt de cierre pide que el material MAPEE cada observación de auditoría
+   a dónde se atiende, y que el tablero lo haga navegable. */
+const EST_CRIT={
+  'cubierto':['validado','cubierto'],
+  'cubierto-con-vigilancia':['validado','cubierto · con vigilancia'],
+  'cubierto-con-pendiente':['parcial','cubierto · con pendiente'],
+  'parcial':['parcial','parcial'],
+  'levantado':['parcial','levantado como hallazgo'],
+  'depende-de-terceros':['bloqueado','depende de terceros']};
+function criterios(){
+  document.getElementById('migas').textContent='· criterios de auditoría';
+  const cs=(IDX.cobertura||{}).criterios_f032||[];
+  const u=(IDX.cobertura||{}).umbral_bloqueo||{};
+  const grupo=f=>cs.filter(c=>c.familia===f).map(c=>{
+    const [cls,txt]=EST_CRIT[c.estado]||['parcial',c.estado];
+    return `<div class="crit">
+      <h4><span class="mono">${esc(c.id)}</span> ${esc(c.texto)}
+        <span class="badge b-${cls}" style="margin-left:auto">${esc(txt)}</span></h4>
+      <div>${esc(c.nota)}</div>
+      <div class="dest">
+        ${(c.motores||[]).map(id=>MOT[id]?`<a onclick="ir('#/${id}')">${esc(MOT[id].nombre)}</a>`:'').join('')}
+        ${c.doc?`<span class="dest"><span class="doc">${esc(c.doc)}</span></span>`:''}
+      </div></div>`;}).join('');
+  return `<div class="sec"><h3>Dónde se atiende cada observación de auditoría</h3>
+    <div class="cita">Los criterios de <span class="mono">F-032 · Criterios de Hallazgos
+      Bloqueantes</span> (Auditoría Interna de Finsus) contra la cobertura de este oráculo.
+      Cada uno enlaza al motor o documento que lo atiende.</div>
+    <div class="cita" style="margin-top:8px"><span class="umbral">umbral de bloqueo:
+      $${esc(u.monto||'0.99')} ${esc(u.moneda||'MXN')}</span> ${esc(u.texto||'')}</div>
+    </div>
+    <div class="sec"><h3>Las 7 condiciones de bloqueo</h3>${grupo('condicion')}</div>
+    <div class="sec"><h3>Áreas de riesgo priorizadas</h3>${grupo('area')}</div>
+    <div class="sec"><div class="cita">Estar por debajo del umbral <strong>no es "todo pasa"</strong>:
+      el criterio de Finsus exige además que el residuo esté <strong>explicado</strong>. Eso es lo
+      que hace cada card en su sección de no conformes.</div></div>`;
 }
 
 /* ---------- glosario ----------
@@ -707,6 +792,7 @@ function pintar(){
   const h=location.hash.replace(/^#\/?/,'');
   const v=document.getElementById('vista');
   if(h==='glosario'){v.innerHTML=glosario();}
+  else if(h==='criterios'){v.innerHTML=criterios();}
   else if(h.startsWith('cat/')){v.innerHTML=galeria(decodeURIComponent(h.slice(4)));}
   else if(h&&MOT[h]){v.innerHTML=detalle(h);cablearDetalle(h);}
   else{v.innerHTML=galeria(null);}
@@ -716,6 +802,8 @@ function menu(){
   const h=location.hash.replace(/^#\/?/,'');
   const cats=IDX.cobertura.por_categoria||{};
   document.getElementById('menu-cuerpo').innerHTML=
+    `<div class="mi ${h==='criterios'?'sel':''}" onclick="ir('#/criterios');cerrarMenu()">
+      Criterios de auditoría <span class="cita">dónde se atiende cada observación</span></div>`+
     `<div class="mi ${h==='glosario'?'sel':''}" onclick="ir('#/glosario');cerrarMenu()">
       Glosario de estados <span class="cita">qué significa cada etiqueta</span></div>`+
     `<div class="mi ${!h?'sel':''}" onclick="ir('#/');cerrarMenu()">Todos los motores

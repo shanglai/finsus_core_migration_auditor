@@ -464,7 +464,18 @@ def construir(motor, autopruebas: dict, con_bd: bool, params: dict,
         except Exception as exc:  # noqa: BLE001
             d["cruce"] = {"origen_resultado": "error", "motivo": f"{type(exc).__name__}: {exc}"}
 
-    if d["cruce"] and d["cruce"].get("origen_resultado") == "corrida_local":
+    superada = bool(motor.corrida_superada_por) and bool(motor.dossier_pct)
+    if d["cruce"] and d["cruce"].get("origen_resultado") == "corrida_local" and superada:
+        # La corrida propia se CONSERVA (scatter, no-conformes, evidencia) pero
+        # el titular lo da la cifra en firme. Publicar el preview como titular
+        # contradiria el corte declarado; borrarlo perderia cobertura.
+        d["origen_resultado"] = "dossier"
+        citado = motor.pct_citado
+        d["pct_mostrado"] = citado[0] if citado else motor.dossier_pct
+        d["pct_escala"] = citado[1] if citado else "sin escala declarada"
+        d["cruce"]["superada"] = True
+        d["cruce"]["superada_por"] = motor.corrida_superada_por
+    elif d["cruce"] and d["cruce"].get("origen_resultado") == "corrida_local":
         d["origen_resultado"] = "corrida_local"
         d["pct_mostrado"] = d["cruce"]["pct_match"]
         # La escala de un numero CALCULADO AQUI sale de la corrida, no de la
@@ -568,15 +579,26 @@ def main(argv=None) -> int:
                 if ant.get("origen_resultado") == "corrida_local":
                     fallido = d.get("cruce")
                     d["cruce"] = ant
-                    d["origen_resultado"] = "corrida_local"
-                    d["pct_mostrado"] = ant.get("pct_match")
-                    # La corrida conservada publica igual que la recien hecha:
-                    # su escala y su clase de cobertura se recalculan aqui. Si
-                    # este camino se saltara ese paso, el mismo motor diria una
-                    # cosa con --con-bd y otra sin el.
-                    d["pct_escala"] = escala_de_corrida(motor, ant)
-                    d["cobertura"] = motor.cobertura(hay_cruce=True,
-                                                     escala=d["pct_escala"])
+                    if motor.corrida_superada_por and motor.dossier_pct:
+                        # La corrida conservada tambien queda superada: se guarda
+                        # como preview y el titular sigue siendo la cifra en firme.
+                        d["cruce"]["superada"] = True
+                        d["cruce"]["superada_por"] = motor.corrida_superada_por
+                        citado = motor.pct_citado
+                        d["origen_resultado"] = "dossier"
+                        d["pct_mostrado"] = citado[0] if citado else motor.dossier_pct
+                        d["pct_escala"] = citado[1] if citado else "sin escala declarada"
+                        d["cobertura"] = motor.cobertura(True, d["pct_escala"])
+                    else:
+                        d["origen_resultado"] = "corrida_local"
+                        d["pct_mostrado"] = ant.get("pct_match")
+                        # La corrida conservada publica igual que la recien
+                        # hecha: su escala y su clase de cobertura se recalculan
+                        # aqui. Si este camino se saltara ese paso, el mismo
+                        # motor diria una cosa con --con-bd y otra sin el.
+                        d["pct_escala"] = escala_de_corrida(motor, ant)
+                        d["cobertura"] = motor.cobertura(hay_cruce=True,
+                                                         escala=d["pct_escala"])
                     d["cruce"]["conservado_de_corrida_previa"] = True
                     if fallido:
                         d["cruce"]["ultimo_intento_fallido"] = {

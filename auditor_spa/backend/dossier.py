@@ -36,6 +36,8 @@ DOCUMENTOS = [
     (VAL / "NORTE_SANIDAD.md", "SANIDAD", "Invariantes falsables del propio tablero"),
     (VAL / "INFORME_DETALLADO_AUDITORIA/00_INDICE.md", "ALCANCE",
      "Alcance, universo y representatividad por punto"),
+    (VAL / "CROSSWALK_CRITERIOS_BLOQUEANTES.md", "CRITERIOS",
+     "Criterios de hallazgo bloqueante de Finsus contra la cobertura del oraculo"),
 ]
 
 _RE_ENC = re.compile(r"^(#{1,3})\s+(.*)$")
