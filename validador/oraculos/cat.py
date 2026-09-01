@@ -32,7 +32,7 @@ comision configurada es la que se aplico, el CAT sale EXACTO. De ahi:
   * Base 360 (la de la Circular y la del oraculo del proyecto).
 
 LO QUE NO SE PUEDE AFIRMAR TODAVIA (SOL-015). En una parte del universo la
-comision implicita (~2%) no coincide con la configurada (3.99%). El caso lo
+comision implicita no coincide con la configurada. El caso lo
 reporta como violacion —ocultarlo seria peor— pero clasificada `data-sourcing`:
 falta saber que comision se COBRO de verdad, que no es la misma pregunta que si
 la formula esta bien. La formula no esta en duda: 3/3 contra el doc.

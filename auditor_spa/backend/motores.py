@@ -663,8 +663,13 @@ MOTORES: tuple[Motor, ...] = (
                       "contratos con 521 plazos y 3,930 montos distintos, y un CAT es funcion del "
                       "monto y del plazo, asi que ahi el campo no es la salida de un motor. CAT-01 "
                       "acota el universo al estrato donde SI varia por contrato (4,220). El residuo "
-                      "de ese estrato es la comision realmente cobrada (implicita ~2% contra 3.99% "
-                      "configurada): data-sourcing, no formula. La formula reproduce 3/3 el doc."),
+                      "de ese estrato es la COMISION REALMENTE COBRADA. Medido sobre los 3,790 "
+                      "contratos de un pago con comision configurada: en 1,944 (51%) la "
+                      "configurada SI explica el CAT; en los 1,846 restantes la implicita "
+                      "esta DISPERSA alrededor de ella (mediana del ratio 1.03, 43% por "
+                      "arriba, 12% muy por abajo), o sea varia por contrato. Y NO hay una "
+                      "segunda comision registrada que lo explique: solo 74 de 4,525 filas "
+                      "andan cerca del valor implicito. Es data-sourcing, no formula."),
         clase_no_conforme="data-sourcing", solicitudes=("SOL-015",),
         caso_validador="CAT-01",
         lectura_escalon=(
@@ -673,8 +678,10 @@ MOTORES: tuple[Motor, ...] = (
             "universo, asi que no hay residuo sub-centavo que absorber: 1e-8 y "
             "1e-5 cuentan las coincidencias exactas al centesimo y el centavo "
             "admite una unidad mas en el ultimo decimal. El residuo real es la "
-            "comision que se cobro (implicita ~2% contra 3.99% configurada), y "
-            "eso es data-sourcing, no formula."),
+            "comision que se COBRO, que varia por contrato y no esta en la config: "
+            "la configurada explica el CAT en 51% de los contratos de un pago y en "
+            "el resto la implicita se dispersa alrededor de ella. Es data-sourcing, "
+            "no formula."),
         insumos="lc_loan_contract.cat · lc_loan_amortization · lc_account_commission",
         autopruebas="3/3 contra el doc",
         dossier_match={"1e-8": None, "1e-5": None, "centavo": None, "volumen": "11.60",

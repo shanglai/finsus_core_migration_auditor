@@ -68,7 +68,12 @@ cobertura_nota: >-
 
 bloqueo: >-
   Lo que este caso NO puede dictaminar (SOL-015). En parte del universo la
-  comision IMPLICITA (~2%) no coincide con la CONFIGURADA (3.99%). Esas filas
+  comision IMPLICITA no coincide con la CONFIGURADA. Medido el 2026-09-01 sobre
+  los 3,790 contratos de un pago con comision configurada: en 1,944 (51%) la
+  configurada SI explica el CAT; en los 1,846 restantes la implicita se dispersa
+  alrededor de ella (mediana del ratio 1.03), o sea varia por contrato. Se
+  descarto que hubiera una segunda comision registrada: solo 74 de 4,525 filas
+  de comision andan cerca del valor implicito. Esas filas
   salen como violacion —ocultarlas seria peor— pero son `data-sourcing`: falta
   saber que comision se COBRO, que no es la pregunta de si la formula esta
   bien. La formula no esta en duda: `oraculo_cat.py` reproduce 3/3 los ejemplos

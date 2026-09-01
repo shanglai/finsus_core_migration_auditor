@@ -823,7 +823,9 @@ Punto(
            "oraculo comparaba sin redondear. Con half-up desaparece."),
     no_conformes=(
         "3,021. El residuo es la COMISION realmente cobrada: la implicita despejada del "
-        "cat guardado sale ~2% mientras la configurada es 3.99%."),
+        "cat guardado explica el CAT en 1,944 de 3,790 contratos de un pago (51%), y "
+        "en el resto se dispersa alrededor de la configurada (mediana del ratio "
+        "1.03). No hay una segunda comision registrada que lo explique."),
     clase_no_conforme="data-sourcing",
     no_concluye=[
         "El residuo NO se atribuye a AurumCore: falta saber que comision se cobro, que no "
