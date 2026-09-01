@@ -9,7 +9,7 @@
 | **Congelada** | 2026-09-01 |
 | **Estado de sanidad** | **SANO** — 0 violaciones en 15 invariantes sobre 16 motores |
 | **Auto-prueba de falsabilidad** | OK (atrapa los dos bugs históricos: CAT y moratorio) |
-| **Pruebas** | 474, sin fallos |
+| **Pruebas** | 481, sin fallos |
 | **Umbral de bloqueo aplicado** | **$0.99 MXN** (F-032, Auditoría Interna de Finsus) |
 
 ## 1. Cifras del corte — la tríada 8 / 5 / 2 en todas
@@ -60,8 +60,10 @@ silencio; publicarla de titular habría contradicho el corte.
 **Pendientes de definición o de terceros:**
 - **Motor B instancia-a-instancia** — el bridge de tipos OF↔AU está confirmado 313/314 por número;
   falta el mapeo semántico OF-descr ↔ AU-texto.
-- **CAT-01** — SOL-015 (convención de días y comisión `financed` vs descontada). El residuo **no se
-  atribuye a AurumCore** hasta cerrarlo.
+- **CAT-01** — SOL-015, ahora acotado a **la convención de días**. La mitad de la comisión se cerró
+  midiendo: el oráculo usa la **realmente cobrada** (`lc_loan_charge`), que reproduce el CAT en más
+  casos que la configurada (36.81% vs 33.51%). El residuo que queda es de días —el CAT es
+  hipersensible al plazo corto— y **no se atribuye a AurumCore** hasta cerrarlo.
 - **IVA-incluido** — la convención 16/84 falta confirmar en config.
 - **D2** — 13 pares no catalogados (0.4%) por caracterizar.
 - **Personas morales** — definición de la exención (SOL-011).
@@ -75,9 +77,10 @@ ruta crítica del Dictamen y **este tablero no la controla**.
 
 - **AUD-004** (cerrada por acuerdo): `lc_loan_contract` 31,866 @14:29 UTC vs 31,867 — deriva de tabla
   viva, se cierra **declarando la hora**. VISTA: referencia = censo, preview etiquetado.
-- **AUD-005** (abierta): `sanity_check.py` tiene `MATRIZ_REF` **hardcodeada** con cifras pre-01-sep,
-  así que su INV-C1 compara una copia contra otra copia; y el crosswalk cita la variante `dt=31` de
-  VISTA **sin decir la convención**, lo que se lee como 94.82% cuando la vigente es 97.65%.
+- **AUD-005** (**cerrada 2026-09-01**): `sanity_check.py` ahora **parsea** `MATRIZ_TOLERANCIAS.md`
+  en vez de comparar contra una copia hardcodeada — verificado que `_parse_matriz()` lee el archivo
+  real y no el fallback, y que coincide con el parser de este tablero. Y el marco ya cita VISTA con
+  su convención (`dt` por cuenta 97.47/97.65, con `dt=31` 94.56/94.82 como referencia).
 - **Hallazgos con dueño:** A28-CAT-CERO (regulatorio, P-023), IDNC (AUD-001), Prosofipo, parámetro
   fiscal duplicado (AUD-002).
 
@@ -86,7 +89,7 @@ ruta crítica del Dictamen y **este tablero no la controla**.
 ```bash
 python 40_validaciones/comparadores/sanity_check.py     # SANO + auto-prueba
 python auditor_spa/backend/sanidad.py                   # los 15 invariantes del tablero
-python -m pytest auditor_spa validador 60_informe -q    # 474 pruebas
+python -m pytest auditor_spa validador 60_informe -q    # 481 pruebas
 python auditor_spa/backend/servidor.py --puerto 8777    # el tablero
 ```
 
