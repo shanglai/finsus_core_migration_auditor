@@ -14,7 +14,7 @@
 
 ### A1. Rendimiento cuenta a la VISTA (2.1.1)
 1. **¿En doc?** Sí — D-REN p.3-4. `Round2(Trunc20(Trunc20((SPM×Tasa)/100)/DíasAño)×DíasPeriodo)`.
-2. **Corroboración:** 🟢 **VALIDADO VIVO 2026-09-01** — ciclo de agosto (primer cierre 100% post-cutover), censo de **82,925** cuentas: `yield_dto` (pago 01-sep) ↔ oráculo desde `finsus_account_history` (SPM+tasa 31-ago), **base 360·dt31 = 94.56% a 1e-8 / 94.82% al centavo**. Consistente con julio (94.76/95.03) → cifra estable. Residuo ~5% = `dt` intra-mes (no defecto). `RESULTADO_vista_vivo_2026-09-01.md`.
+2. **Corroboración:** 🟢 **VALIDADO VIVO 2026-09-01** — ciclo de agosto (primer cierre 100% post-cutover), censo de **82,925** cuentas: `yield_dto` (pago 01-sep) ↔ oráculo desde `finsus_account_history` (SPM+tasa 31-ago), **base 360, `dt` por cuenta = 97.47% a 1e-8 / 97.65% al centavo** (con `dt=31` fijo: 94.56/94.82). Consistente con julio → cifra estable. Residuo ~2.5% = **SPM-de-cierre subestima el promedio del periodo** (C<B), no defecto. `RESULTADO_vista_vivo_2026-09-01.md`.
 3. **Desviación (consiste en):** el doc **no define el modo del `Round2`** para vista (a diferencia de plazo, que sí especifica `half_even`). Asumimos half-up. Impacto: ± un centavo por evento, potencial **sesgo** si el modo real difiere → verificar en la primera corrida mensual viva (31-ago) y/o logs `Calculating yield amount Using RATE`.
 
 ### A2. Rendimiento INVERSIÓN / PLAZO FIJO (2.1.2)

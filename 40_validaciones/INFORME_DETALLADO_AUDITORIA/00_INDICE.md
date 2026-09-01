@@ -39,7 +39,7 @@ el freno fue operativo (performance/concurrencia), no metodológico.
 | V-19    | IFRS 9 (etapas+%)       | **censo config**                | 37/37 celdas               | **toda** la tabla `lc_reserve_ifrs` + `lc_risk_stage`                                                             | 100% de la config                | corte crédito               | ad-hoc 08-23     |
 | V-18    | CAT                     | subconjunto (ver CAT-01)        | 4,220 per-contrato         | de 31,867 (25,026 constante / 2,576 cat=0)                                                                        | 13.2% es el estrato con CAT real | corte crédito               | ad-hoc 08-28     |
 | V-03    | Vista (integridad feed) | **censo del día**               | 30,769 pagos               | del día 08-18 (DB día completo 38,921)                                                                            | subconj. de 1 pod                | 08-18                       | 2026-08-23 17:15 |
-| V-04    | Vista (oráculo, **agosto vivo**) | **censo del ciclo**    | 82,925 ctas                | pagos vista de agosto (≈83,071); base 360·dt31: **94.56% 1e-8 / 94.82% centavo**                                   | ~100% de pagadores ago           | cierre 31-ago / pago 01-sep | 2026-09-01       |
+| V-04    | Vista (oráculo, **agosto vivo**) | **censo del ciclo**    | 82,925 ctas                | pagos vista de agosto (≈83,071); `dt` por cuenta: **97.47% 1e-8 / 97.65% centavo** (dt=31: 94.56/94.82)                                   | ~100% de pagadores ago           | cierre 31-ago / pago 01-sep | 2026-09-01       |
 | V-20    | Motor B diario          | **censo por día**               | 6 días (21K–29K ops/día)   | **todas** las ops de esos días                                                                                    | 100% de 6 días                   | 08-10→08-18                 | 2026-08-23 13:10 |
 | V-21/22 | Contable doble partida  | **censo por día**               | 7 días (17K–220K asientos) | **todos** los asientos de esos días                                                                               | 100% de 7 días                   | 08-10→08-16                 | 2026-08-20 14:53 |
 | V-23    | Cuentahabientes WSO2    | **censo bidireccional**         | 20 / 181,850 / 295         | **todo** el padrón vs WSO2                                                                                        | 100%                             | corte 08-20                 | 2026-08-20 13:58 |
@@ -76,6 +76,6 @@ el freno fue operativo (performance/concurrencia), no metodológico.
   **Cierre:** corte común o —lo que hacemos aquí— **declarar la hora de cada medición**. La cifra de referencia para el
   informe es **31,867 @2026-08-28**; la del auditor, 31,866 @2026-08-28.
 - **VISTA — cifra de referencia [CERRADO 2026-09-01]:** se corrió el **ciclo de agosto vivo, censo completo (82,925
-  cuentas) → 94.56% a 1e-8 / 94.82% al centavo** (base 360·dt31). Consistente con el censo de julio (94.76% / 95.03%):
-  dos ciclos independientes dan la misma cifra → **cifra de referencia única = agosto vivo 94.56% / 94.82%**. Se retira
+  cuentas, `dt` por cuenta) → **97.47% a 1e-8 / 97.65% al centavo** (con dt=31 fijo: 94.56/94.82). Consistente con julio:
+  dos ciclos independientes dan cifra estable → **cifra de referencia única = agosto vivo 97.47% / 97.65%**. Se retira
   la cota de 20,000 (preview) y la cita de julio como referencia. AUD-004 (VISTA) **cerrado**.

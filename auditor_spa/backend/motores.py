@@ -782,7 +782,11 @@ ALCANCE_POR_MOTOR: dict[str, Alcance] = {
         ref=f"{_I}/01_CAPTACION_FISCAL.md#v-01"),
 
     "VISTA": Alcance(
-        si="Interes mensual de cuenta a la VISTA que Aurum posteo, recalculado por el oraculo.",
+        si=("Interes mensual de cuenta a la VISTA que Aurum posteo, recalculado por el "
+            "oraculo. CONVENCION VIGENTE: base 360 con `dt` POR CUENTA (dias efectivos de "
+            "devengo de cada cuenta), no `dt = 31` fijo. La convencion cambia el resultado "
+            "casi tres puntos, asi que citar el porcentaje sin ella desinforma: por cuenta "
+            "97.47/97.65, con dt=31 fijo 94.56/94.82."),
         no=("Cuentas sin pago en el ciclo.",
             "El ciclo vivo de agosto: cierra el 31-ago y se re-corre entonces.",
             "El SPM de RENDIMIENTO real: se usa `finsus_account_history`, no la poliza."),

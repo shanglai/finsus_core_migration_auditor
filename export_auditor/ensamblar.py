@@ -97,6 +97,7 @@ INCLUYE = [
     "export_auditor/PROMPT_SYNC_2026-08-28.md",
     "export_auditor/PROMPT_SYNC_2026-08-31.md",
     "export_auditor/PROMPT_CIERRE_2026-09-01.md",
+    "export_auditor/PROMPT_SYNC_2026-09-01.md",
     "30_oraculo/ESPECIFICACIONES/S-FIS-001.md",
     "30_oraculo/TRAZABILIDAD.md",
     # Config de ejemplo (SIN credenciales reales)

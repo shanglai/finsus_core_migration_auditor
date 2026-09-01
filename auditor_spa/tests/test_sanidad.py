@@ -363,23 +363,12 @@ def test_los_claims_pasan_el_sanity_check_de_finsus():
               for c in S.cargar_claims(RESULTADOS)]
     V = F.chk(claims)
 
-    # AUD-005: su `MATRIZ_REF` esta HARDCODEADA con las cifras pre-2026-09-01
-    # (96.80 / 81.10 / 95.70 / 99.00) mientras `MATRIZ_TOLERANCIAS.md` ya trae
-    # las del corte 01-sep. Su INV-C1 compara una copia contra otra copia, asi
-    # que hoy marca discrepancias que no existen. Esta prueba NO se relaja: se
-    # acota a esa clase conocida, de modo que cualquier violacion de OTRO tipo
-    # sigue rompiendo.
-    ref_matriz = S.leer_matriz()
-    esperadas = []
-    for inv, m, det in V:
-        viejo_ok = (inv == "INV-C1"
-                    and any(str(v) in det for v in ("96.80", "81.10", "95.70", "99.00"))
-                    and m in ref_matriz)
-        if not viejo_ok:
-            esperadas.append((inv, m, det))
-    assert esperadas == [], "\n".join(f"  [{i}] {m}: {d}" for i, m, d in esperadas)
-    assert V, ("su MATRIZ_REF ya se actualizo: quitar la excepcion de AUD-005 y "
-               "volver a exigir cero violaciones")
+    # AUD-005(a) CERRADA 2026-09-01: `sanity_check.py` ya PARSEA
+    # `MATRIZ_TOLERANCIAS.md` en vez de comparar contra una copia hardcodeada,
+    # asi que su INV-C1 vuelve a verificar verdad. La excepcion temporal que
+    # habia aqui se retiro —la propia prueba aviso cuando tocaba quitarla— y se
+    # vuelve a exigir cero violaciones.
+    assert V == [], chr(10).join(f"  [{i}] {m}: {d}" for i, m, d in V)
 
 
 def test_h4_exige_procedencia_aunque_no_haya_cifra():
@@ -649,3 +638,43 @@ def test_el_tablero_no_declara_cubierto_lo_que_depende_de_terceros():
     idx = json.loads((RESULTADOS / "indice.json").read_text(encoding="utf-8"))
     a3 = [c for c in idx["cobertura"]["criterios_f032"] if c["id"] == "A3"][0]
     assert a3["estado"] == "depende-de-terceros"
+
+
+def test_el_sanity_check_de_finsus_lee_la_matriz_y_no_una_copia():
+    """AUD-005(a): el fix es que INV-C1 verifique VERDAD, no copia-contra-copia.
+
+    Si `_parse_matriz()` devolviera None estaria corriendo con el fallback
+    declarado, y un cambio en `MATRIZ_TOLERANCIAS.md` volveria a pasar
+    inadvertido. Se verifica que lee el archivo real Y que lo que lee coincide
+    con lo que este tablero parsea por su cuenta: dos parsers independientes
+    sobre la misma fuente.
+    """
+    ruta = RAIZ.parent / "40_validaciones" / "comparadores"
+    if not (ruta / "sanity_check.py").exists():
+        pytest.skip("sanity_check.py no esta en este bundle")
+    import sys
+    if str(ruta) not in sys.path:
+        sys.path.insert(0, str(ruta))
+    import sanity_check as F
+
+    assert F._parse_matriz(), (
+        "sanity_check.py esta usando el FALLBACK declarado, no la matriz real")
+    mia = S.leer_matriz()
+    for motor, esperado in (("PLAZO", "centavo"), ("CRED-MOR", "centavo"),
+                            ("CRED-ORD", "centavo")):
+        assert F.MATRIZ_REF[motor][esperado] == mia[motor][esperado], (
+            f"{motor}: su parser lee {F.MATRIZ_REF[motor][esperado]} y el mio "
+            f"{mia[motor][esperado]} sobre el MISMO archivo")
+
+
+def test_vista_hace_visible_la_convencion_dt():
+    """AUD-005(b): la convencion cambia el resultado casi tres puntos, asi que
+    citar el porcentaje sin ella desinforma — igual que un % sin su escala."""
+    a = M.POR_ID["VISTA"].alcance
+    assert "dt" in a.si.lower() and "por cuenta" in a.si.lower(), (
+        "el alcance de VISTA no declara la convencion de dt")
+    assert "94.56" in a.si or "94.56" in (M.POR_ID["VISTA"].dossier_match or {}).get("nota", ""), (
+        "no se declara la variante dt=31 contra la que contrasta")
+    d = M.POR_ID["VISTA"].dossier_match or {}
+    assert d["1e-8"] == "97.47" and d["centavo"] == "97.65", (
+        f"VISTA no esta en la cifra vigente: {d.get('1e-8')}/{d.get('centavo')}")

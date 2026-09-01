@@ -59,7 +59,7 @@
   `yield_amount`) ⋈ `aurumcore.finsus_account_history` (`record_date='2026-07-31'`: `average_balance_amount`=SPM,
   `interest_rate`=tasa); llave `account_id`. Motor `comparadores/oraculo_vista_finsus_history.py`; tolerancias
   `tolerancias.py`.
-- **Conciliación (C vs B, base 360·dt 31) — CICLO VIVO DE AGOSTO [2026-09-01]:** **94.56% a 1e-8 · 94.82% al centavo**
+- **Conciliación (C vs B, base 360, `dt` por cuenta) — CICLO VIVO DE AGOSTO [2026-09-01]:** **97.47% a 1e-8 · 97.65% al centavo** (con dt=31 fijo: 94.56/94.82)
   (censo 82,925; pago 01-sep vs SPM 31-ago). Consistente con julio (94.76/95.03) → **cifra de referencia única, AUD-004
   cerrado.** Residuo ~5% = `dt` intra-mes (ambos sentidos), no defecto. `RESULTADO_vista_vivo_2026-09-01.md`.
 

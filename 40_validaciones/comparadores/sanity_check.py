@@ -16,12 +16,46 @@ GRANULARIDADES = {"1e-8", "1e-5", "centavo"}
 ESCALAS_VALIDAS = GRANULARIDADES | {"volumen", "config", "completitud", "doc", "caso"}
 PEND = ("[PEND]", "sin escala declarada", None, "")
 
-# Valores autoritativos (de COMPARACION_C_vs_DOC.md) para INV-C1 (misma cifra en todos lados).
-MATRIZ_REF = {
-    "PLAZO":     {"1e-8": "100.00", "centavo": "100.00"},
-    "CRED-ORD":  {"1e-8": "96.80"},
-    "CRED-MOR":  {"1e-8": "81.10", "centavo": "95.70"},
-    "IVA":       {"1e-8": "99.00"},
+# Valores autoritativos para INV-C1 (misma cifra en todos lados).
+# AUD-005(a): NO se hardcodean — se PARSEAN de MATRIZ_TOLERANCIAS.md, para que INV-C1 verifique la VERDAD
+# (claims vs la matriz real) y no copia-contra-copia. Si el parse falla, se cae a un fallback declarado.
+import os, re
+_MOT = {  # nombre en la matriz -> clave de claim
+    "Rendimiento plazo fijo": "PLAZO", "Rendimiento vista": "VISTA",
+    "Crédito ordinario": "CRED-ORD", "Crédito moratorio": "CRED-MOR",
+    "IVA sobre interés": "IVA",
+}
+def _parse_matriz():
+    ref = {}
+    ruta = os.path.join(os.path.dirname(__file__), "..", "MATRIZ_TOLERANCIAS.md")
+    try:
+        for ln in open(ruta, encoding="utf-8"):
+            if not ln.lstrip().startswith("|"):
+                continue
+            cel = [x.strip() for x in ln.strip().strip("|").split("|")]
+            if len(cel) < 5:
+                continue
+            nombre = re.sub(r"[*`]", "", cel[1]).strip()
+            key = next((v for k, v in _MOT.items() if nombre.startswith(k)), None)
+            if not key:
+                continue
+            d = {}
+            for esc, i in (("1e-8", 2), ("1e-5", 3), ("centavo", 4)):
+                val = re.sub(r"[*%`]", "", cel[i]).strip()
+                if re.fullmatch(r"\d+\.\d+", val):
+                    d[esc] = val
+            if d:
+                ref[key] = d
+    except Exception:
+        return None
+    return ref or None
+
+MATRIZ_REF = _parse_matriz() or {  # fallback declarado (corte 01-sep) si no se puede parsear
+    "PLAZO": {"1e-8": "100.00", "1e-5": "100.00", "centavo": "100.00"},
+    "VISTA": {"1e-8": "97.47", "1e-5": "97.47", "centavo": "97.65"},
+    "CRED-ORD": {"1e-8": "97.32", "1e-5": "97.32", "centavo": "97.43"},
+    "CRED-MOR": {"1e-8": "94.66", "1e-5": "94.66", "centavo": "95.38"},
+    "IVA": {"1e-8": "98.91", "1e-5": "98.91", "centavo": "99.46"},
 }
 
 # --- Registro de claims: el estado CORRECTO (post-fix del auditor) ---
@@ -31,15 +65,18 @@ CLAIMS = [
  {"motor":"PLAZO","cobertura":"datos","n":530195,"fuente":"validate_plazo_origin","calculado_aqui":True,
   "titular":("centavo","100.00"),"escalas":{"1e-8":"100.00","1e-5":"100.00","centavo":"100.00"},
   "ejecutable":True,"feed":True,"caso":True},
- {"motor":"CRED-ORD","cobertura":"datos","n":4091,"fuente":"MATRIZ_TOLERANCIAS.md","calculado_aqui":False,
-  "titular":("1e-8","96.80"),"escalas":{"1e-8":"96.80","1e-5":"[PEND]","centavo":"[PEND]"},
-  "ejecutable":False,"feed":False,"caso":False,"nota":"residuo=P-019 data-sourcing, no motor"},
- {"motor":"CRED-MOR","cobertura":"datos","n":1274,"fuente":"MATRIZ_TOLERANCIAS.md","calculado_aqui":False,
-  "titular":("centavo","95.70"),"escalas":{"1e-8":"81.10","1e-5":"[PEND]","centavo":"95.70"},
-  "ejecutable":False,"feed":False,"caso":False,"nota":"escalon 81->96 = granularidad snapshot; sesgo:no"},
- {"motor":"IVA","cobertura":"datos","n":54716,"fuente":"MATRIZ_TOLERANCIAS.md","calculado_aqui":False,
-  "titular":("1e-8","99.00"),"escalas":{"1e-8":"99.00","1e-5":"[PEND]","centavo":"[PEND]"},
-  "ejecutable":False,"feed":False,"caso":False},
+ {"motor":"VISTA","cobertura":"datos","n":82925,"fuente":"MATRIZ_TOLERANCIAS.md","calculado_aqui":True,
+  "titular":("centavo","97.65"),"escalas":{"1e-8":"97.47","1e-5":"97.47","centavo":"97.65"},
+  "ejecutable":True,"feed":True,"caso":True,"nota":"ciclo agosto, dt por cuenta; residual=SPM-de-cierre, no defecto"},
+ {"motor":"CRED-ORD","cobertura":"datos","n":3585,"fuente":"MATRIZ_TOLERANCIAS.md","calculado_aqui":False,
+  "titular":("centavo","97.43"),"escalas":{"1e-8":"97.32","1e-5":"97.32","centavo":"97.43"},
+  "ejecutable":False,"feed":False,"caso":False,"nota":"corte 01-sep; residuo=P-019 data-sourcing; abs(capital) K-DAT-007"},
+ {"motor":"CRED-MOR","cobertura":"datos","n":693,"fuente":"MATRIZ_TOLERANCIAS.md","calculado_aqui":False,
+  "titular":("centavo","95.38"),"escalas":{"1e-8":"94.66","1e-5":"94.66","centavo":"95.38"},
+  "ejecutable":False,"feed":False,"caso":False,"nota":"corte 01-sep; el 1e-8 se mueve con el corte = granularidad snapshot"},
+ {"motor":"IVA","cobertura":"datos","n":54421,"fuente":"MATRIZ_TOLERANCIAS.md","calculado_aqui":False,
+  "titular":("centavo","99.46"),"escalas":{"1e-8":"98.91","1e-5":"98.91","centavo":"99.46"},
+  "ejecutable":False,"feed":False,"caso":False,"nota":"cohorte 16%; aparte IVA-incluido 16/84 y resto"},
  {"motor":"CAT","cobertura":"volumen","n":None,"fuente":"MATRIZ_TOLERANCIAS.md","calculado_aqui":False,
   "titular":("volumen","11.60"),"escalas":{"1e-8":"[PEND]","1e-5":"[PEND]","centavo":"[PEND]","volumen":"11.60"},
   "ejecutable":False,"feed":False,"caso":False,
@@ -124,8 +161,10 @@ if __name__ == "__main__":
     sano = status("Registro de claims (estado actual del tablero)", CLAIMS)
 
     # ---- Auto-prueba de FALSABILIDAD: los invariantes DEBEN atrapar los 2 bugs historicos ----
-    CAT_bug = dict(CLAIMS[4]); CAT_bug["titular"] = ("1e-8", "11.60")  # CAT como 1e-8
-    MOR_bug = dict(CLAIMS[2]); MOR_bug["titular"] = ("1e-8", "81.10")  # moratorio titular estricto ocultando centavo
+    # (busca por nombre de motor, no por indice posicional)
+    _by = {c["motor"]: c for c in CLAIMS}
+    CAT_bug = dict(_by["CAT"]); CAT_bug["titular"] = ("1e-8", "11.60")  # CAT como 1e-8 (era volumen)
+    MOR_bug = dict(_by["CRED-MOR"]); MOR_bug["titular"] = ("1e-8", MOR_bug["escalas"]["1e-8"])  # titular estricto ocultando centavo
     Vb = chk([CAT_bug, MOR_bug])
     cat_ok = any(inv in ("INV-H2","INV-H3") and m == "CAT" for inv, m, _ in Vb)
     mor_ok = any(inv == "INV-H5" and m == "CRED-MOR" for inv, m, _ in Vb)
