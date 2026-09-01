@@ -172,6 +172,9 @@ pre.formula{margin:0;padding:12px 14px;background:var(--neutro-bg);border-radius
 .umbral{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;
   background:var(--neutro-bg);color:var(--suave);border:1px solid var(--linea);white-space:nowrap}
 .corte{font-size:11.5px;color:var(--suave)}
+.califica{font-size:12.5px;line-height:1.55;background:var(--neutro-bg);border-left:3px solid var(--alerta);
+  padding:9px 12px;border-radius:5px;margin:8px 0}
+.califica div+div{margin-top:6px;padding-top:6px;border-top:1px solid var(--linea)}
 .superada{background:var(--alerta-bg,var(--neutro-bg));border-left:3px solid var(--alerta);
   padding:9px 12px;border-radius:5px;font-size:12.5px;line-height:1.55;margin:8px 0}
 .crit{border:1px solid var(--linea);border-radius:8px;padding:10px 13px;margin-bottom:9px;font-size:12.5px}
@@ -483,7 +486,8 @@ function galeria(cat){
           <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span></div>
           ${m.pct_escala?`<div class="cita">${ETIQUETA_ESCALA(m.pct_escala)}</div>`:''}
           ${m.alcance?`<div class="cita">${esc(m.alcance.tipo)} · <b>${esc(m.alcance.representatividad)}</b></div>`:''}
-          <div class="cita"><span class="umbral">bloqueante &gt; $0.99</span></div>`
+          <div class="cita"><span class="umbral">bloqueante &gt; $0.99</span></div>
+          ${m.titular_calificador?`<div class="cita" style="color:var(--alerta)">no es precisión del motor — ver detalle</div>`:''}`
         : respaldo(m,false)}
         <div class="cita"><span class="badge b-${m.origen_resultado==='corrida_local'?'corrida_local':
           (m.origen_resultado==='dossier'?'dossier':'sin_cruce')}">${esc(et)}</span></div>
@@ -631,6 +635,8 @@ function detalle(id){
     ${p!==null?`<div class="pct"><span class="val">${p.toFixed(2)+'%'}</span>
       <span class="riel ${clase(p)}"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></span>
       ${m.pct_escala?`<span class="cita">${ETIQUETA_ESCALA(m.pct_escala)}</span>`:''}</div>
+      ${m.titular_calificador?`<div class="califica">${
+        m.titular_calificador.split('||').map(x=>`<div>${esc(x.trim())}</div>`).join('')}</div>`:''}
       ${bloqueCorte(m)}`
     : respaldo(m,true)}
     ${bloqueUmbral()}

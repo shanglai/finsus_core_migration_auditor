@@ -287,6 +287,12 @@ class Motor:
     # publica como titular —eso contradiria la cifra en firme—: se degrada a
     # PREVIEW y se dice que la sustituye y por que.
     corrida_superada_por: str = ""
+    # Calificador que va PEGADO al titular, no enterrado en el detalle. Existe
+    # porque un porcentaje bajo entre porcentajes altos se lee como "este motor
+    # es el peor" antes de que nadie baje a la explicacion. Cuando lo que varia
+    # no es la precision del motor sino el insumo con que se le compara, eso
+    # tiene que estar en la misma linea que la cifra.
+    titular_calificador: str = ""
 
     @property
     def categoria(self) -> str:
@@ -370,6 +376,7 @@ class Motor:
             "lectura_escalon": self.lectura_escalon,
             "alcance": self.alcance.como_dict() if self.alcance else None,
             "corrida_superada_por": self.corrida_superada_por,
+            "titular_calificador": self.titular_calificador,
             "pct_escala": (self.pct_citado or (None, None))[1],
         }
 
@@ -672,6 +679,16 @@ MOTORES: tuple[Motor, ...] = (
                       "andan cerca del valor implicito. Es data-sourcing, no formula."),
         clase_no_conforme="data-sourcing", solicitudes=("SOL-015",),
         caso_validador="CAT-01",
+        titular_calificador=(
+            "NO es la precision del motor. La formula de CAT es EXACTA: reproduce 3/3 los "
+            "ejemplos del doc (45.80% · 289,458,538.17% · 34.48%) y un caso real al "
+            "centavo (35.1%). Lo que este 28.50% mide es cuantas veces se puede REPRODUCIR "
+            "el CAT guardado usando la comision que esta en la configuracion — y en la "
+            "mitad de los contratos esa no es la comision que se cobro. El residuo es el "
+            "INSUMO, no el calculo. || OJO CON EL 28.45%: el hallazgo A28-CAT-CERO habla de "
+            "una TASA DE INTERES ordinario promedio (~28.45%) de los contratos con "
+            "`cat = 0`. Es otra magnitud, no este porcentaje; se parecen por casualidad y "
+            "ya confundio a un lector."),
         lectura_escalon=(
             "El escalon 23.43% -> 28.50% NO es el diagnostico habitual. "
             "`lc_loan_contract.cat` guarda DOS DECIMALES en las 4,224 filas del "

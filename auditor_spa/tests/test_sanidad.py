@@ -678,3 +678,38 @@ def test_vista_hace_visible_la_convencion_dt():
     d = M.POR_ID["VISTA"].dossier_match or {}
     assert d["1e-8"] == "97.47" and d["centavo"] == "97.65", (
         f"VISTA no esta en la cifra vigente: {d.get('1e-8')}/{d.get('centavo')}")
+
+
+# --- El titular de CAT no puede leerse como precision del motor ------------
+
+def test_cat_califica_su_titular_junto_al_numero():
+    """Un 28.50% entre 100% y 99.46% se lee como 'el peor motor' antes de que
+    nadie baje a la explicacion. El calificador va PEGADO a la cifra."""
+    c = M.POR_ID["CAT"]
+    assert c.titular_calificador, "CAT publica su % sin calificarlo"
+    t = c.titular_calificador
+    assert "3/3" in t and "35.1" in t, (
+        "el calificador no trae la evidencia de que la formula es exacta")
+    assert "INSUMO" in t.upper(), "no dice que el residuo es del insumo, no del calculo"
+    html = (RAIZ / "spa" / "index.html").read_text(encoding="utf-8")
+    assert "titular_calificador" in html, "el SPA no pinta el calificador"
+
+
+def test_cat_desambigua_el_2850_del_2845():
+    """Dos magnitudes distintas que se parecen por casualidad: 28.50% es el
+    cuadre de CAT-01 y ~28.45% es la TASA DE INTERES de los contratos cat=0
+    (A28-CAT-CERO). La coincidencia ya confundio a un lector, asi que se nombra."""
+    t = M.POR_ID["CAT"].titular_calificador
+    assert "28.45" in t, "no advierte la confusion con la tasa de A28-CAT-CERO"
+    assert "TASA DE INTERES" in t.upper(), "no dice que 28.45 es otra magnitud"
+
+
+def test_cat_sigue_publicando_su_corrida_y_sus_no_conformes():
+    """La tentacion opuesta: marcar CAT n/a porque el numero se ve mal. Eso
+    esconderia una corrida real y 3,021 no conformes — el problema-espejo."""
+    d = json.loads((RESULTADOS / "CAT.json").read_text(encoding="utf-8"))
+    assert d["origen_resultado"] == "corrida_local"
+    cr = d["cruce"]
+    assert cr["n_comparadas"] == 4225
+    assert cr["n_no_conformes"] > 3000, (
+        "se perdieron los no conformes de CAT; son la evidencia, no un estorbo")
