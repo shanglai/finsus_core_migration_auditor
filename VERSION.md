@@ -22,7 +22,7 @@
 | Crédito moratorio | 94.66% | 94.66% | **95.38%** | 693 (feed 08-20) | citado, corte 01-sep |
 | IVA (cohorte 16%) | 98.91% | 98.91% | **99.46%** | 54,421 (96.96% de las filas) | citado, corte 01-sep |
 | IFRS 9 etapas + % | 88.10% | 88.10% | **100.00%** | 20,000 filas E3 + 37/37 config | **calculado aquí** |
-| CAT (estrato per-contrato) | 23.43% | 23.43% | **28.50%** | 4,225 de 31,866 (13.26%) | **calculado aquí** |
+| CAT (estrato per-contrato) | 27.10% | 27.10% | **32.97%** | 4,480 contratos | **calculado aquí** |
 | Contable doble partida | — | — | **$0.00** | 7/7 días | **calculado aquí** |
 | GAT inversión | exacto (no-circular) | n/a | n/a | 126,465 de 706,600 | citado |
 
@@ -37,6 +37,7 @@ se muestra sin su escala.
 | Crédito moratorio | 81.10% / 95.70% (23-ago) | 94.66% / 95.38% | El **1e-8 se mueve con el corte** porque `capital_venc` es un campo vivo. El **centavo es el estable** (95.70 → 95.38). Que el estricto oscile entre cortes *es* la prueba de que el residuo es granularidad del snapshot. |
 | IVA | 99.00% global (23-ago) | 98.91% / 99.46% por cohorte | Se **estratifica** por tasa en vez de promediar: 16% general, IVA-incluido (16/84), y resto con redondeo en montos ínfimos. Promediarlos escondía tres fenómenos distintos. |
 | Vista | cita de julio 94.76/95.03 · preview propio de agosto 96.62 | 97.47 / 97.65 | Censo del ciclo **vivo de agosto** con `dt` **por cuenta**. Cierra AUD-004(b). |
+| CAT | 28.50% al centavo sobre 4,225 (28-ago) | 32.97% sobre 4,480 | El oráculo pasa a usar la **comisión realmente cobrada** (`lc_loan_charge`) en vez de la configurada: medido, reproduce el CAT en **36.81%** de los contratos de un pago contra **33.51%** de la configurada. El universo creció por **deriva de tabla viva** en cuatro días. |
 
 **La corrida propia de VISTA (preview, 20,000 filas) no se borró:** sigue publicada en su tarjeta,
 etiquetada como preview, con su scatter y sus no conformes. Borrarla habría perdido cobertura en

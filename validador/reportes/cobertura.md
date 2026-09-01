@@ -1,6 +1,6 @@
 # Cobertura del VALIDADOR — que se corrio, que no y que esta bloqueado
 
-> Generado: 2026-08-28T14:30:45+00:00 · `python cli.py --cobertura`
+> Generado: 2026-09-01T16:24:50+00:00 · `python cli.py --cobertura`
 >
 > **NO-CORRIDO NO ES PASO.** Un caso que no se ejecuto no aporta cobertura y no
 > puede pintarse verde en ningun tablero. Esta tabla existe para que la ausencia
@@ -11,7 +11,7 @@
 | caso | motor | sev | estado catalogo | ultima corrida | fecha | violaciones | evidencia |
 |---|---|---|---|---|---|---|---|
 | **BALANZA-D** | CTB | 2 | PARCIAL | NO-CORRIDO · nunca ejecutado | — | — | — |
-| **CAT-01** | COL | 2 | PARCIAL | corrido · CON VIOLACIONES | 2026-08-28 | 3021 | CAT-01_2026-08-28_d5fd27491a97 |
+| **CAT-01** | COL | 2 | PARCIAL | corrido · SESGO DETECTADO (severidad 1) | 2026-09-01 | 3003 | CAT-01_2026-09-01_663868879726 |
 | **COMPLETITUD** | MOV | 1 | PARCIAL | NO-CORRIDO · nunca ejecutado | — | — | — |
 | **CONTABLE-B1** | CTB | 1 | VALIDADO | corrido · cero violaciones | 2026-08-28 | 0 | CONTABLE-B1_2026-08-28_abc2e91de338 |
 | **CONTABLE-C** | CTB | 1 | PENDIENTE | NO-CORRIDO · nunca ejecutado | — | — | — |
@@ -64,10 +64,11 @@ Reconcilio al centavo en el caso limpio (cuenta 6de5351e: 10,165.70 x 31 x 4% / 
 
 ### CAT-01 — CAT — Costo Anual Total sobre el estrato donde el campo SI es per-contrato
 
-- veredicto: **VIOLACIONES** · violaciones: **3021** de 4225 filas
+- veredicto: **SESGO** · violaciones: **3003** de 4480 filas
 - celda dominante de la matriz A/B/C: `B!=C (sin A)`
-- matriz: {'B=C (sin A)': 1204, 'B!=C (sin A)': 3019, 'sin C': 2}
-- evidencia: `CAT-01_2026-08-28_d5fd27491a97`
+- matriz: {'B=C (sin A)': 1477, 'B!=C (sin A)': 2998, 'sin C': 5}
+- **sesgo detectado** (p=0.00291119): Sesgo negativo (C < B): 1716 de 3261 diferencias no nulas caen del mismo lado. Severidad 1 (charter §1.7): el agregado esta mal aunque cada evento respete la tolerancia.
+- evidencia: `CAT-01_2026-09-01_663868879726`
 
 ### GAPB-IDNC — Suspension de devengo en cartera vencida — io_venc cancela io
 
@@ -104,8 +105,6 @@ Reconcilio al centavo en el caso limpio (cuenta 6de5351e: 10,165.70 x 31 x 4% / 
 
 ## Sincronia de indices (§7.4)
 
-Discrepancias entre los YAML y `manifest.yaml`:
-
-- CAT-01: existe el YAML pero no esta en manifest.yaml
+`catalogo/*.yaml` y `catalogo/manifest.yaml` estan sincronizados.
 
 Pendiente de sincronizar a mano: `40_validaciones/NORTE_VALIDACION.md` (misma nomenclatura y estado que este catalogo).

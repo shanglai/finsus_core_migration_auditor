@@ -56,11 +56,23 @@ cobertura_nota: >-
 
   CONVENCION CONFIRMADA POR DESPEJE (no por suposicion). Se invirtio la
   identidad del CAT para obtener el `monto_recibido` implicito en el `cat` que
-  guarda el core; la diferencia contra el monto salio entre 2% y 6% —el rango
-  de las comisiones pactadas— y donde la comision configurada es la aplicada,
-  el CAT sale exacto. De ahi: la comision de apertura se DESCUENTA de la
-  disposicion, los dias corren de `activation_date` a `demandable_date`, y el
-  pago es capital + interes + seguros + otros sin IVA.
+  guarda el core; la diferencia contra el monto salio en el rango de las
+  comisiones pactadas, y donde la comision configurada es la aplicada, el CAT
+  sale exacto. De ahi: la comision de apertura se DESCUENTA de la disposicion,
+  los dias corren de `activation_date` a `demandable_date`, y el pago es
+  capital + interes + seguros + otros sin IVA.
+
+  QUE COMISION (corte 2026-09-01). Se probaron las CUATRO fuentes que existen y
+  gana la REALMENTE COBRADA, no la configurada:
+    lc_loan_charge (cargo efectivo)      36.81%   <- la que se usa
+    lc_account_commission (config)       33.51%
+    lc_applications_commission           33.51%   identica a la de cuenta en el 100%
+    transaction_detail.commission / fee   sin filas
+  El cargo vive con `charge_type = 'MISC'` y se identifica por su REFERENCIA a
+  `lc_account_commission_id` — no existe un `charge_type = 'COMMISSION'`. Se
+  SUMAN todos los cargos de comision (usar solo el primero baja a 29.82%) y se
+  EXCLUYE el IVA: sumarlo reproduce el CAT en CERO casos, lo que confirma la
+  regla de la Circular 21/2009.
 
   HALLAZGO DE PASO: el core marca esas comisiones `financed = 1` (financiada,
   o sea sumada al credito) pero los datos dicen que se descuenta. Se sigue el
@@ -91,7 +103,8 @@ bloqueo: >-
 solicitudes: [SOL-015]
 
 supuestos:
-  - "COMO LEER LA BANDERA DE SESGO. La primera corrida marco sesgo (p = 0.0089, +2026/-2197) y era del METODO, no del core: el oraculo devolvia el CAT sin redondear mientras el core lo GUARDA con dos decimales, o sea medio centesimo sistematico en una direccion. Al aplicar half-up a dos decimales —la convencion confirmada por Finsus el 2026-08-24— el sesgo desaparecio (p = 0.673, +1629/-1604) y el cuadre subio de 27.29% a 28.50%. Es el paso 1 del playbook del §11.3, y es la cuarta vez que el sesgo resulta ser del metodo. Si una corrida futura vuelve a marcarlo, el orden es el mismo: (1) redondeo, (2) precision de la base, (3) solo entonces candidato a defecto del core."
+  - "COMO LEER LA BANDERA DE SESGO — CORTE 2026-09-01. La corrida con la comision REALMENTE COBRADA vuelve a marcar sesgo (p = 0.0029, +1,545/-1,716) y NO es del core. El playbook del §11.3 descarta las dos primeras causas MIDIENDO, no suponiendo: (1) el redondeo ya es half-up a dos decimales desde la corrida anterior; (2) NO es precision de la base, porque el residuo no es sub-centavo — la mediana es -0.06 pp pero el p10 es -358 pp y el p90 +358 pp, y el 34% de los no conformes se pasa de 100 puntos porcentuales. Ninguna imprecision de centavos mueve un CAT cientos de puntos. Lo que si lo mueve es la CONVENCION DE DIAS: el CAT es hipersensible al plazo corto —el propio doc trae un ejemplo de 1 dia que da 289,458,538%—, asi que una diferencia de dias produce residuos de esa magnitud. Es la mitad abierta de SOL-015. El desbalance de signo esta REPARTIDO en todos los tramos de magnitud (no concentrado en un residuo diminuto), que es justo lo contrario del patron de redondeo. La bandera se muestra igual; lo que cambia es la lectura."
+  - "COMO LEER LA BANDERA DE SESGO (corrida anterior, 2026-08-28). La primera corrida marco sesgo (p = 0.0089, +2026/-2197) y era del METODO, no del core: el oraculo devolvia el CAT sin redondear mientras el core lo GUARDA con dos decimales, o sea medio centesimo sistematico en una direccion. Al aplicar half-up a dos decimales —la convencion confirmada por Finsus el 2026-08-24— el sesgo desaparecio (p = 0.673, +1629/-1604) y el cuadre subio de 27.29% a 28.50%. Es el paso 1 del playbook del §11.3, y es la cuarta vez que el sesgo resulta ser del metodo. Si una corrida futura vuelve a marcarlo, el orden es el mismo: (1) redondeo, (2) precision de la base, (3) solo entonces candidato a defecto del core."
   - "La comision de apertura se toma de `lc_account_commission` con `concept = 1` (concept = 2 son seguros, que van dentro del pago y no en la disposicion). Se toma UNA fila, no la suma: sumar varias filas de configuracion duplicaba la comision y desplazaba el CAT hacia abajo de forma sistematica. Fue un defecto propio, detectado al despejar la comision implicita."
   - "Se asume comision DESCONTADA de la disposicion, contra la bandera `financed = 1` del propio core, porque el despeje del monto recibido implicito lo respalda y la bandera no. Si el Manual (SOL-015) dice lo contrario, el universo entero cambia de lectura y el caso se recorre con la otra convencion; por eso la convencion se declara aqui en vez de quedar enterrada en el SQL."
   - "Los pagos con `dias <= 0` se excluyen del flujo en vez de forzarse a t=0: un pago que cae en la fecha de disposicion o antes no es un pago futuro que descontar. Son pocos y se cuentan, no se silencian."

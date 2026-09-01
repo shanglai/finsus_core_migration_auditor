@@ -710,6 +710,38 @@ def test_cat_sigue_publicando_su_corrida_y_sus_no_conformes():
     d = json.loads((RESULTADOS / "CAT.json").read_text(encoding="utf-8"))
     assert d["origen_resultado"] == "corrida_local"
     cr = d["cruce"]
-    assert cr["n_comparadas"] == 4225
+    # El universo es una tabla VIVA: 4,225 el 28-ago, 4,480 el 01-sep. Fijar el
+    # numero exacto convertiria la prueba en un ancla a un corte; lo que importa
+    # es que siga siendo el estrato per-contrato y no el padron completo.
+    assert 4000 < cr["n_comparadas"] < 6000, (
+        f"universo fuera del estrato per-contrato: {cr['n_comparadas']}")
     assert cr["n_no_conformes"] > 3000, (
         "se perdieron los no conformes de CAT; son la evidencia, no un estorbo")
+
+
+def test_cat_declara_que_su_cifra_sustituyo_a_la_anterior():
+    """Regla de oro: 28.50% -> 32.97% no puede pasar en silencio, y las DOS
+    causas (cambio de insumo y deriva del universo) tienen que estar."""
+    c = M.POR_ID["CAT"]
+    d = c.dossier_match or {}
+    assert d.get("corte") == "2026-09-01"
+    assert "28.50" in d.get("firme_anterior", ""), "no dice a que cifra sustituye"
+    p = d.get("porque_cambio", "")
+    assert "lc_loan_charge" in p, "no dice que el insumo cambio"
+    assert "4,225" in p and "4,480" in p, "no declara la deriva del universo"
+
+
+def test_cat_lee_su_sesgo_descartando_las_dos_primeras_causas():
+    """§11.3 exige el orden: redondeo -> precision de base -> recien entonces
+    core. Aqui las dos primeras se descartan MIDIENDO, no suponiendo."""
+    import sys
+    v = RAIZ.parent / "validador"
+    sys.path.insert(0, str(v))
+    from engine import catalogo
+    caso = catalogo.cargar_todos()["CAT-01"]
+    txt = " ".join(caso.supuestos)
+    assert "half-up" in txt, "no descarta el redondeo"
+    assert "no es sub-centavo" in txt.lower() or "NO es precision de la base" in txt, (
+        "no descarta la precision de la base")
+    assert "358" in txt, "no trae la medicion que descarta la base (p10/p90 del residuo)"
+    assert "CONVENCION DE DIAS" in txt.upper(), "no nombra la causa que queda"

@@ -36,9 +36,10 @@ base as (
     and c.activation_date is not null -- sin t=0 no hay flujo que descontar
 ),
 comision as (
-  -- La comision de APERTURA (concept = 1; concept = 2 son seguros, que van en
-  -- el pago y no en la disposicion). Se toma la fila, NO la suma: sumar varias
-  -- filas de configuracion inflaba la comision al doble.
+  -- La comision de APERTURA CONFIGURADA (concept = 1; concept = 2 son seguros,
+  -- que van en el pago y no en la disposicion). Se toma la fila, NO la suma:
+  -- sumar varias filas de configuracion inflaba la comision al doble.
+  -- Queda como RESPALDO: manda el cargo realmente aplicado, de abajo.
   select account_id,
          max(percentage_amount) as comision_pct,
          max(fixed_amount)      as comision_fija,
@@ -47,6 +48,27 @@ comision as (
   where concept = 1
     and account_id in (select account_id from base)
   group by account_id
+),
+cargo as (
+  -- La comision REALMENTE COBRADA. Medido el 2026-09-01: la configuracion no
+  -- siempre es lo que se aplico, y el cargo efectivo reproduce el CAT guardado
+  -- en mas casos (36.81% contra 33.51% en la cohorte de un pago).
+  --
+  -- El cargo vive con `charge_type = 'MISC'` (concepto MISCELANEOS), no
+  -- 'COMMISSION' — ese literal no existe en la tabla. Lo que identifica a la
+  -- comision es la REFERENCIA a `lc_account_commission_id`, asi que se filtra
+  -- por ahi y no por el nombre del tipo.
+  --
+  -- Se SUMAN todos los cargos de comision (usar solo el primero baja a 29.82%)
+  -- y se EXCLUYE el IVA: sumar `tax_amount` reproduce el CAT en CERO casos, lo
+  -- que confirma la regla de la Circular 21/2009.
+  select g.lc_contract_id,
+         sum(g.amount) as comision_cobrada,
+         count(*)      as n_cargos_comision
+  from aurumcore.lc_loan_charge g
+  where g.lc_account_commission_id is not null
+    and g.lc_contract_id in (select id from base)
+  group by g.lc_contract_id
 ),
 pagos as (
   -- Pago para CAT = capital + interes ordinario + seguros + otros, SIN IVA
@@ -70,12 +92,15 @@ select b.contract_number                        as contrato,
        coalesce(m.comision_pct, 0)              as comision_pct,
        coalesce(m.comision_fija, 0)             as comision_fija,
        coalesce(m.comision_financiada, 0)       as comision_financiada,
+       g.comision_cobrada                       as comision_cobrada,
+       coalesce(g.n_cargos_comision, 0)         as n_cargos_comision,
        p.pago_sin_iva,
        p.dias,
        p.n_pagos
 from base b
 join pagos p    on p.lc_contract_id = b.id
 left join comision m on m.account_id = b.account_id
+left join cargo   g  on g.lc_contract_id = b.id
 order by b.contract_number
 limit :limite;
 

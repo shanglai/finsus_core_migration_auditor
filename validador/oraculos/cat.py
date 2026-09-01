@@ -68,13 +68,27 @@ D = lambda x: x if isinstance(x, Decimal) else Decimal(str(x))  # noqa: E731
 BASE_DIAS = 360          # Circular 21/2009
 
 
-def comision_apertura(monto: Decimal, pct, fija) -> Decimal:
+def comision_apertura(monto: Decimal, pct, fija, cobrada=None) -> Decimal:
     """Lo que se descuenta de la disposicion.
 
-    Un monto fijo pactado gana al porcentaje cuando existe; si no hay ninguno,
-    la comision es cero y el cliente recibe el monto completo. No se inventa un
-    valor "tipico" cuando el contrato no declara comision.
+    ORDEN DE PREFERENCIA, y el orden importa:
+
+    1. La comision REALMENTE COBRADA (`lc_loan_charge`), cuando existe. Es el
+       hecho, no la intencion.
+    2. Un monto fijo pactado en la configuracion.
+    3. El porcentaje configurado sobre el monto.
+
+    Medido el 2026-09-01 sobre los contratos de un pago: la configuracion
+    reproduce el CAT guardado en 33.51% de los casos y el cargo efectivo en
+    36.81%. La configuracion NO siempre es lo que se aplico, asi que preferirla
+    seria comparar contra una intencion en vez de contra un hecho.
+
+    Si no hay ninguno de los tres, la comision es cero y el cliente recibe el
+    monto completo. No se inventa un valor "tipico".
     """
+    c = D(cobrada) if cobrada is not None else D(0)
+    if c > 0:
+        return c
     f = D(fija or 0)
     if f > 0:
         return f
@@ -85,7 +99,8 @@ def comision_apertura(monto: Decimal, pct, fija) -> Decimal:
 def monto_recibido(fila: dict) -> Decimal:
     monto = D(fila["monto"])
     return monto - comision_apertura(monto, fila.get("comision_pct"),
-                                     fila.get("comision_fija"))
+                                     fila.get("comision_fija"),
+                                     fila.get("comision_cobrada"))
 
 
 def flujos(fila: dict) -> list[tuple[Decimal, int]]:

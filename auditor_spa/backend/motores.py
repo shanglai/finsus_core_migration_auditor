@@ -680,6 +680,11 @@ MOTORES: tuple[Motor, ...] = (
         clase_no_conforme="data-sourcing", solicitudes=("SOL-015",),
         caso_validador="CAT-01",
         titular_calificador=(
+            "CORTE 2026-09-01 — SUSTITUYE al 28.50% del 2026-08-28. Dos cosas cambiaron y "
+            "las dos se declaran: (1) el oraculo pasa a usar la comision REALMENTE COBRADA "
+            "(`lc_loan_charge`) en vez de la configurada, porque se midio que reproduce el "
+            "CAT guardado en mas casos (36.81% contra 33.51%); (2) el universo crecio de "
+            "4,225 a 4,480 contratos por deriva de tabla viva en cuatro dias. || "
             "NO es la precision del motor. La formula de CAT es EXACTA: reproduce 3/3 los "
             "ejemplos del doc (45.80% · 289,458,538.17% · 34.48%) y un caso real al "
             "centavo (35.1%). Lo que este 28.50% mide es cuantas veces se puede REPRODUCIR "
@@ -690,7 +695,7 @@ MOTORES: tuple[Motor, ...] = (
             "`cat = 0`. Es otra magnitud, no este porcentaje; se parecen por casualidad y "
             "ya confundio a un lector."),
         lectura_escalon=(
-            "El escalon 23.43% -> 28.50% NO es el diagnostico habitual. "
+            "El escalon 27.10% -> 32.97% NO es el diagnostico habitual. "
             "`lc_loan_contract.cat` guarda DOS DECIMALES en las 4,224 filas del "
             "universo, asi que no hay residuo sub-centavo que absorber: 1e-8 y "
             "1e-5 cuentan las coincidencias exactas al centesimo y el centavo "
@@ -702,6 +707,17 @@ MOTORES: tuple[Motor, ...] = (
         insumos="lc_loan_contract.cat · lc_loan_amortization · lc_account_commission",
         autopruebas="3/3 contra el doc",
         dossier_match={"1e-8": None, "1e-5": None, "centavo": None, "volumen": "11.60",
+                       "corte": "2026-09-01",
+                       "firme_anterior": ("28.50% al centavo sobre 4,225 contratos "
+                                          "(corrida propia del 2026-08-28)"),
+                       "porque_cambio": (
+                           "El oraculo dejo de usar la comision CONFIGURADA y usa la "
+                           "REALMENTE COBRADA (`lc_loan_charge`). Medido: la configurada "
+                           "reproduce el CAT en 33.51% de los contratos de un pago y el "
+                           "cargo efectivo en 36.81%. Ademas el universo crecio de 4,225 a "
+                           "4,480 por deriva de tabla viva. Resultado: 28.50% -> 32.97% al "
+                           "centavo. Sigue sin cerrar: falta la convencion de dias "
+                           "(SOL-015)."),
                        "n": "3 ejemplos del doc + caso real", "sesgo": None,
                        "nota": ("El 11.60% NO es una granularidad: es el cruce a VOLUMEN. La formula "
                                 "reproduce 3/3 los ejemplos del doc y un caso real exacto (35.1%), "
