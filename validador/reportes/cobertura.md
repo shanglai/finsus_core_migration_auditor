@@ -1,6 +1,6 @@
 # Cobertura del VALIDADOR — que se corrio, que no y que esta bloqueado
 
-> Generado: 2026-09-01T16:24:50+00:00 · `python cli.py --cobertura`
+> Generado: 2026-09-02T21:44:52+00:00 · `python cli.py --cobertura`
 >
 > **NO-CORRIDO NO ES PASO.** Un caso que no se ejecuto no aporta cobertura y no
 > puede pintarse verde en ningun tablero. Esta tabla existe para que la ausencia
@@ -24,8 +24,8 @@
 | **ISR-01** | FIS | 1 | PARCIAL | NO-CORRIDO · error de ejecucion | 2026-08-21 | — | ISR-01_2026-08-21_06d1a7859246 |
 | **ISR-02** | FIS | 2 | VALIDADO | NO-CORRIDO · nunca ejecutado | — | — | — |
 | **ISR-03** | FIS | 1 | VALIDADO | corrido · CON VIOLACIONES | 2026-08-21 | 1 | ISR-03_2026-08-21_a61c52894d7e |
-| **REND-PLAZO** | DEV | 1 | VALIDADO | corrido · cero violaciones | 2026-08-28 | 0 | REND-PLAZO_2026-08-28_62b2d08afb0a |
-| **REND-VISTA** | DEV | 1 | PARCIAL | corrido · SESGO DETECTADO (severidad 1) | 2026-08-28 | 675 | REND-VISTA_2026-08-28_b33874ab6f8b |
+| **REND-PLAZO** | DEV | 1 | VALIDADO | corrido · cero violaciones | 2026-09-02 | 0 | REND-PLAZO_2026-09-02_6f50a716ef87 |
+| **REND-VISTA** | DEV | 1 | PARCIAL | corrido · SESGO DETECTADO (severidad 1) | 2026-09-02 | 3757 | REND-VISTA_2026-09-02_a3e713633e83 |
 | **SALDO-PROM** | DEV | 1 | PARCIAL | NO-CORRIDO · nunca ejecutado | — | — | — |
 | **WRITEOFFS** | CTB | 2 | PENDIENTE | NO-CORRIDO · nunca ejecutado | — | — | — |
 
@@ -94,11 +94,11 @@ Reconcilio al centavo en el caso limpio (cuenta 6de5351e: 10,165.70 x 31 x 4% / 
 
 ### REND-VISTA — Interes y capitalizacion de cuenta vista/ahorro
 
-- veredicto: **SESGO** · violaciones: **675** de 20000 filas
+- veredicto: **SESGO** · violaciones: **3757** de 82925 filas
 - celda dominante de la matriz A/B/C: `B=C (sin A)`
-- matriz: {'B=C (sin A)': 19325, 'B!=C (sin A)': 675}
-- **sesgo detectado** (p=1.17224e-202): Sesgo positivo (C > B): 719 de 726 diferencias no nulas caen del mismo lado. Severidad 1 (charter §1.7): el agregado esta mal aunque cada evento respete la tolerancia.
-- evidencia: `REND-VISTA_2026-08-28_b33874ab6f8b`
+- matriz: {'B=C (sin A)': 79168, 'B!=C (sin A)': 3757}
+- **sesgo detectado** (p=4.75564e-74): Sesgo negativo (C < B): 2671 de 4166 diferencias no nulas caen del mismo lado. Severidad 1 (charter §1.7): el agregado esta mal aunque cada evento respete la tolerancia.
+- evidencia: `REND-VISTA_2026-09-02_a3e713633e83`
 
 > Recordatorio (§7.3): **cada hallazgo confirmado se convierte en un invariante**
 > permanente en `tests/`. La red de regresion solo crece.

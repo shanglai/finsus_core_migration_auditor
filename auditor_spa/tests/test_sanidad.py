@@ -493,9 +493,12 @@ def test_vista_advierte_que_su_cifra_no_es_comparable_con_la_citada():
     """INV-C3: el tablero calcula agosto sobre una cota; el informe cita julio
     como censo. Ni se contradicen ni se promedian — hay que decirlo."""
     a = M.POR_ID["VISTA"].alcance
-    assert a.nota, "VISTA no advierte el contraste de ciclo"
-    assert "JULIO" in a.nota.upper() and "AGOSTO" in a.nota.upper()
-    assert "94.76" in a.nota, "VISTA no cita la cifra del informe contra la que contrasta"
+    assert a.nota, "VISTA no advierte el contraste"
+    assert "AGOSTO" in a.nota.upper(), "no dice cual es el ciclo de referencia"
+    assert "julio" in a.nota.lower(), (
+        "no deja rastro de la cita anterior que quedo superada")
+    assert "97.47" in a.nota or "97.65" in a.nota, (
+        "VISTA no cita la cifra de referencia contra la que contrasta")
 
 
 def test_el_alcance_llega_al_json_y_al_spa():
@@ -558,8 +561,10 @@ def test_vista_declara_cual_es_la_cifra_de_referencia():
     convenga."""
     a = M.POR_ID["VISTA"].alcance
     assert "REFERENCIA" in a.nota.upper()
-    assert "PREVIEW" in a.nota.upper() or "preview" in a.tipo
-    assert "94.76" in a.nota and "96.62" in a.nota
+    assert "censo" in a.tipo.lower(), (
+        "la corrida propia ya no es un preview: es censo del mismo universo")
+    assert "97.65" in a.nota and "95.47" in a.nota, (
+        "la nota no contrasta la referencia con la corrida propia")
 
 
 # --- Cierre de version, corte 2026-09-01 -----------------------------------
@@ -589,7 +594,12 @@ def test_una_corrida_propia_superada_no_se_borra_ni_se_publica_de_titular():
     cr = d.get("cruce") or {}
     assert cr.get("superada") is True, "la corrida no esta marcada como superada"
     assert cr.get("superada_por"), "no dice que la supera"
-    assert cr.get("pct_match") == "96.62", "se perdio el preview en vez de conservarlo"
+    assert cr.get("pct_match") == "95.47", (
+        "la corrida propia de VISTA ya no es el preview de 20,000: es el CENSO de "
+        "82,925 al 95.47%")
+    assert cr.get("n_comparadas") == 82925, (
+        "el universo propio debe coincidir con el de la referencia; si no, la "
+        "diferencia no se puede atribuir a la convencion de dt")
 
 
 def test_la_corrida_superada_no_manda_las_barras():
@@ -745,3 +755,22 @@ def test_cat_lee_su_sesgo_descartando_las_dos_primeras_causas():
         "no descarta la precision de la base")
     assert "358" in txt, "no trae la medicion que descarta la base (p10/p90 del residuo)"
     assert "CONVENCION DE DIAS" in txt.upper(), "no nombra la causa que queda"
+
+
+def test_vista_encuadra_el_efecto_de_la_convencion_dt():
+    """Lo que aporta la corrida propia no es un cuarto porcentaje suelto: es
+    acotar cuanto de la diferencia es la convencion y cuanto seria el motor.
+
+    Tres mediciones sobre EL MISMO universo de 82,925:
+      dt = 31 fijo      94.56 / 94.82
+      dt proxy (aqui)   94.98 / 95.47
+      dt por cuenta     97.47 / 97.65   <- referencia
+    Mismo universo en las tres, asi que la diferencia es SOLO la convencion.
+    """
+    t = M.POR_ID["VISTA"].corrida_superada_por
+    for cifra in ("94.56", "95.47", "97.65", "82,925"):
+        assert cifra in t, f"la lectura de VISTA no trae {cifra}"
+    assert "convencion" in t.lower(), "no atribuye la diferencia a la convencion"
+    assert "proxy" in t.lower(), (
+        "no declara que el dt propio es un PROXY (activacion != fondeo), que es "
+        "la razon por la que este numero no sustituye a la referencia")

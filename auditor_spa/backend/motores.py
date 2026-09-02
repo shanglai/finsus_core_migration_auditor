@@ -391,14 +391,20 @@ MOTORES: tuple[Motor, ...] = (
         fuentes=(Fuente(D, "GTM-Pago de Rendimientos p.3"),),
         oraculo="oraculo_rendimientos.rendimiento_vista", estado="parcial",
         corrida_superada_por=(
-            "CENSO DEL CICLO DE AGOSTO, corte 2026-09-01. La corrida de este tablero fue "
-            "un PREVIEW: 20,000 filas (cota operativa) con `dt` de mes, y dio 96.62% al "
-            "centavo. La cifra en firme es el censo completo de 82,925 cuentas con `dt` "
-            "POR CUENTA: 97.47% a 1e-8 / 97.65% al centavo "
-            "(`RESULTADO_vista_vivo_2026-09-01.md`). Universo mayor y convencion mejor, "
-            "asi que sustituye al preview. La corrida local NO se borra: sigue abajo con "
-            "su etiqueta, porque perder cobertura en silencio es tan malo como publicar "
-            "de mas."),
+            "MISMO UNIVERSO, OTRA CONVENCION DE `dt`. Este tablero corrio el CENSO "
+            "completo del ciclo de agosto el 2026-09-02 (82,925 cuentas, exactamente el "
+            "mismo universo que la cifra en firme) y obtuvo 94.98% a 1e-8 / 95.47% al "
+            "centavo. La cifra de referencia sigue siendo la de Linko —97.47% / 97.65%, "
+            "`RESULTADO_vista_vivo_2026-09-01.md`— porque usa una mejor fuente de `dt`. "
+            "|| LO QUE APORTA LA CORRIDA PROPIA: acota el efecto de la convencion. Con "
+            "`dt = 31` fijo la misma corrida da 94.56/94.82; con `dt` POR CUENTA da "
+            "97.47/97.65; y este tablero, que usa `activation_date` como PROXY del inicio "
+            "de devengo, cae en medio con 94.98/95.47. Las tres miden el mismo universo, "
+            "asi que la diferencia es SOLO la convencion — no el motor. Un tercero "
+            "reproduciendo el universo y encuadrando el efecto vale mas que un cuarto "
+            "porcentaje suelto. || El residuo propio es conocido y esta declarado: "
+            "activacion != fondeo, asi que el proxy cuenta mal los dias en las cuentas "
+            "abiertas a media mes. Por eso este numero NO sustituye a la referencia."),
         dossier_pct="97.65",
         dossier_match={"1e-8": "97.47", "1e-5": "97.47", "centavo": "97.65",
                        "n": "82,925 cuentas (censo del ciclo de agosto)", "sesgo": "si",
@@ -830,24 +836,27 @@ ALCANCE_POR_MOTOR: dict[str, Alcance] = {
         no=("Cuentas sin pago en el ciclo.",
             "El ciclo vivo de agosto: cierra el 31-ago y se re-corre entonces.",
             "El SPM de RENDIMIENTO real: se usa `finsus_account_history`, no la poliza."),
-        tipo="preview sobre cota (esta corrida) — la referencia es el censo de julio",
-        n="20,000 pagos (corrida de este tablero)",
-        universo="[PEND] para la corrida de este tablero",
-        representatividad="[PEND]",
+        tipo="censo del ciclo (esta corrida y la de referencia miden las mismas 82,925)",
+        n="82,925 cuentas (censo, corrida propia del 2026-09-02)",
+        universo="82,925 pagadores del ciclo de agosto (de 915,016 cuentas vista, la mayoria con interes 0)",
+        representatividad="100% de los pagadores del ciclo",
         rationale=(
-            "El limite de 20,000 filas es una COTA OPERATIVA para no degradar AurumCore, "
-            "que es produccion — no una decision estadistica. La herramienta puede correr "
-            "el universo completo en cuanto se acuerde la ventana."),
+            "Ya no hay cota: se corrio el CENSO. La cota de 20,000 que hubo antes era "
+            "operativa —no degradar AurumCore, que es produccion—, no estadistica, y se "
+            "levanto en cuanto la ventana lo permitio. El universo coincide EXACTAMENTE "
+            "con el de la cifra de referencia (82,925), que es lo que permite atribuir la "
+            "diferencia a la convencion de `dt` y no al recorte."),
         nota=(
-            "AUD-004 (b) — DOS CIFRAS, UNA REFERENCIA. La cifra de REFERENCIA VIGENTE es "
-            "la del informe: CICLO DE JULIO, censo de 83,094 cuentas (~100% de los "
-            "pagadores del ciclo), 94.76% a 1e-8 y 95.03% al centavo. Lo que muestra esta "
-            "tarjeta —96.62% al centavo— es un PREVIEW del ciclo de agosto sobre una cota "
-            "de 20,000 filas, no el censo. Ciclos y universos distintos: ni se "
-            "contradicen ni se promedian, y no se eligen por conveniencia. "
-            "`MATRIZ_TOLERANCIAS.md` mantiene VISTA en [PEND] A PROPOSITO. Cierre "
-            "definitivo: el ciclo vivo del 31-ago, cuando ambos lados publican la misma "
-            "cifra y se cierran INV-C3 y este AUD-004."),
+            "AUD-004 (b) CERRADO. La cifra de REFERENCIA VIGENTE es el CICLO VIVO DE "
+            "AGOSTO: censo de 82,925 cuentas, 97.47% a 1e-8 y 97.65% al centavo, con `dt` "
+            "POR CUENTA (`RESULTADO_vista_vivo_2026-09-01.md`). Ya NO es la cita de julio "
+            "(83,094 cuentas, 94.76/95.03), que era de otro ciclo y quedo superada. "
+            "`MATRIZ_TOLERANCIAS.md` salio de [PEND] para VISTA con esa cifra, asi que "
+            "INV-C3 tambien queda cerrado. || Este tablero corrio el MISMO ciclo y el "
+            "MISMO universo el 2026-09-02 y obtuvo 94.98/95.47, con `dt` derivado de "
+            "`activation_date` como proxy. No se promedian ni se elige la que convenga: "
+            "manda la de mejor convencion, y la propia sirve para acotar cuanto pesa la "
+            "convencion."),
         ref=f"{_I}/01_CAPTACION_FISCAL.md#v-04"),
 
     "SALDO-PROM": Alcance(
