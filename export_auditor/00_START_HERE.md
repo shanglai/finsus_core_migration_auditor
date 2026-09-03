@@ -27,6 +27,7 @@ Detalle paso a paso: `40_validaciones/MANUAL_USO_ORACULO_AUDITOR.md`.
 ## 2. Mapa de documentos (dónde vive cada cosa)
 **Arranque / operación**
 - `export_auditor/00_START_HERE.md` — este archivo.
+- `GUIA_INSTALACION_GRUPO_AUDITORIA.md` — instalar (Anaconda o venv), correr las validaciones y **levantar el tablero**. Para el grupo auditoría de Finsus.
 - `export_auditor/PROMPT_ARRANQUE_AUDITOR.md` · `PROMPT_SYNC_2026-08-28.md` — arranque y sincronización del auditor interno.
 - `40_validaciones/MANUAL_USO_ORACULO_AUDITOR.md` — instalar, correr, interpretar (incluye §5.4 parámetros/universos).
 - `40_validaciones/ACCESO_Y_RED.md` — hosts/puertos/rutas + usuario read-only.
