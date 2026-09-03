@@ -216,9 +216,24 @@ python auditor_spa\backend\servidor.py --puerto 8777
 Y se abre **http://localhost:8777**. La ventana queda ocupada mientras el servidor corre; para
 detenerlo, `Ctrl+C`.
 
-**Sin servidor también funciona:** `runner.py` deja `auditor_spa\spa\datos.js` empaquetado, así que
-`auditor_spa\spa\index.html` se abre con doble clic. Pierden el botón "Ejecutar" (que necesita el
-backend), no la información.
+### ¿El tablero necesita las dependencias? Casi no — y esto conviene entenderlo
+
+El **front no tiene ninguna dependencia externa**: son dos archivos, `index.html` y `datos.js`, sin
+CDN, sin librerías, sin red. El único `<script src=>` apunta a `datos.js`, que está al lado.
+
+Y el **servidor tampoco necesita las pesadas**: usa `http.server` de la librería estándar, y los
+imports de `polars`/`duckdb`/`psycopg2` están diferidos dentro de las funciones que los usan.
+**Verificado**: `servidor.py` levanta y sirve `/`, `/api/motores`, `/api/sanidad` y `/datos.js`
+correctamente con un Python **sin polars, sin duckdb y sin psycopg2** instalados.
+
+**Sin servidor también funciona:** `auditor_spa\spa\index.html` se abre con doble clic. El tablero
+lee siempre de `datos.js` —no del API—, así que se ve completo. Lo único que se pierde es el botón
+"Ejecutar", que sí necesita el backend.
+
+> **Pero `datos.js` hay que generarlo.** No viene en el repositorio, y es a propósito: contiene
+> **11,527 números de cuenta completos** (en los puntos del scatter, el detalle de no conformes y la
+> muestra de cohorte). Se genera con `runner.py` en la máquina de cada quien —y **eso sí** necesita
+> las dependencias y el acceso—. No se manda por correo ni se sube a ningún repositorio.
 
 En el menú hamburguesa hay dos vistas pensadas para ustedes:
 

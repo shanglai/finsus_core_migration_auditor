@@ -342,7 +342,17 @@ nuevo ignora cualquiera de las cuatro.
 
 ## Seguridad
 
-Solo lectura contra la base. Sin credenciales ni PII al frontend: los JSON
-llevan agregados y una muestra con identificadores truncados a 24 caracteres.
+Solo lectura contra la base. **Nunca credenciales** al frontend.
+
+**Sobre los identificadores — corregido 2026-09-03.** Aquí decía que los JSON llevan
+"identificadores truncados a 24 caracteres", lo cual es cierto del mecanismo y **falso del
+efecto**: un número de cuenta como `100-2006-1019` mide 13 caracteres, así que el truncado lo deja
+intacto. Medido sobre `datos.js`: **11,527 números de cuenta completos**, en
+`cruce.puntos[].id`, `cruce.no_conformes_detalle[].id` y `cruce.parametros.cohorte.muestra[]`.
+El truncado sí recorta UUIDs (36 caracteres); para los números de cuenta no hace nada.
+
+Por eso `auditor_spa/resultados/` y `auditor_spa/spa/datos.js` están en `.gitignore` y **no
+viajan en el bundle**. Quien reciba el tablero debe generarlos en su máquina con `runner.py`,
+contra su propio acceso. No se mandan por correo ni se suben a un repositorio.
 `datos.js` y `resultados/` están en `.gitignore` porque contienen filas de
 clientes reales.
