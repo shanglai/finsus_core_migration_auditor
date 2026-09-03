@@ -9,22 +9,35 @@
 
 ---
 
-## 0. Antes que nada: usen el **Anaconda Prompt**
+## 0. Antes que nada: usen el **prompt de conda**, no PowerShell
 
-Menú Inicio → **Anaconda Prompt (anaconda3)**. No PowerShell, no la terminal de VS Code. Dos razones
-concretas:
+Menú Inicio → **Miniforge Prompt** (o **Anaconda Prompt** si ya tienen Anaconda). No PowerShell, no
+la terminal de VS Code. Dos razones concretas:
 
 - **`conda activate` no funciona en PowerShell** hasta que alguien corra `conda init powershell` y
-  reinicie la terminal. En el Anaconda Prompt funciona de entrada.
+  reinicie la terminal. En el prompt de conda funciona de entrada.
 - **PowerShell 5.1 —el que trae Windows de fábrica— no entiende `&&`.** No falla a medias: es un
   error de sintaxis.
 
 > Aun así, **cada comando de esta guía va en una sola línea, sin `&&`**, para que funcione igual en
-> Anaconda Prompt, cmd y PowerShell. Donde haya diferencia, se indica.
+> el prompt de conda, cmd y PowerShell. Donde haya diferencia, se indica.
 
-## 1. ¿Anaconda sirve? Sí — con dos ajustes
+## 1. Miniforge, Anaconda o pip — cuál usar
 
-Todas las dependencias están en `conda-forge`. Dos cosas cambian respecto a `pip`:
+**Recomendado: Miniforge.** Es el instalador de la comunidad `conda-forge` (BSD-3), apunta a ese
+canal por defecto y **no está sujeto a los términos comerciales de Anaconda Inc.** Se descarga de
+`github.com/conda-forge/miniforge/releases`, no de anaconda.com ni de python.org.
+
+**Anaconda también funciona** si ya lo tienen instalado y aprobado — el comando de instalación es el
+mismo, porque lleva `-c conda-forge` explícito.
+
+> **Por qué el canal importa.** La restricción de Anaconda Inc. es sobre su instalador y su canal
+> `defaults` (`repo.anaconda.com`). `conda-forge` es un canal comunitario aparte. Se verificó en un
+> entorno real: **los seis paquetes y el propio Python vinieron de `conda-forge`**, ninguno de
+> `defaults`. Por eso el `-c conda-forge` va explícito aunque en Miniforge sea el default — así la
+> procedencia queda escrita en el comando, que es lo que se puede auditar.
+
+Dos cosas cambian respecto a `pip`:
 
 **(a) El paquete se llama `psycopg2`, no `psycopg2-binary`.** En conda ya viene compilado; el
 sufijo `-binary` sólo existe en PyPI.
@@ -50,17 +63,26 @@ máquina Windows y ahí se corrió **cada comando de esta guía, tal como está 
 
 El desarrollo fue en 3.14, pero el código no usa nada posterior a 3.10.
 
+> **Salvedad honesta:** esa verificación se hizo con el `conda` de **Anaconda**, apuntando a
+> `conda-forge`. **No se probó el instalador de Miniforge**, porque no está disponible en el equipo
+> donde se preparó esta guía. Lo que sí está verificado es lo que importa: los paquetes son **los
+> mismos de `conda-forge`** que Miniforge instala, y el entorno resultante corre todo sin fallos.
+> Si al validar Miniforge aparece cualquier diferencia, avisen y se corrige aquí.
+
 > **Ojo con las rutas:** los comandos se invocan **desde la raíz del repositorio** con rutas tipo
 > `python validador\cli.py`, no entrando a cada carpeta. Se verificó que los scripts resuelven sus
 > rutas internas solos — y eso es lo que permite evitar el `cd X && comando` que rompe en PowerShell.
 
 ## 2. Instalación
 
+Mismo comando en Miniforge y en Anaconda:
+
 ```
 conda create -y -n auditor -c conda-forge python=3.11 polars duckdb pyarrow psycopg2 pyyaml pytest
 ```
 
-Tarda varios minutos resolviendo — es normal, no está colgado.
+Tarda varios minutos resolviendo — es normal, no está colgado. En Miniforge pueden usar `mamba` en
+lugar de `conda` para que resuelva más rápido; el resto es idéntico.
 
 ```
 conda activate auditor
@@ -83,7 +105,11 @@ Para qué sirve cada uno, porque importa entenderlo al auditar:
 librerías recalcula dinero: sólo mueven filas. Es deliberado — un `float` en una ruta de dinero es
 un error silencioso.
 
-### Alternativa sin Anaconda
+### Sin conda — sólo si ya tienen un Python aprobado
+
+Esta ruta **no incluye instalar Python**: asume que ya hay un intérprete 3.11+ autorizado en el
+equipo. Descargarlo de python.org puede estar restringido por política de seguridad, y esa decisión
+no la resuelve esta guía.
 
 En el **Símbolo del sistema (cmd)**, una línea por vez:
 
@@ -99,6 +125,28 @@ pip install -r requirements.txt
 
 En **PowerShell** la segunda línea es `.venv\Scripts\Activate.ps1` (y puede pedir
 `Set-ExecutionPolicy -Scope Process RemoteSigned`).
+
+### Sobre Spyder
+
+**Spyder es un IDE, no una distribución de Python:** necesita un intérprete debajo y no sustituye a
+Miniforge. Puede editar y correr este código sin problema —es Python plano, sin notebooks—, pero el
+entregable son herramientas de línea de comandos y un servidor local, así que lo natural es
+**Spyder como editor apuntando al entorno de Miniforge**, y los comandos de esta guía en el prompt
+de conda. Ojo con `servidor.py`: bloquea la consola mientras corre.
+
+### Licencias — para TI/CISO
+
+| componente | licencia |
+|---|---|
+| Python (CPython) | **Python-2.0** (PSF) |
+| polars · duckdb · PyYAML · pytest | **MIT** |
+| pyarrow / libarrow | **Apache-2.0** |
+| psycopg2 | **LGPL-3.0-or-later** |
+| instalador Miniforge | **BSD-3-Clause** |
+
+Todas permisivas salvo `psycopg2`, que es **LGPL**: se usa **sin modificar, como librería
+importada**, en herramienta interna que no se redistribuye. Es el único punto que conviene señalar
+explícitamente. Ningún paquete proviene del canal `defaults` de Anaconda.
 
 ---
 
@@ -491,7 +539,7 @@ sesgo: no detectado (p=...) | DETECTADO (p=..., +x/-y)
 
 | síntoma | causa |
 |---|---|
-| `conda activate` no hace nada / "not recognized" | están en PowerShell sin `conda init powershell`. Usen el **Anaconda Prompt** |
+| `conda activate` no hace nada / "not recognized" | están en PowerShell sin `conda init powershell`. Usen el **Miniforge Prompt** (o Anaconda Prompt) |
 | `El token '&&' no es un separador válido` | PowerShell 5.1 no soporta `&&`. Un comando por línea |
 | `'cp' no se reconoce` | es cmd, no PowerShell: usen `copy` |
 | `ModuleNotFoundError: pyarrow` a media corrida | falta `pyarrow`; no es opcional aunque nada lo importe directo |
