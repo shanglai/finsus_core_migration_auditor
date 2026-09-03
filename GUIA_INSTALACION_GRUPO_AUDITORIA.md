@@ -40,11 +40,11 @@ máquina Windows y ahí se corrió **cada comando de esta guía, tal como está 
 
 | qué se probó | resultado |
 |---|---|
-| `pytest auditor_spa validador 60_informe` | **490 pruebas, 0 fallos** |
+| `pytest auditor_spa validador 60_informe` | **0 fallos** (el total de pruebas sube con cada entrega; lo que importa es que ninguna falle) |
 | `sanity_check.py` (Finsus) | SANO + auto-prueba de falsabilidad OK |
 | `sanidad.py` (tablero) | SANO, 0 violaciones en 15 invariantes |
 | `cli.py --autopruebas` · `--listar` · `--explicar` · `--probar-conexion` | correctos |
-| `cohorte.py --help` | correcto |
+| `cohorte.py --help` | correcto (ver la nota de abajo si no lo tienen) |
 | `runner.py` | regenera los JSON y `datos.js` |
 | `servidor.py` + `/api/sanidad` | el tablero sirve y responde SANO |
 
@@ -299,6 +299,20 @@ Primero la cohorte:
 ```
 python validador\cohorte.py --producto 2301 --desde 2026-09-01 --hasta 2026-09-02 --delimitador live --criterio censo --salida cuentas.txt
 ```
+
+> **Si su copia no trae `validador\cohorte.py`**, es un añadido posterior al paquete que
+> recibieron; se los pasamos aparte. Mientras tanto el caso corre igual con un archivo hecho a
+> mano: un `account_number` por línea, y las líneas que empiezan con `#` se ignoran.
+>
+> ```
+> # cohorte armada a mano — declarar aqui como se eligio
+> 100-2301-0000123
+> 100-2301-0000456
+> ```
+>
+> Lo que aporta el generador no es el archivo sino **la procedencia**: escribe dentro cuántas
+> cuentas había disponibles, cuántas se tomaron, qué fracción representa y con qué criterio. Si lo
+> arman a mano, **anoten eso en los comentarios** — es la pregunta que la auditoría hace primero.
 
 ```
 python validador\cli.py --caso REND-PLAZO --confirmar --cohorte-archivo cuentas.txt --param fecha_ini=2026-09-01 --param fecha_fin=2026-09-02 --param delimitador=live
